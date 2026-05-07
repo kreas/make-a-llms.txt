@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 export const blobStore = new Map<string, string>();
 
 export function mockBlob() {
+  blobStore.clear();
   return vi.mock('@vercel/blob', () => ({
     put: vi.fn(async (pathname: string, body: any) => {
       const text = typeof body === 'string' ? body : await readToString(body);

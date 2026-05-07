@@ -1,7 +1,6 @@
 import { execa } from 'execa';
 import { put } from '@vercel/blob';
 import { Readable, PassThrough } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 
 export type RunOpts = {

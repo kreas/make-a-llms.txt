@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { jwtVerify, SignJWT } from 'jose';
 import { eq } from 'drizzle-orm';
-import { db } from '@/db';
+import { getDb } from '@/db';
 import { users } from '@/db/schema';
 
 const SESSION_COOKIE = 'session';
@@ -62,6 +62,7 @@ export async function destroySession() {
 export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session) return null;
+  const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.id, session.userId));
   return user ?? null;
 });

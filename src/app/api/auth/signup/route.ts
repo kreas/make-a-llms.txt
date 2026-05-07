@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { db } from '@/db';
+import { getDb } from '@/db';
 import { users, otpCodes } from '@/db/schema';
 import { generateOtp, hashOtp, otpExpiry } from '@/lib/otp';
 import { sendOtpEmail } from '@/lib/email';
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   }
   const { name, email } = parsed.data;
 
+  const db = getDb();
   const [existing] = await db.select().from(users).where(eq(users.email, email));
   if (existing) {
     return NextResponse.json({ error: 'Account already exists. Sign in instead.' }, { status: 409 });

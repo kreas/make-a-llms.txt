@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { db } from '@/db';
+import { getDb } from '@/db';
 import { users, otpCodes } from '@/db/schema';
 import { generateOtp, hashOtp, otpExpiry } from '@/lib/otp';
 import { sendOtpEmail } from '@/lib/email';
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
   }
   const { email } = parsed.data;
 
+  const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.email, email));
   if (!user) {
     return NextResponse.json({ error: 'No account found. Sign up first.' }, { status: 400 });

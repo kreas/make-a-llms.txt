@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { and, desc, eq, gt, isNull } from 'drizzle-orm';
-import { db } from '@/db';
+import { getDb } from '@/db';
 import { users, otpCodes } from '@/db/schema';
 import { createSession } from '@/lib/auth';
 import { verifyOtpHash } from '@/lib/otp';
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   }
   const { email, code } = parsed.data;
 
+  const db = getDb();
   const [otp] = await db
     .select()
     .from(otpCodes)

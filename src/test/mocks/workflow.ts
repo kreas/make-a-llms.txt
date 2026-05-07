@@ -1,29 +1,20 @@
 import { vi } from 'vitest';
 
+export const startedWorkflows: Array<{ workflow: any; args: any[] }> = [];
+
 /**
- * Registers vitest module mocks for the `workflow` and `workflow/api` packages.
+ * Mock helper for code that calls `start(workflowFn, args)` from `workflow/api`.
+ * Captures invocations into `startedWorkflows` for inspection. Returns a stub runId.
  *
- * IMPORTANT: vitest hoists `vi.mock(...)` calls to the top of the file at
- * compile time, regardless of where they appear in source. Calling
- * `mockWorkflow()` at module scope (outside any describe/it block) is the
- * correct pattern — the hoisting guarantees the mocks are registered before
- * any import from `workflow` or `workflow/api` is resolved.
- *
- * Each step.run(name, fn) simply calls fn() synchronously (in-process).
- * step.parallel runs all fns concurrently via Promise.all.
- * Errors propagate so workflow tests can assert on thrown values.
+ * Vitest hoists vi.mock to the top of the test file. This helper exists for readability
+ * and must be invoked at module scope before any imports of `workflow/api`.
  */
 export function mockWorkflow() {
-  vi.mock('workflow', () => {
-    const stepRun = async (_name: string, fn: () => Promise<any>) => fn();
-    const stepParallel = async (fns: Array<() => Promise<any>>) =>
-      Promise.all(fns.map((p) => p()));
-    return {
-      workflow: (_name: string, fn: any) => fn,
-      step: { run: stepRun, parallel: stepParallel },
-    };
-  });
+  startedWorkflows.length = 0;
   vi.mock('workflow/api', () => ({
-    start: vi.fn(async () => ({ runId: 'test-run-' + Math.random() })),
+    start: vi.fn(async (workflow: any, args: any[]) => {
+      startedWorkflows.push({ workflow, args });
+      return { runId: 'test-run-' + Math.random().toString(36).slice(2, 10) };
+    }),
   }));
 }

@@ -1,39 +1,16 @@
-// Single import surface for WDK so the rest of the codebase doesn't depend
-// on the package's exact API shape. Adjust here if your installed package
-// uses different module paths (e.g., `@vercel/workflow`).
+// Workflow SDK uses TypeScript directives ('use workflow' / 'use step')
+// to mark functions for the workflow runtime. There is no defineWorkflow()
+// or step.run() — workflows ARE functions, and you call them via start().
 //
-// Note: `workflow` and `step` are injected as globals by the WDK TypeScript
-// plugin during compilation. They are not real exports from the package —
-// the mock in tests simulates them as module exports.
-import { workflow as defineWorkflow, step } from 'workflow';
-import { start } from 'workflow/api';
-
-export { defineWorkflow, step, start };
-
-export type StepFn<T> = () => Promise<T>;
-
-export async function runStep<T>(name: string, fn: StepFn<T>): Promise<T> {
-  console.log(`[workflow.step] ${name} → start`);
-  try {
-    const out = await step.run(name, fn);
-    console.log(`[workflow.step] ${name} → ok`);
-    return out;
-  } catch (err) {
-    console.error(`[workflow.step] ${name} → fail`, err);
-    throw err;
-  }
-}
-
-export async function parallelSteps<T extends readonly unknown[]>(
-  fns: { [K in keyof T]: StepFn<T[K]> },
-): Promise<T> {
-  return step.parallel([...fns]) as Promise<T>;
-}
+// This module re-exports the bits we use elsewhere so the rest of the
+// codebase has one import point.
+export { start } from 'workflow/api';
+export { FatalError, RetryableError } from 'workflow';
 
 /**
- * Best-effort workflow cancellation. The WDK SDK at v4.2.4 does not expose a
- * programmatic cancel primitive, so this currently no-ops. Callers should also
- * mark the generation row as 'cancelled' so the UI reflects the user intent.
+ * Best-effort cancellation. The WDK at v4.2.4 does not expose a programmatic
+ * cancel primitive, so this is a no-op stub. Callers should also mark the
+ * generation row as 'cancelled' to surface user intent.
  */
 export async function cancelRun(_runId: string): Promise<boolean> {
   console.warn('[wdk] cancelRun: WDK does not currently expose programmatic cancellation');

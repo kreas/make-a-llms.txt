@@ -1,11 +1,15 @@
-import { defineWorkflow, runStep } from './wdk';
-
 export type HelloPayload = { name: string };
 
-/** Plain async runner — testable in isolation. */
-export async function runHello({ name }: HelloPayload): Promise<string> {
-  return runStep('greet', async () => `hello, ${name}`);
+/**
+ * Hello workflow — entire body executes as a workflow. Steps invoked from here
+ * (only `greet` in this case) are durable.
+ */
+export async function helloWorkflow({ name }: HelloPayload): Promise<string> {
+  'use workflow';
+  return greet(name);
 }
 
-/** Registered workflow — invoked in production via start('hello', payload). */
-export const helloWorkflow = defineWorkflow('hello', runHello);
+async function greet(name: string): Promise<string> {
+  'use step';
+  return `hello, ${name}`;
+}

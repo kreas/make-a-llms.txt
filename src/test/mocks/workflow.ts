@@ -25,6 +25,5 @@ export function mockWorkflow() {
   });
   vi.mock('workflow/api', () => ({
     start: vi.fn(async () => ({ runId: 'test-run-' + Math.random() })),
-    cancel: vi.fn(async () => true),
   }));
 }

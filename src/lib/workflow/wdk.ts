@@ -6,9 +6,9 @@
 // plugin during compilation. They are not real exports from the package —
 // the mock in tests simulates them as module exports.
 import { workflow as defineWorkflow, step } from 'workflow';
-import { start, cancel } from 'workflow/api';
+import { start } from 'workflow/api';
 
-export { defineWorkflow, step, start, cancel };
+export { defineWorkflow, step, start };
 
 export type StepFn<T> = () => Promise<T>;
 
@@ -28,4 +28,14 @@ export async function parallelSteps<T extends readonly unknown[]>(
   fns: { [K in keyof T]: StepFn<T[K]> },
 ): Promise<T> {
   return step.parallel([...fns]) as Promise<T>;
+}
+
+/**
+ * Best-effort workflow cancellation. The WDK SDK at v4.2.4 does not expose a
+ * programmatic cancel primitive, so this currently no-ops. Callers should also
+ * mark the generation row as 'cancelled' so the UI reflects the user intent.
+ */
+export async function cancelRun(_runId: string): Promise<boolean> {
+  console.warn('[wdk] cancelRun: WDK does not currently expose programmatic cancellation');
+  return false;
 }

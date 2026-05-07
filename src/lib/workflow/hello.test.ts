@@ -11,7 +11,6 @@ vi.mock('workflow', () => {
 });
 vi.mock('workflow/api', () => ({
   start: vi.fn(async () => ({ runId: 'r1' })),
-  cancel: vi.fn(async () => true),
 }));
 
 import { runHello } from './hello';

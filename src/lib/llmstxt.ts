@@ -16,10 +16,17 @@ export type RunResult = {
   bytes: number;
 };
 
-const BIN = path.resolve(process.cwd(), 'node_modules/.bin/llmstxt');
+// Point at the real JS entry (not the .bin/ symlink). The symlink can break
+// across Vercel Function packaging; the script's shebang requires `node` on
+// PATH which isn't guaranteed either. We invoke `process.execPath <entry>`
+// directly. Resolved lazily — Next.js's bundler rewrites import.meta.url,
+// so resolving at module-load time would crash during page-data collection.
+function getBinEntry(): string {
+  return path.resolve(process.cwd(), 'node_modules/llmstxt/src/cli/llmstxt.js');
+}
 
 export async function runLlmstxt(opts: RunOpts): Promise<RunResult> {
-  const proc = execa(BIN, [opts.subcommand, opts.sitemapUrl], {
+  const proc = execa(process.execPath, [getBinEntry(), opts.subcommand, opts.sitemapUrl], {
     buffer: false,
     stdio: ['ignore', 'pipe', 'pipe'],
   });

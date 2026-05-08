@@ -20,7 +20,6 @@ vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('workflow/api', () => ({ start: startMock }));
 vi.mock('execa', () => ({
   execa: vi.fn(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const p: any = Promise.resolve({ stdout: '# fixture\n', stderr: '', exitCode: 0 });
     p.stdout = Readable.from([Buffer.from('# fixture\n')]);
     p.stderr = Readable.from([]);

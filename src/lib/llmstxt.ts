@@ -32,21 +32,26 @@ export async function runLlmstxt(opts: RunOpts): Promise<RunResult> {
 
   const { stream: guarded, done: guardDone, getError, getBytes } = guardSize(proc.stdout!, opts.maxBytes);
 
-  const upload = put(opts.blobPath, Readable.toWeb(guarded) as any, {
+  const upload = put(opts.blobPath, Readable.toWeb(guarded), {
     access: 'public',
     contentType: 'text/plain; charset=utf-8',
     addRandomSuffix: false,
-  } as any);
+  });
 
   let result: { url: string; pathname: string };
-  let procResult: { exitCode: number; stderr: string };
+  let procResult: { exitCode?: number; stderr?: string };
   try {
-    [result, procResult] = await Promise.all([upload, proc, guardDone]);
-  } catch (err: any) {
+    [result, procResult] = (await Promise.all([upload, proc, guardDone])) as [
+      typeof result,
+      typeof procResult,
+      void,
+    ];
+  } catch (err: unknown) {
     const guardErr = getError();
     if (guardErr) throw guardErr;
-    const exit = err?.exitCode ?? 'unknown';
-    const tail = (stderrChunks || err?.message || '').slice(-500);
+    const exit = err != null && typeof err === 'object' && 'exitCode' in err ? (err as { exitCode: unknown }).exitCode : 'unknown';
+    const message = err instanceof Error ? err.message : '';
+    const tail = (stderrChunks || message).slice(-500);
     throw new Error(`llmstxt ${opts.subcommand} failed (exit code ${exit}): ${tail}`);
   }
 
@@ -74,7 +79,8 @@ function guardSize(input: NodeJS.ReadableStream, maxBytes: number) {
     if (bytes > maxBytes) {
       error = new Error(`Output exceeded size limit (${maxBytes} bytes).`);
       out.destroy(error);
-      (input as any).destroy?.();
+      // NodeJS.ReadableStream may be a Readable (which has destroy); narrow the type to call it.
+      (input as { destroy?: () => void }).destroy?.();
       return;
     }
     out.write(chunk);

@@ -24,7 +24,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     }
     const gen = await assertOwnsGeneration(n, user.id);
     const pathField = KINDS[kind as Kind];
-    const blobPath = (gen as any)[pathField] as string | null;
+    const blobPath = gen[pathField];
     if (!blobPath) throw new ApiError(404, 'not_found', 'File not ready');
 
     const meta = await head(`https://blob.vercel-storage.com/${blobPath}`);

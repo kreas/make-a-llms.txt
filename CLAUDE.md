@@ -18,7 +18,7 @@
 - **Framework**: Next.js 16 (App Router, TypeScript, Turbopack)
 - **Styling**: Tailwind CSS v4 + ShadCN UI (new-york style, neutral base)
 - **Database**: Drizzle ORM + Turso (libsql/SQLite)
-- **Storage**: Cloudflare R2 (via AWS SDK v3)
+- **Storage**: Vercel Blob (`@vercel/blob`)
 - **Auth**: Email OTP via Resend, JWT cookie sessions (`jose`)
 - **AI**: Vercel AI SDK + Anthropic (`@ai-sdk/anthropic`)
 - **Data Fetching**: TanStack Query (`@tanstack/react-query`)
@@ -31,7 +31,7 @@
 - `src/app/signin/`, `src/app/signup/` — auth pages
 - `src/components/auth/` — `OtpForm`, `SignOutButton`
 - `src/db/` — Drizzle schema (`schema.ts`) and client (`index.ts`)
-- `src/lib/` — Shared utilities: `auth.ts` (sessions), `otp.ts` (code helpers), `email.ts` (Resend), `r2.ts`, `utils.ts`
+- `src/lib/` — Shared utilities: `auth.ts` (sessions), `otp.ts` (code helpers), `email.ts` (Resend), `blob.ts` (Vercel Blob), `utils.ts`
 - `drizzle.config.ts` — Drizzle Kit configuration
 - `drizzle/` — Generated migrations
 

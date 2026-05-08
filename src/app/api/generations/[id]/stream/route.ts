@@ -81,6 +81,9 @@ export async function GET(_req: Request, ctx: Ctx) {
           intervalMs: 1000,
           heartbeatMs: 15_000,
           idleTimeoutMs: 10 * 60_000,
+        }).catch((err) => {
+          console.error('[sse] buildEventStream failed', err);
+          try { controller.error(err); } catch { /* already closed */ }
         });
       },
     });

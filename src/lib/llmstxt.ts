@@ -32,8 +32,9 @@ export async function runLlmstxt(opts: RunOpts): Promise<RunResult> {
 
   const { stream: guarded, done: guardDone, getError, getBytes } = guardSize(proc.stdout!, opts.maxBytes);
 
-  const upload = put(opts.blobPath, Readable.toWeb(guarded), {
-    access: 'public',
+  const webStream = Readable.toWeb(guarded) as unknown as ReadableStream;
+  const upload = put(opts.blobPath, webStream, {
+    access: 'private',
     contentType: 'text/plain; charset=utf-8',
     addRandomSuffix: false,
   });

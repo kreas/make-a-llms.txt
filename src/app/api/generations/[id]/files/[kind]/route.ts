@@ -1,4 +1,4 @@
-import { head } from '@vercel/blob';
+import { get } from '@vercel/blob';
 import {
   apiErrorResponse,
   ApiError,
@@ -27,14 +27,11 @@ export async function GET(_req: Request, ctx: Ctx) {
     const blobPath = gen[pathField];
     if (!blobPath) throw new ApiError(404, 'not_found', 'File not ready');
 
-    const meta = await head(`https://blob.vercel-storage.com/${blobPath}`);
-    const downstream = await fetch(meta.url);
-    if (!downstream.ok) {
-      throw new ApiError(502, 'storage_error', 'Failed to fetch blob');
-    }
+    const blob = await get(blobPath, { access: 'private' });
+    if (!blob) throw new ApiError(404, 'not_found', 'File not found in storage');
 
     const filename = kind === 'llms' ? 'llms.txt' : 'llms-full.txt';
-    return new Response(downstream.body, {
+    return new Response(blob.stream, {
       status: 200,
       headers: {
         'content-type': 'text/plain; charset=utf-8',

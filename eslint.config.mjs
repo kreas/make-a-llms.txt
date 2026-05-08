@@ -11,9 +11,12 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     '.next/**',
+    '**/.next/**',
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // Nested worktrees managed by the Claude harness.
+    '.claude/**',
   ]),
   // Allow `any` in test files and mock helpers — types in mocks are intentionally loose.
   {

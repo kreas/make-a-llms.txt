@@ -23,6 +23,7 @@
   --color-timeline-read: var(--timeline-read);
   --color-timeline-edit: var(--timeline-edit);
   --color-timeline-done: var(--timeline-done);
+  --color-semantic-success: var(--semantic-success);
 
   /* shadcn semantic bindings — map DESIGN.md tokens onto shadcn names */
   --color-background: var(--background);

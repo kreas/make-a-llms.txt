@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LLMs.txt Generator - Dashboard</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#f2d4cb",
+                        "body": "#5a5852",
+                        "tertiary": "#005baf",
+                        "on-error": "#ffffff",
+                        "semantic-error": "#cf2d56",
+                        "outline-variant": "#e5beb2",
+                        "secondary": "#605e56",
+                        "on-error-container": "#93000a",
+                        "canvas": "#f7f7f4",
+                        "timeline-thinking": "#dfa88f",
+                        "timeline-done": "#c08532",
+                        "timeline-grep": "#9fc9a2",
+                        "surface-variant": "#fadcd3",
+                        "outline": "#907066",
+                        "muted-soft": "#a09c92",
+                        "surface-tint": "#ac3400",
+                        "on-surface": "#281813",
+                        "tertiary-container": "#0074db",
+                        "inverse-on-surface": "#ffede8",
+                        "ink": "#26251e",
+                        "surface-container-lowest": "#ffffff",
+                        "timeline-read": "#9fbbe0",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#e3dfd4",
+                        "surface-card": "#ffffff",
+                        "surface": "#fff8f6",
+                        "primary-fixed": "#ffdbd0",
+                        "canvas-soft": "#fafaf7",
+                        "primary-container": "#d24200",
+                        "on-secondary-container": "#65635a",
+                        "secondary-fixed": "#e6e2d7",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#3e2c26",
+                        "hairline-soft": "#efeee8",
+                        "hairline": "#e6e5e0",
+                        "timeline-edit": "#c0a8dd",
+                        "surface-container-highest": "#fadcd3",
+                        "surface-strong": "#e6e5e0",
+                        "semantic-success": "#1f8a65",
+                        "on-tertiary-container": "#fefcff",
+                        "surface-container-low": "#fff1ed",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#1d1c15",
+                        "tertiary-fixed": "#d5e3ff",
+                        "on-background": "#281813",
+                        "on-tertiary-fixed-variant": "#004689",
+                        "surface-container": "#ffe9e3",
+                        "primary-fixed-dim": "#ffb59d",
+                        "on-secondary": "#ffffff",
+                        "hairline-strong": "#cfcdc4",
+                        "primary": "#a83300",
+                        "on-primary-container": "#fffbff",
+                        "inverse-primary": "#ffb59d",
+                        "on-tertiary-fixed": "#001b3c",
+                        "surface-container-high": "#ffe2da",
+                        "surface-bright": "#fff8f6",
+                        "on-primary-fixed-variant": "#832600",
+                        "on-surface-variant": "#5c4038",
+                        "on-secondary-fixed-variant": "#48473f",
+                        "on-primary-fixed": "#390b00",
+                        "muted": "#807d72",
+                        "error": "#ba1a1a",
+                        "primary-active": "#d04200",
+                        "tertiary-fixed-dim": "#a8c8ff",
+                        "background": "#fff8f6",
+                        "secondary-fixed-dim": "#cac6bc"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "xl": "32px",
+                        "md": "20px",
+                        "sm": "12px",
+                        "xxl": "48px",
+                        "base": "16px",
+                        "xxs": "4px",
+                        "xs": "8px",
+                        "section": "80px"
+                    },
+                    "fontFamily": {
+                        "title-md": ["Inter"],
+                        "body-tracked": ["Inter"],
+                        "code": ["JetBrains Mono"],
+                        "display-lg": ["Inter"],
+                        "display-mega": ["Inter"],
+                        "display-sm": ["Inter"],
+                        "display-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "caption-uppercase": ["Inter"],
+                        "button": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-md": ["18px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }],
+                        "body-tracked": ["16px", { "lineHeight": "1.5", "letterSpacing": "0.08px", "fontWeight": "400" }],
+                        "code": ["13px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.72px", "fontWeight": "400" }],
+                        "display-mega": ["72px", { "lineHeight": "1.1", "letterSpacing": "-2.16px", "fontWeight": "400" }],
+                        "display-sm": ["22px", { "lineHeight": "1.3", "letterSpacing": "-0.11px", "fontWeight": "400" }],
+                        "display-md": ["26px", { "lineHeight": "1.25", "letterSpacing": "-0.325px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "caption-uppercase": ["11px", { "lineHeight": "1.4", "letterSpacing": "0.88px", "fontWeight": "600" }],
+                        "button": ["14px", { "lineHeight": "1.0", "letterSpacing": "0", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-canvas text-ink font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-canvas dark:bg-canvas w-full border-b border-hairline font-body-md text-body-md transition-opacity duration-200">
+<div class="max-w-[1200px] mx-auto px-lg flex justify-between items-center h-16">
+<div class="font-title-md text-title-md font-semibold text-ink dark:text-inverse-on-surface">llms.txt Generator</div>
+<nav class="hidden md:flex gap-lg h-full items-end">
+<a class="text-primary border-b-2 border-primary pb-1 font-body-md text-body-md h-full flex items-center mt-1" href="#">Dashboard</a>
+<a class="text-muted-soft hover:text-ink transition-colors font-body-md text-body-md h-full flex items-center hover:text-primary-active transition-all" href="#">Add Site</a>
+<a class="text-muted-soft hover:text-ink transition-colors font-body-md text-body-md h-full flex items-center hover:text-primary-active transition-all" href="#">Documentation</a>
+</nav>
+<div class="flex items-center gap-md">
+<button class="text-muted hover:text-ink transition-all duration-150 font-button text-button">Sign Out</button>
+<button class="bg-primary text-on-primary hover:bg-primary-active transition-all duration-150 font-button text-button h-[40px] px-lg rounded flex items-center justify-center">New Project</button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow max-w-[1200px] w-full mx-auto px-lg py-section">
+<header class="mb-xxl">
+<h1 class="font-display-lg text-display-lg text-ink">Your Projects</h1>
+<p class="font-body-md text-body-md text-muted mt-xs">Manage your website documentation for LLMs.</p>
+</header>
+<!-- Project Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+<!-- Card 1 -->
+<div class="bg-surface-card border border-hairline rounded-lg p-lg flex flex-col gap-lg hover:border-hairline-strong transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-timeline-done text-on-surface font-caption-uppercase text-caption-uppercase px-xs py-xxs rounded">DONE</span>
+<span class="font-code text-code text-muted">2 mins ago</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-ink">Google Cloud Docs</h3>
+<p class="font-code text-code text-muted mt-xs truncate">https://cloud.google.com/docs</p>
+</div>
+<div class="flex gap-sm mt-auto pt-sm">
+<button class="flex-1 bg-surface-card border border-hairline-strong text-ink hover:bg-canvas-soft transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">View</button>
+<button class="flex-1 bg-primary text-on-primary hover:bg-primary-active transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">Run Now</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-card border border-hairline rounded-lg p-lg flex flex-col gap-lg hover:border-hairline-strong transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-timeline-thinking text-on-surface font-caption-uppercase text-caption-uppercase px-xs py-xxs rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> PROCESSING
+                    </span>
+<span class="font-code text-code text-muted">Just now</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-ink">Stripe API</h3>
+<p class="font-code text-code text-muted mt-xs truncate">https://docs.stripe.com/api</p>
+</div>
+<div class="flex gap-sm mt-auto pt-sm">
+<button class="flex-1 bg-surface-card border border-hairline-strong text-ink hover:bg-canvas-soft transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">View</button>
+<button class="flex-1 bg-surface-strong text-muted cursor-not-allowed font-button text-button h-[40px] rounded flex items-center justify-center" disabled="">Run Now</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-card border border-hairline rounded-lg p-lg flex flex-col gap-lg hover:border-hairline-strong transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-timeline-grep text-on-surface font-caption-uppercase text-caption-uppercase px-xs py-xxs rounded">THINKING</span>
+<span class="font-code text-code text-muted">1 hr ago</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-ink">Vercel SDK</h3>
+<p class="font-code text-code text-muted mt-xs truncate">https://sdk.vercel.ai/docs</p>
+</div>
+<div class="flex gap-sm mt-auto pt-sm">
+<button class="flex-1 bg-surface-card border border-hairline-strong text-ink hover:bg-canvas-soft transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">View</button>
+<button class="flex-1 bg-primary text-on-primary hover:bg-primary-active transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">Run Now</button>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-card border border-hairline rounded-lg p-lg flex flex-col gap-lg hover:border-hairline-strong transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-timeline-done text-on-surface font-caption-uppercase text-caption-uppercase px-xs py-xxs rounded">DONE</span>
+<span class="font-code text-code text-muted">5 hrs ago</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-ink">React Navigation</h3>
+<p class="font-code text-code text-muted mt-xs truncate">https://reactnavigation.org/docs</p>
+</div>
+<div class="flex gap-sm mt-auto pt-sm">
+<button class="flex-1 bg-surface-card border border-hairline-strong text-ink hover:bg-canvas-soft transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">View</button>
+<button class="flex-1 bg-primary text-on-primary hover:bg-primary-active transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">Run Now</button>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-card border border-hairline rounded-lg p-lg flex flex-col gap-lg hover:border-hairline-strong transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-timeline-read text-on-surface font-caption-uppercase text-caption-uppercase px-xs py-xxs rounded">FAILED</span>
+<span class="font-code text-code text-muted">Yesterday</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-ink">Tailwind CSS</h3>
+<p class="font-code text-code text-muted mt-xs truncate">https://tailwindcss.com/docs</p>
+</div>
+<div class="flex gap-sm mt-auto pt-sm">
+<button class="flex-1 bg-surface-card border border-hairline-strong text-ink hover:bg-canvas-soft transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">View</button>
+<button class="flex-1 bg-primary text-on-primary hover:bg-primary-active transition-colors duration-150 font-button text-button h-[40px] rounded flex items-center justify-center">Retry</button>
+</div>
+</div>
+<!-- Empty State / Add New Card -->
+<div class="bg-canvas-soft border border-hairline border-dashed rounded-lg p-lg flex flex-col items-center justify-center gap-md hover:border-primary transition-colors duration-200 cursor-pointer min-h-[220px]">
+<span class="material-symbols-outlined text-muted text-[32px]">add_circle</span>
+<span class="font-button text-button text-ink">Add New Project</span>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-canvas dark:bg-canvas w-full border-t border-hairline mt-xxl transition-all duration-150">
+<div class="max-w-[1200px] mx-auto px-lg py-xl flex flex-col md:flex-row justify-between items-center gap-base">
+<div class="font-code text-code text-ink">
+                © 2024 LLMS.TXT ARCHITECT. BUILT FOR BUILDERS.
+            </div>
+<div class="flex gap-lg">
+<a class="font-caption-uppercase text-caption-uppercase text-muted dark:text-muted-soft hover:text-ink hover:underline transition-all duration-150" href="#">Privacy</a>
+<a class="font-caption-uppercase text-caption-uppercase text-muted dark:text-muted-soft hover:text-ink hover:underline transition-all duration-150" href="#">Terms</a>
+<a class="font-caption-uppercase text-caption-uppercase text-muted dark:text-muted-soft hover:text-ink hover:underline transition-all duration-150" href="#">GitHub</a>
+<a class="font-caption-uppercase text-caption-uppercase text-muted dark:text-muted-soft hover:text-ink hover:underline transition-all duration-150" href="#">API Documentation</a>
+</div>
+</div>
+</footer>
+</body></html>

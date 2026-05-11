@@ -5,14 +5,12 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { SiteForm } from './site-form';
 
 describe('SiteForm', () => {
-  it('calls onSubmit with valid input', async () => {
+  it('calls onSubmit with rootUrl when form is submitted with a valid URL', async () => {
     const onSubmit = vi.fn();
     render(<SiteForm onSubmit={onSubmit} />);
-    await userEvent.type(screen.getByLabelText(/name/i), 'Acme');
     await userEvent.type(screen.getByLabelText(/website url/i), 'https://acme.com');
-    await userEvent.click(screen.getByRole('button', { name: /create site/i }));
+    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
     expect(onSubmit).toHaveBeenCalledWith({
-      name: 'Acme',
       rootUrl: 'https://acme.com',
       sitemapUrl: undefined,
     });
@@ -21,10 +19,17 @@ describe('SiteForm', () => {
   it('shows error when URL is invalid', async () => {
     const onSubmit = vi.fn();
     render(<SiteForm onSubmit={onSubmit} />);
-    await userEvent.type(screen.getByLabelText(/name/i), 'A');
     await userEvent.type(screen.getByLabelText(/website url/i), 'bogus');
-    await userEvent.click(screen.getByRole('button', { name: /create site/i }));
+    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
     expect(await screen.findByText(/valid url|http/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('shows error when URL is empty', async () => {
+    const onSubmit = vi.fn();
+    render(<SiteForm onSubmit={onSubmit} />);
+    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+    expect(await screen.findByText(/please enter a website url/i)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });
@@ -38,7 +43,7 @@ describe('SiteForm sitemap discovery', () => {
     vi.stubGlobal('fetch', vi.fn(impl));
   }
 
-  it('shows spinner and disables sitemap while discovering, populates on success', async () => {
+  it('shows spinner while discovering and populates sitemap hint on success', async () => {
     let resolveFetch!: (r: Response) => void;
     stubFetch(
       () =>
@@ -56,7 +61,6 @@ describe('SiteForm sitemap discovery', () => {
       });
     });
 
-    // Advance past the 500ms debounce to trigger fetch
     await act(async () => {
       await vi.advanceTimersByTimeAsync(600);
     });
@@ -64,7 +68,6 @@ describe('SiteForm sitemap discovery', () => {
     vi.useRealTimers();
 
     expect(screen.getByText(/looking for sitemap/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/sitemap url/i)).toBeDisabled();
 
     await act(async () => {
       resolveFetch(
@@ -75,12 +78,11 @@ describe('SiteForm sitemap discovery', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/sitemap url/i)).toHaveValue('https://acme.com/sitemap.xml');
+      expect(screen.getByText(/found sitemap/i)).toBeInTheDocument();
     });
-    expect(screen.getByText(/^found$/i)).toBeInTheDocument();
   });
 
-  it('shows "No sitemap found" on 404', async () => {
+  it('shows "No sitemap found" hint on 404', async () => {
     stubFetch(async () => new Response('', { status: 404 }));
 
     vi.useFakeTimers();
@@ -103,24 +105,17 @@ describe('SiteForm sitemap discovery', () => {
     });
   });
 
-  it('does not overwrite a sitemap the user typed manually', async () => {
+  it('includes discovered sitemapUrl in onSubmit payload', async () => {
     stubFetch(async () =>
       new Response(JSON.stringify({ sitemapUrl: 'https://acme.com/sitemap.xml' }), {
         status: 200,
       }),
     );
 
+    const onSubmit = vi.fn();
     vi.useFakeTimers();
-    render(<SiteForm onSubmit={vi.fn()} />);
+    render(<SiteForm onSubmit={onSubmit} />);
 
-    // Set sitemap manually first (clears autoFilledRef)
-    act(() => {
-      fireEvent.change(screen.getByLabelText(/sitemap url/i), {
-        target: { value: 'https://manual.test/sm.xml' },
-      });
-    });
-
-    // Then change rootUrl — discovery should be skipped because manual value exists
     act(() => {
       fireEvent.change(screen.getByLabelText(/website url/i), {
         target: { value: 'https://acme.com' },
@@ -133,7 +128,15 @@ describe('SiteForm sitemap discovery', () => {
 
     vi.useRealTimers();
 
-    // Manual value should be preserved
-    expect(screen.getByLabelText(/sitemap url/i)).toHaveValue('https://manual.test/sm.xml');
+    await waitFor(() => {
+      expect(screen.getByText(/found sitemap/i)).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      rootUrl: 'https://acme.com',
+      sitemapUrl: 'https://acme.com/sitemap.xml',
+    });
   });
 });

@@ -5,8 +5,8 @@ import { StatusBadge } from './status-badge';
 describe('StatusBadge', () => {
   it.each([
     ['pending', 'PENDING', 'bg-surface-strong'],
-    ['running', 'RUNNING', 'bg-canvas-soft'],
-    ['succeeded', 'DONE', 'bg-semantic-success'],
+    ['running', 'PROCESSING', 'bg-timeline-thinking'],
+    ['succeeded', 'DONE', 'bg-timeline-done'],
     ['failed', 'FAILED', 'bg-destructive'],
     ['cancelled', 'Cancelled', 'text-muted-soft'],
   ] as const)('renders %s with text %s and class containing %s', (status, label, cls) => {

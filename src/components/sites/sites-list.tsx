@@ -1,41 +1,27 @@
-import Link from 'next/link';
-import type { Site } from '@/db/schema';
+import type { Site, Generation } from '@/db/schema';
+import { SiteCard } from './site-card';
+import { AddSiteCard } from './add-site-card';
 
-export function SitesList({ sites }: { sites: Site[] }) {
+export function SitesList({
+  sites,
+  latestBySiteId,
+}: {
+  sites: Site[];
+  latestBySiteId: Record<number, Generation | null>;
+}) {
   if (sites.length === 0) {
     return (
-      <div className="rounded-lg border border-hairline bg-surface-card p-8 text-center">
-        <p className="display-sm text-ink">Add your first site</p>
-        <p className="mt-2 text-body">Create a site to start generating llms.txt files.</p>
-        <Link
-          href="/sites/new"
-          className="mt-4 inline-flex h-10 items-center rounded-md bg-ink px-4 text-canvas"
-        >
-          New site
-        </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AddSiteCard />
       </div>
     );
   }
-
   return (
-    <ul className="flex flex-col gap-3">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {sites.map((s) => (
-        <li
-          key={s.id}
-          className="flex items-center justify-between rounded-lg border border-hairline bg-surface-card p-4"
-        >
-          <div>
-            <div className="title-md text-ink">{s.name}</div>
-            <div className="text-sm text-body">{s.rootUrl}</div>
-          </div>
-          <Link
-            href={`/sites/${s.id}`}
-            className="caption-uppercase text-muted-strong hover:text-ink"
-          >
-            Open →
-          </Link>
-        </li>
+        <SiteCard key={s.id} site={s} latest={latestBySiteId[s.id] ?? null} />
       ))}
-    </ul>
+      <AddSiteCard />
+    </div>
   );
 }

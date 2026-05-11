@@ -47,6 +47,8 @@ The brand's strongest visual signature is the **AI-timeline pill palette**: five
 - **Edit** (`{colors.timeline-edit}` — #c0a8dd): Lavender.
 - **Done** (`{colors.timeline-done}` — #c08532): Warm gold.
 
+**Use case**: Generation pipelines treat status pills as agent-action stages, so the same pastels apply there.
+
 ### Semantic
 - **Success** (`{colors.semantic-success}` — #1f8a65): Confirmation indicators.
 - **Error** (`{colors.semantic-error}` — #cf2d56): Validation errors.
@@ -212,7 +214,7 @@ The system uses **hairline-only depth**. No drop shadows, no elevation tiers. Ca
 - Don't introduce a secondary brand action color. Cursor Orange is the only one.
 - Don't drop display to bold weights (700+). Magazine voice depends on 400.
 - Don't add drop shadows. Hairlines + ink-on-cream contrast carry the depth.
-- Don't use timeline pastels on non-timeline UI. They're scoped to the agent timeline only.
+- Don't use timeline pastels on non-timeline UI. They're scoped to in-product agent timeline UI. **Exception**: when the system *is* the agent timeline — e.g., a generation pipeline whose status the user reads as agent-action stages — timeline pastels are the correct mapping (e.g., `timeline-thinking` for "processing", `timeline-done` for "succeeded"). Semantic error stays semantic (`semantic-error`/`destructive`) regardless.
 - Don't extract a CTA color from a third-party widget (cookie consent, OneTrust). The brand's CTA is what appears on actual product CTAs.
 
 ## Responsive Behavior

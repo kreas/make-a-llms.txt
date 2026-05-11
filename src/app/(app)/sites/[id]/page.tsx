@@ -15,10 +15,7 @@ export default async function SiteDetailPage({
   const user = await requireUser();
   if (!Number.isInteger(siteId) || siteId <= 0) notFound();
 
-  const [site] = await getDb()
-    .select()
-    .from(sites)
-    .where(eq(sites.id, siteId));
+  const [site] = await getDb().select().from(sites).where(eq(sites.id, siteId));
   if (!site || site.userId !== user.id) notFound();
 
   const recent = await getDb()
@@ -28,5 +25,5 @@ export default async function SiteDetailPage({
     .orderBy(desc(generations.createdAt))
     .limit(20);
 
-  return <SiteDetailClient site={site} initialGenerations={recent} />;
+  return <SiteDetailClient site={site} generations={recent} />;
 }

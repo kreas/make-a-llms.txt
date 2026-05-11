@@ -18,14 +18,15 @@ const mkSite = (over: Partial<Site> = {}): Site => ({
 });
 
 describe('SitesList', () => {
-  it('renders empty state', () => {
-    render(<SitesList sites={[]} />);
-    expect(screen.getByText(/add your first site/i)).toBeInTheDocument();
+  it('renders the AddSiteCard in the empty state', () => {
+    render(<SitesList sites={[]} latestBySiteId={{}} />);
+    expect(screen.getByText('Add New Project')).toBeInTheDocument();
   });
 
-  it('renders each site with its name and URL', () => {
-    render(<SitesList sites={[mkSite()]} />);
+  it('renders each site card and the add-site card when sites exist', () => {
+    render(<SitesList sites={[mkSite()]} latestBySiteId={{ 1: null }} />);
     expect(screen.getByText('Acme')).toBeInTheDocument();
     expect(screen.getByText('https://acme.com')).toBeInTheDocument();
+    expect(screen.getByText('Add New Project')).toBeInTheDocument();
   });
 });

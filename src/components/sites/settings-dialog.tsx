@@ -69,11 +69,13 @@ export function SettingsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-6">
-          <section className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-6">
+          <section className="flex min-w-0 flex-col gap-2">
             <label className="caption-uppercase text-muted-strong">Webhook URL</label>
-            <div className="flex items-center gap-2 rounded-md border border-hairline bg-canvas-soft p-3">
-              <code className="flex-grow truncate font-mono text-[13px] text-ink">{webhookUrl}</code>
+            <div className="flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-canvas-soft p-3">
+              <code className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">
+                {webhookUrl}
+              </code>
               <Button
                 type="button"
                 variant="outline"
@@ -90,12 +92,12 @@ export function SettingsDialog({
             </div>
           </section>
 
-          <section className="flex flex-col gap-2">
+          <section className="flex min-w-0 flex-col gap-2">
             <label className="caption-uppercase text-muted-strong">Bearer Token</label>
             {freshToken ? (
               <>
-                <div className="flex items-center gap-2 rounded-md border border-semantic-success bg-canvas-soft p-3">
-                  <code className="flex-grow truncate font-mono text-[13px] text-ink">
+                <div className="flex min-w-0 items-center gap-2 rounded-md border border-semantic-success bg-canvas-soft p-3">
+                  <code className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">
                     {freshToken}
                   </code>
                   <Button
@@ -117,8 +119,8 @@ export function SettingsDialog({
                 </p>
               </>
             ) : (
-              <div className="flex items-center gap-2 rounded-md border border-hairline bg-canvas-soft p-3">
-                <code className="flex-grow truncate font-mono text-[13px] text-ink">
+              <div className="flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-canvas-soft p-3">
+                <code className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">
                   {tokenPrefix}••••••••••••••••••••••••
                 </code>
               </div>
@@ -135,9 +137,9 @@ export function SettingsDialog({
             </Button>
           </section>
 
-          <section className="flex flex-col gap-2">
+          <section className="flex min-w-0 flex-col gap-2">
             <label className="caption-uppercase text-muted-strong">Code Snippets</label>
-            <Tabs defaultValue="curl">
+            <Tabs defaultValue="curl" className="min-w-0">
               <TabsList className="w-full">
                 <TabsTrigger value="curl" className="flex-1">
                   curl
@@ -146,14 +148,14 @@ export function SettingsDialog({
                   Node.js
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="curl">
+              <TabsContent value="curl" className="min-w-0">
                 <SnippetBlock
                   code={curlSnippet}
                   copied={copiedKey === 'curl'}
                   onCopy={() => copy('curl', curlSnippet)}
                 />
               </TabsContent>
-              <TabsContent value="node">
+              <TabsContent value="node" className="min-w-0">
                 <SnippetBlock
                   code={nodeSnippet}
                   copied={copiedKey === 'node'}
@@ -184,8 +186,8 @@ function SnippetBlock({
   onCopy: () => void;
 }) {
   return (
-    <div className="relative">
-      <pre className="overflow-x-auto rounded-md border border-hairline bg-canvas-soft p-4 font-mono text-[13px] text-ink">
+    <div className="relative min-w-0">
+      <pre className="w-full overflow-x-auto rounded-md border border-hairline bg-canvas-soft p-4 pr-12 font-mono text-[13px] text-ink">
         {code}
       </pre>
       <Button

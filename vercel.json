@@ -1,4 +1,5 @@
 {
+  "buildCommand": "pnpm db:migrate && pnpm build",
   "crons": [
     {
       "path": "/api/cron/cleanup-orphans",

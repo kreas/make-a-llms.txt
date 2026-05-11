@@ -55,7 +55,7 @@ function RegenerateLink({
       <button
         type="button"
         disabled
-        className="flex h-10 flex-1 cursor-not-allowed items-center justify-center rounded-md bg-surface-strong text-sm font-medium text-muted"
+        className="flex h-10 flex-1 cursor-not-allowed items-center justify-center rounded-md bg-surface-strong text-sm font-medium text-muted-strong"
       >
         {label}
       </button>

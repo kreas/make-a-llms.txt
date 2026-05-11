@@ -3,6 +3,21 @@ import { put } from '@vercel/blob';
 import { Readable, PassThrough } from 'node:stream';
 import path from 'node:path';
 
+// Next.js's file-tracer (nft) discovers function dependencies by walking
+// static import/require references. We invoke the llmstxt CLI as a separate
+// process (execa), so the tracer never sees its requires — which means
+// commander, cheerio, undici, etc. don't get copied into the deployed
+// function bundle. The dynamic import below is unreachable at runtime
+// (the guard is impossible) but visible to the static analyzer, which
+// triggers transitive tracing of llmstxt's entire dependency tree.
+async function _traceLlmstxtDeps(): Promise<void> {
+  if ((globalThis as Record<string, unknown>).__nft_trace_anchor === Symbol.for('nft')) {
+    // @ts-expect-error - llmstxt has no published type declarations
+    await import('llmstxt/src/cli/actions/gen');
+  }
+}
+void _traceLlmstxtDeps;
+
 export type RunOpts = {
   subcommand: 'gen' | 'gen-full';
   sitemapUrl: string;

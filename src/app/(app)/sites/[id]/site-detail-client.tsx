@@ -7,7 +7,7 @@ import { Settings, RefreshCw, Link as LinkIcon, Clock } from 'lucide-react';
 import type { Site, Generation } from '@/db/schema';
 import { ProcessTimeline } from '@/components/generations/process-timeline';
 import { LlmsContentPanel } from '@/components/generations/llms-content-panel';
-import { WebhookBlock } from '@/components/sites/webhook-block';
+import { SettingsDialog } from '@/components/sites/settings-dialog';
 import { GenerationsTable } from '@/components/generations/generations-table';
 import { formatRelativeTime } from '@/lib/format-time';
 
@@ -21,6 +21,7 @@ export function SiteDetailClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [freshToken, setFreshToken] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const latest = generations[0] ?? null;
   const latestSucceeded = generations.find((g) => g.status === 'succeeded') ?? null;
@@ -106,10 +107,8 @@ export function SiteDetailClient({
         <div className="flex items-center gap-3">
           <button
             type="button"
+            onClick={() => setSettingsOpen(true)}
             className="inline-flex h-10 items-center gap-2 rounded-md border border-hairline-strong bg-surface-card px-4 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
-            disabled
-            aria-disabled
-            title="Coming soon"
           >
             <Settings className="h-4 w-4" />
             Settings
@@ -128,21 +127,24 @@ export function SiteDetailClient({
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <LlmsContentPanel generation={latestSucceeded} siteId={site.id} />
-        <div className="flex flex-col gap-6">
-          <WebhookBlock
-            siteId={site.id}
-            tokenPrefix={site.webhookTokenPrefix}
-            freshToken={freshToken ?? undefined}
-            onRotate={() => rotate.mutate()}
-          />
-          <div className="rounded-lg border border-hairline bg-surface-card p-6">
-            <h2 className="text-lg font-semibold text-ink">Generation History</h2>
-            <div className="mt-4">
-              <GenerationsTable generations={generations} />
-            </div>
+        <div className="rounded-lg border border-hairline bg-surface-card p-6">
+          <h2 className="text-lg font-semibold text-ink">Generation History</h2>
+          <div className="mt-4">
+            <GenerationsTable generations={generations} />
           </div>
         </div>
       </div>
+
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        siteId={site.id}
+        siteName={site.name}
+        tokenPrefix={site.webhookTokenPrefix}
+        freshToken={freshToken}
+        onRotate={() => rotate.mutate()}
+        isRotating={rotate.isPending}
+      />
     </div>
   );
 }

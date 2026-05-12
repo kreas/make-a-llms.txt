@@ -20,12 +20,13 @@ describe('PagesPreview', () => {
     expect(screen.getByText(/select a page/i)).toBeInTheDocument();
   });
 
-  it('fetches markdown and renders it', async () => {
+  it('fetches markdown and shows it as raw text', async () => {
     fetchMock.mockResolvedValueOnce(new Response('# Hello\n\nWorld'));
     render(wrap(<PagesPreview generationId={1} selectedPath="docs/cdn" />));
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /hello/i })).toBeInTheDocument();
+      expect(screen.getByText(/# Hello/)).toBeInTheDocument();
     });
+    expect(screen.queryByRole('heading', { name: /hello/i })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/generations/1/pages/docs/cdn');
   });
 

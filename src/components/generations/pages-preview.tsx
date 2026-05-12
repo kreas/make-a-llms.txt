@@ -1,7 +1,5 @@
 'use client';
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useQuery } from '@tanstack/react-query';
 
 export function PagesPreview({
@@ -37,8 +35,8 @@ export function PagesPreview({
   }
 
   return (
-    <article className="prose prose-neutral max-w-none p-6 text-body">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{q.data}</ReactMarkdown>
-    </article>
+    <pre className="h-full overflow-auto whitespace-pre-wrap break-words p-6 font-mono text-sm text-body">
+      {q.data}
+    </pre>
   );
 }

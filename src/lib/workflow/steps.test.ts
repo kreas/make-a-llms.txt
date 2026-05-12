@@ -206,4 +206,24 @@ describe('workflow steps', () => {
     expect(g.pagesStatus).toBe('cancelled');
     expect(g.pagesManifestBlobPath).toBeNull();
   });
+
+  it('notifyStep mentions pages when pagesStatus=succeeded', async () => {
+    const send = vi.fn(async () => ({ data: { id: 'x' }, error: null }));
+    const { Resend } = await import('resend');
+    vi.mocked(Resend).mockImplementation(function () { return { emails: { send } }; } as any);
+
+    await getDb()
+      .update(generations)
+      .set({
+        notifyEmail: true,
+        status: 'succeeded',
+        pagesStatus: 'succeeded',
+        pagesCount: 7,
+      })
+      .where(eq(generations.id, generationId));
+    process.env.RESEND_API_KEY = 'k';
+    await notifyStep(generationId);
+    const body = send.mock.calls[0]?.[0]?.html as string;
+    expect(body).toMatch(/markdown for 7/i);
+  });
 });

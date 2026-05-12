@@ -100,11 +100,15 @@ export async function notifyStep(generationId: number): Promise<void> {
     const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
     const link = `${baseUrl}/g/${g.id}`;
     try {
+      const pagesLine =
+        g.pagesStatus === 'succeeded' && g.pagesCount > 0
+          ? `<p>We also rendered Markdown for ${g.pagesCount} pages — view them on the generation page.</p>`
+          : '';
       await resend.emails.send({
         from: fromEmail,
         to: u.email,
         subject: 'Your llms.txt is ready',
-        html: `<p>Your generation completed.</p><p><a href="${link}">View and download</a></p>`,
+        html: `<p>Your generation completed.</p>${pagesLine}<p><a href="${link}">View and download</a></p>`,
       });
     } catch (err) {
       console.error('[notifyStep] resend failed', err);

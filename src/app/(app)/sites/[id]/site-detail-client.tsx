@@ -7,8 +7,10 @@ import { Settings, RefreshCw, Link as LinkIcon, Clock } from 'lucide-react';
 import type { Site, Generation } from '@/db/schema';
 import { ProcessTimeline } from '@/components/generations/process-timeline';
 import { LlmsContentPanel } from '@/components/generations/llms-content-panel';
+import { PagesContentPanel } from '@/components/generations/pages-content-panel';
+import { GenerationsSidebar } from '@/components/generations/generations-sidebar';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
-import { GenerationsTable } from '@/components/generations/generations-table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatRelativeTime } from '@/lib/format-time';
 
 export function SiteDetailClient({
@@ -25,6 +27,9 @@ export function SiteDetailClient({
 
   const latest = generations[0] ?? null;
   const latestSucceeded = generations.find((g) => g.status === 'succeeded') ?? null;
+  const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
+  const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId);
+  const selected = generations.find((g) => g.id === selectedId) ?? null;
 
   useEffect(() => {
     const key = `fresh-token-${site.id}`;
@@ -125,14 +130,24 @@ export function SiteDetailClient({
         </div>
       </header>
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-        <LlmsContentPanel generation={latestSucceeded} siteId={site.id} />
-        <div className="rounded-lg border border-hairline bg-surface-card p-6">
-          <h2 className="text-lg font-semibold text-ink">Generation History</h2>
-          <div className="mt-4">
-            <GenerationsTable generations={generations} />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
+        <Tabs defaultValue="llms" className="min-w-0">
+          <TabsList>
+            <TabsTrigger value="llms">llms.txt</TabsTrigger>
+            <TabsTrigger value="pages">pages.md</TabsTrigger>
+          </TabsList>
+          <TabsContent value="llms" className="mt-4">
+            <LlmsContentPanel generation={selected} siteId={site.id} />
+          </TabsContent>
+          <TabsContent value="pages" className="mt-4">
+            <PagesContentPanel generation={selected} />
+          </TabsContent>
+        </Tabs>
+        <GenerationsSidebar
+          generations={generations}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
       </div>
 
       <SettingsDialog

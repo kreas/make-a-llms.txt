@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PagesSection } from './pages-section';
+import { PagesContentPanel } from './pages-content-panel';
 import type { Generation } from '@/db/schema';
 
 const fetchMock = vi.fn();
@@ -41,24 +41,37 @@ function gen(overrides: Partial<Generation> = {}): Generation {
   } as Generation;
 }
 
-describe('PagesSection', () => {
+describe('PagesContentPanel', () => {
+  it('shows placeholder when generation is null', () => {
+    render(wrap(<PagesContentPanel generation={null} />));
+    expect(screen.getByText(/no generation selected/i)).toBeInTheDocument();
+  });
+
   it('shows skeleton state when pagesStatus is running', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ status: 'running', pages: [] })));
-    render(wrap(<PagesSection generation={gen({ pagesStatus: 'running' })} />));
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'running' })} />));
     expect(screen.getByText(/rendering/i)).toBeInTheDocument();
   });
 
   it('shows skip reason when pagesStatus is skipped', () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ status: 'skipped', reason: 'cap', pages: [] })));
     render(
-      wrap(<PagesSection generation={gen({ pagesStatus: 'skipped', pagesErrorMessage: 'cap exceeded' })} />),
+      wrap(
+        <PagesContentPanel
+          generation={gen({ pagesStatus: 'skipped', pagesErrorMessage: 'cap exceeded' })}
+        />,
+      ),
     );
     expect(screen.getByText(/cap exceeded/i)).toBeInTheDocument();
   });
 
-  it('shows failure card when pagesStatus is failed', () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ status: 'failed', pages: [] })));
-    render(wrap(<PagesSection generation={gen({ pagesStatus: 'failed', pagesErrorMessage: 'no creds' })} />));
+  it('shows failure message when pagesStatus is failed', () => {
+    render(
+      wrap(
+        <PagesContentPanel
+          generation={gen({ pagesStatus: 'failed', pagesErrorMessage: 'no creds' })}
+        />,
+      ),
+    );
     expect(screen.getByText(/no creds/i)).toBeInTheDocument();
   });
 
@@ -71,7 +84,7 @@ describe('PagesSection', () => {
         }),
       ),
     );
-    render(wrap(<PagesSection generation={gen({ pagesStatus: 'succeeded' })} />));
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} />));
     const link = await screen.findByRole('link', { name: /download all/i });
     expect(link).toHaveAttribute('href', '/api/generations/1/pages.zip');
   });

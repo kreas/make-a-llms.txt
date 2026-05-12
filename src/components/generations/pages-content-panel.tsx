@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { FileText, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
 import { PagesTree, type ManifestPage } from './pages-tree';
@@ -17,47 +18,51 @@ type ManifestResponse =
     }
   | { status: 'skipped' | 'failed'; reason?: string; pages: [] };
 
-export function PagesSection({ generation }: { generation: Generation }) {
+function Placeholder({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-[600px] flex-col items-center justify-center rounded-lg border border-hairline bg-surface-card p-8 text-center">
+      <FileText className="h-8 w-8 text-muted-soft" />
+      <p className="mt-4 text-base text-muted-strong">{children}</p>
+    </div>
+  );
+}
+
+export function PagesContentPanel({ generation }: { generation: Generation | null }) {
   const [selected, setSelected] = useState<string | null>(null);
 
   const q = useQuery({
-    queryKey: ['pagesManifest', generation.id, generation.pagesStatus],
+    queryKey: ['pagesManifest', generation?.id, generation?.pagesStatus],
     enabled:
-      generation.pagesStatus === 'succeeded' || generation.pagesStatus === 'cancelled',
+      !!generation &&
+      (generation.pagesStatus === 'succeeded' || generation.pagesStatus === 'cancelled'),
     queryFn: async (): Promise<ManifestResponse> => {
-      const res = await fetch(`/api/generations/${generation.id}/pages`);
+      const res = await fetch(`/api/generations/${generation!.id}/pages`);
       if (!res.ok) throw new Error(`status ${res.status}`);
       return res.json() as Promise<ManifestResponse>;
     },
     staleTime: 30_000,
   });
 
-  if (generation.pagesStatus === 'pending' || generation.pagesStatus === 'running') {
+  if (!generation) {
     return (
-      <section className="flex flex-col gap-4 rounded-lg border border-hairline bg-surface-card p-6">
-        <h2 className="caption-uppercase text-ink">Pages</h2>
-        <div className="text-body">Rendering page Markdown…</div>
-      </section>
+      <Placeholder>
+        No generation selected. Pick one from the sidebar to view its pages.
+      </Placeholder>
     );
   }
-
+  if (generation.pagesStatus === 'pending' || generation.pagesStatus === 'running') {
+    return <Placeholder>Rendering page Markdown…</Placeholder>;
+  }
   if (generation.pagesStatus === 'skipped') {
     return (
-      <section className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-card p-6">
-        <h2 className="caption-uppercase text-ink">Pages</h2>
-        <p className="text-body">
-          Skipped — {generation.pagesErrorMessage ?? 'no eligible URLs.'}
-        </p>
-      </section>
+      <Placeholder>
+        Skipped — {generation.pagesErrorMessage ?? 'no eligible URLs.'}
+      </Placeholder>
     );
   }
-
   if (generation.pagesStatus === 'failed') {
     return (
-      <section className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-card p-6">
-        <h2 className="caption-uppercase text-ink">Pages</h2>
-        <p className="text-body">{generation.pagesErrorMessage ?? 'Page rendering failed.'}</p>
-      </section>
+      <Placeholder>{generation.pagesErrorMessage ?? 'Page rendering failed.'}</Placeholder>
     );
   }
 
@@ -71,17 +76,17 @@ export function PagesSection({ generation }: { generation: Generation }) {
       : `${ok} of ${pages.length} pages rendered${failed > 0 ? ` — ${failed} failed` : ''}`;
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-hairline bg-surface-card p-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="caption-uppercase text-ink">Pages</h2>
+        <p className="text-sm text-body">{summary}</p>
         <a
           href={`/api/generations/${generation.id}/pages.zip`}
-          className="rounded border border-hairline-strong px-3 py-1 text-sm text-ink hover:bg-canvas-soft"
+          className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface-card px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
         >
+          <Download className="h-3.5 w-3.5" />
           Download all (.zip)
         </a>
       </div>
-      <p className="text-sm text-body">{summary}</p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
         <div className="h-[600px] overflow-auto rounded-lg border border-hairline bg-surface-card p-2">
           {q.isPending ? (
@@ -92,6 +97,6 @@ export function PagesSection({ generation }: { generation: Generation }) {
         </div>
         <PagesPreview generationId={generation.id} selectedPath={selected} />
       </div>
-    </section>
+    </div>
   );
 }

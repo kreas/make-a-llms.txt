@@ -41,4 +41,29 @@ describe('loadSitemapUrls', () => {
     const out = await loadSitemapUrls('https://a.test/sitemap.xml');
     expect(out).toEqual(['https://a.test/x']);
   });
+
+  it('parses CDATA-wrapped locs', async () => {
+    fetchMock.mockResolvedValueOnce(
+      okResponse(
+        `<?xml version="1.0" encoding="UTF-8"?><urlset>
+          <url><loc><![CDATA[https://a.test/cdata]]></loc></url>
+          <url><loc>https://a.test/plain</loc></url>
+        </urlset>`,
+      ),
+    );
+    const out = await loadSitemapUrls('https://a.test/sitemap.xml');
+    expect(out).toEqual(['https://a.test/cdata', 'https://a.test/plain']);
+  });
+
+  it('handles two concurrent calls without cross-talk', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse(URLSET(['https://a.test/x1', 'https://a.test/x2'])))
+      .mockResolvedValueOnce(okResponse(URLSET(['https://b.test/y1', 'https://b.test/y2'])));
+    const [a, b] = await Promise.all([
+      loadSitemapUrls('https://a.test/s.xml'),
+      loadSitemapUrls('https://b.test/s.xml'),
+    ]);
+    expect(a).toEqual(['https://a.test/x1', 'https://a.test/x2']);
+    expect(b).toEqual(['https://b.test/y1', 'https://b.test/y2']);
+  });
 });

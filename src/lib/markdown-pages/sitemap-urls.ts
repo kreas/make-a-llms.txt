@@ -1,11 +1,10 @@
-const LOC_RE = /<loc>\s*([^<\s]+)\s*<\/loc>/gi;
-
 function extractLocs(xml: string): string[] {
   const out: string[] = [];
-  LOC_RE.lastIndex = 0;
+  const re = /<loc>\s*(?:<!\[CDATA\[\s*([^\]]+?)\s*\]\]>|([^<]+?))\s*<\/loc>/gi;
   let m: RegExpExecArray | null;
-  while ((m = LOC_RE.exec(xml)) !== null) {
-    out.push(m[1]);
+  while ((m = re.exec(xml)) !== null) {
+    const value = (m[1] ?? m[2]).trim();
+    if (value) out.push(value);
   }
   return out;
 }

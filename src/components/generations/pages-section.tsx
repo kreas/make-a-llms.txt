@@ -83,16 +83,14 @@ export function PagesSection({ generation }: { generation: Generation }) {
       </div>
       <p className="text-sm text-body">{summary}</p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
-        <div className="border-r border-hairline md:pr-2">
+        <div className="h-[600px] overflow-auto rounded-lg border border-hairline bg-surface-card p-2">
           {q.isPending ? (
             <div className="p-2 text-body">Loading manifest…</div>
           ) : (
             <PagesTree pages={pages} selectedPath={selected} onSelect={setSelected} />
           )}
         </div>
-        <div className="min-h-[240px] md:pl-2">
-          <PagesPreview generationId={generation.id} selectedPath={selected} />
-        </div>
+        <PagesPreview generationId={generation.id} selectedPath={selected} />
       </div>
     </section>
   );

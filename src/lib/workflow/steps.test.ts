@@ -204,5 +204,6 @@ describe('workflow steps', () => {
     await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
     expect(g.pagesStatus).toBe('cancelled');
+    expect(g.pagesManifestBlobPath).toBeNull();
   });
 });

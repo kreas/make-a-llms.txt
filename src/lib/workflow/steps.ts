@@ -9,6 +9,7 @@ import { fetchPageMarkdown, CfClientError } from '@/lib/markdown-pages/cloudflar
 import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
 import { mapUrlsToPaths } from '@/lib/markdown-pages/url-to-path';
 import { buildManifest, type PageResult } from '@/lib/markdown-pages/manifest';
+import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
@@ -194,7 +195,9 @@ export async function runPagesStepSafe(
 
     const mapped = mapUrlsToPaths(rawUrls, rootUrl);
     const generatedAt = nowIso();
-    const eligible = mapped.filter((m) => m.status === 'ok');
+    const eligible = mapped.filter(
+      (m): m is Extract<MappedUrl, { status: 'ok' }> => m.status === 'ok',
+    );
     const skipped: PageResult[] = mapped
       .filter((m) => m.status === 'skipped')
       .map((m) => ({
@@ -210,17 +213,6 @@ export async function runPagesStepSafe(
     const results = await runWithPool(
       eligible,
       async (entry): Promise<PageResult> => {
-        if (entry.status !== 'ok') {
-          return {
-            url: entry.url,
-            path: null,
-            filename: null,
-            status: 'failed',
-            blobPath: null,
-            reason: 'unmapped',
-            durationMs: 0,
-          };
-        }
         try {
           const { markdown, durationMs } = await fetchPageMarkdown(entry.url);
           const body = frontmatter(entry.url, generatedAt) + markdown;
@@ -278,25 +270,28 @@ export async function runPagesStepSafe(
       pageResults,
     );
 
-    const manifestPath = `gens/${generationId}/pages-manifest.json`;
-    await put(manifestPath, JSON.stringify(manifest), {
-      access: 'private',
-      contentType: 'application/json',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    });
+    let manifestPath: string | null = null;
+    if (pageResults.length > 0) {
+      manifestPath = `gens/${generationId}/pages-manifest.json`;
+      await put(manifestPath, JSON.stringify(manifest), {
+        access: 'private',
+        contentType: 'application/json',
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      });
+    }
 
     if (await readCancelled(generationId)) {
       return markPagesStatus(generationId, {
         pagesStatus: 'cancelled',
-        pagesCount: pageResults.length,
+        pagesCount: manifest.successCount,
         pagesManifestBlobPath: manifestPath,
       });
     }
 
     return markPagesStatus(generationId, {
       pagesStatus: 'succeeded',
-      pagesCount: pageResults.length,
+      pagesCount: manifest.successCount,
       pagesManifestBlobPath: manifestPath,
     });
   } catch (err) {

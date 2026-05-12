@@ -1,5 +1,5 @@
 import { and, inArray, lt, isNotNull, or } from 'drizzle-orm';
-import { del } from '@vercel/blob';
+import { del, list } from '@vercel/blob';
 import { getDb } from '@/db';
 import { generations } from '@/db/schema';
 
@@ -19,27 +19,37 @@ export async function GET(req: Request) {
       and(
         inArray(generations.status, ['cancelled', 'failed']),
         lt(generations.createdAt, cutoff),
-        or(isNotNull(generations.llmsBlobPath), isNotNull(generations.llmsFullBlobPath)),
+        or(
+          isNotNull(generations.llmsBlobPath),
+          isNotNull(generations.llmsFullBlobPath),
+          isNotNull(generations.pagesManifestBlobPath),
+        ),
       ),
     );
 
   let deleted = 0;
   for (const g of orphans) {
-    if (g.llmsBlobPath) {
+    for (const path of [g.llmsBlobPath, g.llmsFullBlobPath, g.pagesManifestBlobPath]) {
+      if (!path) continue;
       try {
-        await del(`https://blob.vercel-storage.com/${g.llmsBlobPath}`);
+        await del(`https://blob.vercel-storage.com/${path}`);
         deleted++;
       } catch (err) {
-        console.warn('[cron] del failed', g.llmsBlobPath, err);
+        console.warn('[cron] del failed', path, err);
       }
     }
-    if (g.llmsFullBlobPath) {
-      try {
-        await del(`https://blob.vercel-storage.com/${g.llmsFullBlobPath}`);
-        deleted++;
-      } catch (err) {
-        console.warn('[cron] del failed', g.llmsFullBlobPath, err);
+    try {
+      const { blobs } = await list({ prefix: `gens/${g.id}/pages/` });
+      for (const b of blobs) {
+        try {
+          await del(`https://blob.vercel-storage.com/${b.pathname}`);
+          deleted++;
+        } catch (err) {
+          console.warn('[cron] del failed', b.pathname, err);
+        }
       }
+    } catch (err) {
+      console.warn('[cron] list failed', g.id, err);
     }
   }
 

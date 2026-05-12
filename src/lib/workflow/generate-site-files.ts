@@ -2,6 +2,7 @@ import {
   prepareStep,
   runGenStep,
   runFullStep,
+  runPagesStepSafe,
   completeStep,
   notifyStep,
   failStep,
@@ -26,11 +27,12 @@ export async function generateSiteFilesWorkflow({
 
   console.log(`[workflow] generateSiteFiles start id=${generationId}`);
   try {
-    const { sitemapUrl } = await prepareStep(generationId);
+    const { sitemapUrl, rootUrl } = await prepareStep(generationId);
 
     await Promise.all([
       runGenStep(generationId, sitemapUrl),
       runFullStep(generationId, sitemapUrl),
+      runPagesStepSafe(generationId, sitemapUrl, rootUrl),
     ]);
 
     await completeStep(generationId);

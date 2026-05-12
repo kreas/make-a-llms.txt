@@ -35,6 +35,10 @@ export async function buildEventStream(
       llmsBlobPath: row.llmsBlobPath,
       llmsFullBlobPath: row.llmsFullBlobPath,
       errorMessage: row.errorMessage,
+      pagesStatus: row.pagesStatus,
+      pagesCount: row.pagesCount,
+      pagesManifestBlobPath: row.pagesManifestBlobPath,
+      pagesErrorMessage: row.pagesErrorMessage,
     });
     if (snapshot !== lastSerialized) {
       writer.write(`event: status\ndata: ${snapshot}\n\n`);

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
 import { GenerationDetailCard } from '@/components/generations/generation-detail-card';
+import { PagesSection } from '@/components/generations/pages-section';
 
 export function GenerationClient({ initial }: { initial: Generation }) {
   const router = useRouter();
@@ -44,10 +45,13 @@ export function GenerationClient({ initial }: { initial: Generation }) {
   });
 
   return (
-    <GenerationDetailCard
-      generation={generation}
-      onRetry={() => retry.mutate()}
-      onCancel={() => cancel.mutate()}
-    />
+    <div className="flex flex-col gap-6">
+      <GenerationDetailCard
+        generation={generation}
+        onRetry={() => retry.mutate()}
+        onCancel={() => cancel.mutate()}
+      />
+      <PagesSection generation={generation} />
+    </div>
   );
 }

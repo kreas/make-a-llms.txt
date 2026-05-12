@@ -50,4 +50,48 @@ describe('SSE stream builder', () => {
     expect(body).toMatch(/succeeded/);
     expect(fakeWriter.close).toHaveBeenCalled();
   });
+
+  it('snapshot includes pages fields', async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    const [s] = await db
+      .insert(sites)
+      .values({
+        userId: u.id,
+        name: 'S',
+        rootUrl: 'https://x.test',
+        webhookTokenHash: 'a'.repeat(64),
+        webhookTokenPrefix: 'lmt_aaaa',
+      })
+      .returning();
+    // status='succeeded' so buildEventStream exits after one tick.
+    const [g] = await db
+      .insert(generations)
+      .values({
+        siteId: s.id,
+        userId: u.id,
+        trigger: 'manual',
+        status: 'succeeded',
+        pagesStatus: 'running',
+        pagesCount: 3,
+      })
+      .returning();
+
+    const writes: string[] = [];
+    await buildEventStream(
+      g.id,
+      u.id,
+      { write: (str) => writes.push(str), close: () => {} },
+      { intervalMs: 1, heartbeatMs: 60_000, idleTimeoutMs: 60_000 },
+    );
+
+    const statusFrame = writes.find((w) => w.startsWith('event: status'));
+    expect(statusFrame).toBeDefined();
+    const payload = JSON.parse(statusFrame!.split('data: ')[1].trim());
+    expect(payload.pagesStatus).toBe('running');
+    expect(payload.pagesCount).toBe(3);
+    expect(payload).toHaveProperty('pagesManifestBlobPath');
+    expect(payload).toHaveProperty('pagesErrorMessage');
+  });
 });

@@ -20,9 +20,18 @@ vi.mock('resend', () => ({
     emails: { send: vi.fn(async () => ({ data: { id: 'em1' }, error: null })) },
   })),
 }));
+vi.mock('@/lib/markdown-pages/cloudflare', () => ({
+  fetchPageMarkdown: vi.fn(),
+  CfClientError: class extends Error { kind = 'transient' as const; },
+}));
+vi.mock('@/lib/markdown-pages/sitemap-urls', () => ({
+  loadSitemapUrls: vi.fn(),
+}));
 
 import { execa } from 'execa';
-import { prepareStep, runGenStep, runFullStep, completeStep, notifyStep, failStep } from './steps';
+import { fetchPageMarkdown } from '@/lib/markdown-pages/cloudflare';
+import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
+import { prepareStep, runGenStep, runFullStep, completeStep, notifyStep, failStep, runPagesStepSafe } from './steps';
 
 function fakeProc(stdout: string, exitCode = 0) {
   const promise: any = Promise.resolve({ stdout, stderr: '', exitCode });
@@ -64,6 +73,7 @@ describe('workflow steps', () => {
   it('prepareStep flips status to running and resolves sitemap', async () => {
     const out = await prepareStep(generationId);
     expect(out.sitemapUrl).toBe('https://x.test/sitemap.xml');
+    expect(out.rootUrl).toBe('https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
     expect(g.status).toBe('running');
     expect(g.startedAt).not.toBeNull();
@@ -131,5 +141,89 @@ describe('workflow steps', () => {
     expect(g.status).toBe('failed');
     expect(g.errorMessage).toMatch(/No sitemap found/);
     expect(g.completedAt).not.toBeNull();
+  });
+
+  it('runPagesStepSafe skips when sitemap exceeds the 250 cap', async () => {
+    vi.mocked(loadSitemapUrls).mockResolvedValue(
+      Array.from({ length: 300 }, (_, i) => `https://x.test/p${i}`),
+    );
+    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
+    process.env.CLOUDFLARE_API_TOKEN = 't';
+    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.pagesStatus).toBe('skipped');
+    expect(g.pagesErrorMessage).toMatch(/cap/i);
+  });
+
+  it('runPagesStepSafe fails when CF env vars are missing', async () => {
+    delete process.env.CLOUDFLARE_ACCOUNT_ID;
+    delete process.env.CLOUDFLARE_API_TOKEN;
+    vi.mocked(loadSitemapUrls).mockResolvedValue(['https://x.test/a']);
+    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.pagesStatus).toBe('failed');
+    expect(g.pagesErrorMessage).toMatch(/credentials/i);
+  });
+
+  it('runPagesStepSafe succeeds on happy path and writes a manifest', async () => {
+    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
+    process.env.CLOUDFLARE_API_TOKEN = 't';
+    vi.mocked(loadSitemapUrls).mockResolvedValue([
+      'https://x.test/a',
+      'https://x.test/b',
+    ]);
+    vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: '# Hi', durationMs: 10 });
+    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.pagesStatus).toBe('succeeded');
+    expect(g.pagesCount).toBe(2);
+    expect(g.pagesManifestBlobPath).toBe(`gens/${generationId}/pages-manifest.json`);
+  });
+
+  it('runPagesStepSafe still succeeds when some CF calls fail', async () => {
+    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
+    process.env.CLOUDFLARE_API_TOKEN = 't';
+    vi.mocked(loadSitemapUrls).mockResolvedValue([
+      'https://x.test/a',
+      'https://x.test/b',
+    ]);
+    vi.mocked(fetchPageMarkdown)
+      .mockResolvedValueOnce({ markdown: '# A', durationMs: 10 })
+      .mockRejectedValueOnce(Object.assign(new Error('CF 502'), { kind: 'transient' }));
+    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.pagesStatus).toBe('succeeded');
+  });
+
+  it('runPagesStepSafe honors cancellation flag', async () => {
+    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
+    process.env.CLOUDFLARE_API_TOKEN = 't';
+    vi.mocked(loadSitemapUrls).mockResolvedValue(['https://x.test/a']);
+    vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: '# A', durationMs: 1 });
+    await getDb().update(generations).set({ status: 'cancelled' }).where(eq(generations.id, generationId));
+    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.pagesStatus).toBe('cancelled');
+    expect(g.pagesManifestBlobPath).toBeNull();
+  });
+
+  it('notifyStep mentions pages when pagesStatus=succeeded', async () => {
+    const send = vi.fn(async () => ({ data: { id: 'x' }, error: null }));
+    const { Resend } = await import('resend');
+    vi.mocked(Resend).mockImplementation(function () { return { emails: { send } }; } as any);
+
+    await getDb()
+      .update(generations)
+      .set({
+        notifyEmail: true,
+        status: 'succeeded',
+        pagesStatus: 'succeeded',
+        pagesCount: 7,
+      })
+      .where(eq(generations.id, generationId));
+    process.env.RESEND_API_KEY = 'k';
+    await notifyStep(generationId);
+    const body = send.mock.calls[0]?.[0]?.html as string;
+    expect(body).toMatch(/markdown for 7/i);
   });
 });

@@ -22,6 +22,8 @@ export function PagesSection({ generation }: { generation: Generation }) {
 
   const q = useQuery({
     queryKey: ['pagesManifest', generation.id, generation.pagesStatus],
+    enabled:
+      generation.pagesStatus === 'succeeded' || generation.pagesStatus === 'cancelled',
     queryFn: async (): Promise<ManifestResponse> => {
       const res = await fetch(`/api/generations/${generation.id}/pages`);
       if (!res.ok) throw new Error(`status ${res.status}`);
@@ -88,7 +90,7 @@ export function PagesSection({ generation }: { generation: Generation }) {
             <PagesTree pages={pages} selectedPath={selected} onSelect={setSelected} />
           )}
         </div>
-        <div className="min-h-[240px] border-l border-hairline md:pl-2">
+        <div className="min-h-[240px] md:pl-2">
           <PagesPreview generationId={generation.id} selectedPath={selected} />
         </div>
       </div>

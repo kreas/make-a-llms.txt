@@ -8,6 +8,10 @@ export async function runWithPool<T, R>(
   handler: (item: T, index: number) => Promise<R>,
   opts: PoolOptions,
 ): Promise<(R | Error)[]> {
+  if (opts.concurrency < 1) {
+    throw new Error(`runWithPool: concurrency must be >= 1, got ${opts.concurrency}`);
+  }
+
   const results = new Array<R | Error>(items.length);
   let next = 0;
   const inflight = new Set<Promise<void>>();
@@ -28,14 +32,17 @@ export async function runWithPool<T, R>(
   };
 
   while (next < items.length) {
+    // Outer: re-check after each Promise.race wake-up.
     if (opts.isCancelled && (await opts.isCancelled())) break;
     while (inflight.size < opts.concurrency && next < items.length) {
+      // Inner: stop filling mid-burst even if concurrency > 1.
       if (opts.isCancelled && (await opts.isCancelled())) break;
       spawn();
     }
     if (inflight.size === 0) break;
     await Promise.race(inflight);
   }
+  const dispatched = next;
   await Promise.all(inflight);
-  return results.filter((r) => r !== undefined) as (R | Error)[];
+  return results.slice(0, dispatched) as (R | Error)[];
 }

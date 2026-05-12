@@ -31,15 +31,7 @@ function gen(overrides: Partial<Generation>): Generation {
 
 describe('GenerationsSidebar', () => {
   it('renders empty state when no generations', () => {
-    render(
-      <GenerationsSidebar
-        generations={[]}
-        selectedId={null}
-        onSelect={() => {}}
-        collapsed={false}
-        onToggleCollapse={() => {}}
-      />,
-    );
+    render(<GenerationsSidebar generations={[]} selectedId={null} onSelect={() => {}} />);
     expect(screen.getByText(/no generations yet/i)).toBeInTheDocument();
   });
 
@@ -51,13 +43,9 @@ describe('GenerationsSidebar', () => {
         generations={[older, newer]}
         selectedId={null}
         onSelect={() => {}}
-        collapsed={false}
-        onToggleCollapse={() => {}}
       />,
     );
-    const rows = screen.getAllByRole('button', { pressed: false });
-    // The "Hide runs" toggle button is also a button but has no aria-pressed,
-    // so the pressed:false filter narrows to the generation rows.
+    const rows = screen.getAllByRole('button');
     expect(rows[0]).toHaveTextContent('#2');
     expect(rows[1]).toHaveTextContent('#1');
   });
@@ -66,13 +54,7 @@ describe('GenerationsSidebar', () => {
     const g1 = gen({ id: 1 });
     const g2 = gen({ id: 2 });
     render(
-      <GenerationsSidebar
-        generations={[g1, g2]}
-        selectedId={2}
-        onSelect={() => {}}
-        collapsed={false}
-        onToggleCollapse={() => {}}
-      />,
+      <GenerationsSidebar generations={[g1, g2]} selectedId={2} onSelect={() => {}} />,
     );
     const selected = screen.getByRole('button', { pressed: true });
     expect(selected).toHaveTextContent('#2');
@@ -83,49 +65,9 @@ describe('GenerationsSidebar', () => {
     const g1 = gen({ id: 1 });
     const g2 = gen({ id: 2 });
     render(
-      <GenerationsSidebar
-        generations={[g1, g2]}
-        selectedId={null}
-        onSelect={onSelect}
-        collapsed={false}
-        onToggleCollapse={() => {}}
-      />,
+      <GenerationsSidebar generations={[g1, g2]} selectedId={null} onSelect={onSelect} />,
     );
     fireEvent.click(screen.getByRole('button', { name: /#1/ }));
     expect(onSelect).toHaveBeenCalledWith(1);
-  });
-
-  it('fires onToggleCollapse when the hide button is clicked', () => {
-    const onToggleCollapse = vi.fn();
-    render(
-      <GenerationsSidebar
-        generations={[gen({ id: 1 })]}
-        selectedId={null}
-        onSelect={() => {}}
-        collapsed={false}
-        onToggleCollapse={onToggleCollapse}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: /hide runs/i }));
-    expect(onToggleCollapse).toHaveBeenCalled();
-  });
-
-  it('renders just a rail with an expand button when collapsed', () => {
-    const onToggleCollapse = vi.fn();
-    render(
-      <GenerationsSidebar
-        generations={[gen({ id: 1 })]}
-        selectedId={null}
-        onSelect={() => {}}
-        collapsed
-        onToggleCollapse={onToggleCollapse}
-      />,
-    );
-    // Header label and rows are hidden.
-    expect(screen.queryByText(/generations/i)).not.toBeInTheDocument();
-    expect(screen.queryByText('#1')).not.toBeInTheDocument();
-    // Expand button is still there.
-    fireEvent.click(screen.getByRole('button', { name: /show runs/i }));
-    expect(onToggleCollapse).toHaveBeenCalled();
   });
 });

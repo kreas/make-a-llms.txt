@@ -3,7 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Settings, RefreshCw, Link as LinkIcon, Clock } from 'lucide-react';
+import {
+  Settings,
+  RefreshCw,
+  Link as LinkIcon,
+  Clock,
+  PanelRightClose,
+  PanelRightOpen,
+} from 'lucide-react';
 import type { Site, Generation } from '@/db/schema';
 import { ProcessTimeline } from '@/components/generations/process-timeline';
 import { LlmsContentPanel } from '@/components/generations/llms-content-panel';
@@ -132,16 +139,31 @@ export function SiteDetailClient({
             </button>
           </div>
         </header>
-        <TabsList>
-          <TabsTrigger value="llms">llms.txt</TabsTrigger>
-          <TabsTrigger value="pages">pages.md</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3">
+          <TabsList>
+            <TabsTrigger value="llms">llms.txt</TabsTrigger>
+            <TabsTrigger value="pages">pages.md</TabsTrigger>
+          </TabsList>
+          <button
+            type="button"
+            onClick={() => setRunsCollapsed((c) => !c)}
+            aria-label={runsCollapsed ? 'Show runs' : 'Hide runs'}
+            aria-pressed={runsCollapsed}
+            className="rounded p-1.5 text-muted-strong transition-colors hover:bg-canvas-soft hover:text-ink"
+          >
+            {runsCollapsed ? (
+              <PanelRightOpen className="h-4 w-4" />
+            ) : (
+              <PanelRightClose className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
 
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-6',
-          runsCollapsed ? 'lg:grid-cols-[1fr_48px]' : 'lg:grid-cols-[1fr_320px]',
+          runsCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[1fr_320px]',
         )}
       >
         <div className="min-w-0">
@@ -152,13 +174,13 @@ export function SiteDetailClient({
             <PagesContentPanel generation={selected} />
           </TabsContent>
         </div>
-        <GenerationsSidebar
-          generations={generations}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          collapsed={runsCollapsed}
-          onToggleCollapse={() => setRunsCollapsed((c) => !c)}
-        />
+        {!runsCollapsed && (
+          <GenerationsSidebar
+            generations={generations}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        )}
       </div>
 
       <SettingsDialog

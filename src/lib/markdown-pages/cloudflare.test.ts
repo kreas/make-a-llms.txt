@@ -52,4 +52,15 @@ describe('fetchPageMarkdown', () => {
     delete process.env.CLOUDFLARE_API_TOKEN;
     await expect(fetchPageMarkdown('https://x.test/a')).rejects.toMatchObject({ kind: 'fatal' });
   });
+
+  it('treats AbortError (timeout) as transient and retries', async () => {
+    // Reject with an AbortError-shaped error on first call, succeed on second.
+    const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' });
+    fetchMock
+      .mockRejectedValueOnce(abortErr)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, result: '# ok' }), { status: 200 }));
+    const out = await fetchPageMarkdown('https://x.test/a', { backoff: () => 0 });
+    expect(out.markdown).toBe('# ok');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

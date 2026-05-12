@@ -51,8 +51,8 @@ export async function GET(_req: Request, ctx: Ctx) {
       if (entry.status !== 'ok' || !entry.blobPath || !entry.path) continue;
       const pageBlob = await get(entry.blobPath, { access: 'private' });
       if (!pageBlob) continue;
-      const buf = Buffer.from(await new Response(pageBlob.stream).arrayBuffer());
-      archive.append(buf, { name: `${entry.path}.md` });
+      const nodeStream = Readable.fromWeb(pageBlob.stream as ReadableStream);
+      archive.append(nodeStream, { name: `${entry.path}.md` });
     }
     void archive.finalize();
 

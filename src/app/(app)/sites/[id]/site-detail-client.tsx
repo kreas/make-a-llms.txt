@@ -12,6 +12,7 @@ import { GenerationsSidebar } from '@/components/generations/generations-sidebar
 import { SettingsDialog } from '@/components/sites/settings-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatRelativeTime } from '@/lib/format-time';
+import { cn } from '@/lib/utils';
 
 export function SiteDetailClient({
   site,
@@ -30,6 +31,7 @@ export function SiteDetailClient({
   const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
   const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId);
   const selected = generations.find((g) => g.id === selectedId) ?? null;
+  const [runsCollapsed, setRunsCollapsed] = useState(false);
 
   useEffect(() => {
     const key = `fresh-token-${site.id}`;
@@ -76,77 +78,86 @@ export function SiteDetailClient({
   }, [searchParams]);
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-6 border-b border-hairline pb-6 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="display-lg text-ink">{site.name}</h1>
-            {latest && (
-              <span className="caption-uppercase rounded-full border border-hairline bg-surface-strong px-2 py-1 text-ink">
-                #{latest.id}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-4 text-sm text-muted-strong">
-            <a
-              href={site.rootUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 font-mono text-[13px] transition-colors hover:text-ink"
-            >
-              <LinkIcon className="h-4 w-4" />
-              {site.rootUrl}
-            </a>
-            {latest && (
-              <>
-                <span className="h-4 w-px bg-hairline" />
-                <span className="flex items-center gap-1.5 font-mono text-[13px]">
-                  <Clock className="h-3.5 w-3.5 text-muted-soft" />
-                  Generated {formatRelativeTime(latest.createdAt)}
+    <Tabs defaultValue="llms" className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6 border-b border-hairline pb-6">
+        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="display-lg text-ink">{site.name}</h1>
+              {latest && (
+                <span className="caption-uppercase rounded-full border border-hairline bg-surface-strong px-2 py-1 text-ink">
+                  #{latest.id}
                 </span>
-              </>
-            )}
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-sm text-muted-strong">
+              <a
+                href={site.rootUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 font-mono text-[13px] transition-colors hover:text-ink"
+              >
+                <LinkIcon className="h-4 w-4" />
+                {site.rootUrl}
+              </a>
+              {latest && (
+                <>
+                  <span className="h-4 w-px bg-hairline" />
+                  <span className="flex items-center gap-1.5 font-mono text-[13px]">
+                    <Clock className="h-3.5 w-3.5 text-muted-soft" />
+                    Generated {formatRelativeTime(latest.createdAt)}
+                  </span>
+                </>
+              )}
+            </div>
+            {latest && <ProcessTimeline status={latest.status} />}
           </div>
-          {latest && <ProcessTimeline status={latest.status} />}
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-hairline-strong bg-surface-card px-4 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </button>
-          <button
-            type="button"
-            onClick={() => regenerate.mutate()}
-            disabled={regenerate.isPending}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-canvas transition-colors hover:bg-primary-active disabled:opacity-50"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Re-run Generation
-          </button>
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-hairline-strong bg-surface-card px-4 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={() => regenerate.mutate()}
+              disabled={regenerate.isPending}
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-canvas transition-colors hover:bg-primary-active disabled:opacity-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Re-run Generation
+            </button>
+          </div>
+        </header>
+        <TabsList>
+          <TabsTrigger value="llms">llms.txt</TabsTrigger>
+          <TabsTrigger value="pages">pages.md</TabsTrigger>
+        </TabsList>
+      </div>
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
-        <Tabs defaultValue="llms" className="min-w-0">
-          <TabsList>
-            <TabsTrigger value="llms">llms.txt</TabsTrigger>
-            <TabsTrigger value="pages">pages.md</TabsTrigger>
-          </TabsList>
-          <TabsContent value="llms" className="mt-4">
+      <div
+        className={cn(
+          'grid grid-cols-1 items-start gap-6',
+          runsCollapsed ? 'lg:grid-cols-[1fr_48px]' : 'lg:grid-cols-[1fr_320px]',
+        )}
+      >
+        <div className="min-w-0">
+          <TabsContent value="llms">
             <LlmsContentPanel generation={selected} siteId={site.id} />
           </TabsContent>
-          <TabsContent value="pages" className="mt-4">
+          <TabsContent value="pages">
             <PagesContentPanel generation={selected} />
           </TabsContent>
-        </Tabs>
+        </div>
         <GenerationsSidebar
           generations={generations}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          collapsed={runsCollapsed}
+          onToggleCollapse={() => setRunsCollapsed((c) => !c)}
         />
       </div>
 
@@ -160,6 +171,6 @@ export function SiteDetailClient({
         onRotate={() => rotate.mutate()}
         isRotating={rotate.isPending}
       />
-    </div>
+    </Tabs>
   );
 }

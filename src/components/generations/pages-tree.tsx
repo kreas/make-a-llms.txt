@@ -124,6 +124,7 @@ function Branch({
     <div>
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-2 py-1 text-left text-sm text-ink hover:bg-canvas-soft transition-colors"
         style={{ paddingLeft: 8 + depth * 12 }}

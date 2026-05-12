@@ -71,6 +71,14 @@ export const generations = sqliteTable(
     llmsBlobPath: text('llms_blob_path'),
     llmsFullBlobPath: text('llms_full_blob_path'),
     errorMessage: text('error_message'),
+    pagesManifestBlobPath: text('pages_manifest_blob_path'),
+    pagesCount: integer('pages_count').notNull().default(0),
+    pagesStatus: text('pages_status', {
+      enum: ['pending', 'running', 'succeeded', 'failed', 'skipped', 'cancelled'],
+    })
+      .notNull()
+      .default('pending'),
+    pagesErrorMessage: text('pages_error_message'),
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
     createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),

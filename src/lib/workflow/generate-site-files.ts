@@ -26,7 +26,7 @@ export async function generateSiteFilesWorkflow({
 
   console.log(`[workflow] generateSiteFiles start id=${generationId}`);
   try {
-    const { sitemapUrl } = await prepareStep(generationId);
+    const { sitemapUrl, rootUrl: _rootUrl } = await prepareStep(generationId);
 
     await Promise.all([
       runGenStep(generationId, sitemapUrl),

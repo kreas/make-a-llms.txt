@@ -11,7 +11,9 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-export async function prepareStep(generationId: number): Promise<{ sitemapUrl: string }> {
+export async function prepareStep(
+  generationId: number,
+): Promise<{ sitemapUrl: string; rootUrl: string }> {
   'use step';
   const db = getDb();
   const [g] = await db.select().from(generations).where(eq(generations.id, generationId));
@@ -31,7 +33,7 @@ export async function prepareStep(generationId: number): Promise<{ sitemapUrl: s
     })
     .where(eq(generations.id, generationId));
 
-  return { sitemapUrl };
+  return { sitemapUrl, rootUrl: s.rootUrl };
 }
 
 export async function runGenStep(generationId: number, sitemapUrl: string): Promise<void> {

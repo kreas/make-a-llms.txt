@@ -64,6 +64,7 @@ describe('workflow steps', () => {
   it('prepareStep flips status to running and resolves sitemap', async () => {
     const out = await prepareStep(generationId);
     expect(out.sitemapUrl).toBe('https://x.test/sitemap.xml');
+    expect(out.rootUrl).toBe('https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
     expect(g.status).toBe('running');
     expect(g.startedAt).not.toBeNull();

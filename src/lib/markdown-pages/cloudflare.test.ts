@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchPageMarkdown, CfClientError } from './cloudflare';
+import { fetchPageMarkdown } from './cloudflare';
 
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);

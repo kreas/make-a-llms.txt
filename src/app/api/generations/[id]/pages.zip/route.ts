@@ -38,9 +38,12 @@ export async function GET(_req: Request, ctx: Ctx) {
     const manifestBlob = await get(gen.pagesManifestBlobPath, { access: 'private' });
     if (!manifestBlob) throw new ApiError(404, 'not_found', 'Manifest missing');
     const manifestText = await new Response(manifestBlob.stream).text();
-    const manifest = JSON.parse(manifestText) as {
-      pages: Array<{ path: string | null; filename: string | null; blobPath: string | null; status: string }>;
-    };
+    let manifest: { pages: Array<{ path: string | null; filename: string | null; blobPath: string | null; status: string }> };
+    try {
+      manifest = JSON.parse(manifestText);
+    } catch {
+      throw new ApiError(404, 'not_found', 'Manifest unreadable');
+    }
 
     const [site] = await getDb().select().from(sites).where(eq(sites.id, gen.siteId));
     const filename = `${slugify(site?.name ?? 'site')}-pages-${gen.id}.zip`;

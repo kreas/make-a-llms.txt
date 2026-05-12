@@ -31,7 +31,12 @@ export async function GET(_req: Request, ctx: Ctx) {
       return Response.json({ status: gen.pagesStatus, pages: [] });
     }
     const text = await new Response(blob.stream).text();
-    const parsed = JSON.parse(text);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      throw new ApiError(404, 'not_found', 'Manifest unreadable');
+    }
     return Response.json({ status: gen.pagesStatus, ...parsed });
   } catch (err) {
     return apiErrorResponse(err);

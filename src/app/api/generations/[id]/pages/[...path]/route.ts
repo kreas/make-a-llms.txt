@@ -24,9 +24,13 @@ export async function GET(_req: Request, ctx: Ctx) {
 
     const manifestBlob = await get(gen.pagesManifestBlobPath, { access: 'private' });
     if (!manifestBlob) throw new ApiError(404, 'not_found', 'Manifest missing');
-    const manifest = JSON.parse(await new Response(manifestBlob.stream).text()) as {
-      pages: Array<{ path: string | null; blobPath: string | null; status: string }>;
-    };
+    const manifestText = await new Response(manifestBlob.stream).text();
+    let manifest: { pages: Array<{ path: string | null; blobPath: string | null; status: string }> };
+    try {
+      manifest = JSON.parse(manifestText);
+    } catch {
+      throw new ApiError(404, 'not_found', 'Manifest unreadable');
+    }
 
     const wanted = path.join('/').replace(/\.md$/, '');
     const entry = manifest.pages.find((p) => p.path === wanted && p.status === 'ok');

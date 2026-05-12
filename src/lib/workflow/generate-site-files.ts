@@ -2,6 +2,7 @@ import {
   prepareStep,
   runGenStep,
   runFullStep,
+  runPagesStepSafe,
   completeStep,
   notifyStep,
   failStep,
@@ -9,16 +10,6 @@ import {
 
 export type GenerateSiteFilesPayload = { generationId: number };
 
-/**
- * Workflow that orchestrates the full generation pipeline.
- *
- * The 'use workflow' directive marks this function for the WDK runtime. Steps
- * (which are functions with 'use step') are durably enqueued by the runtime
- * when invoked from inside this body. Promise.all runs them in parallel.
- *
- * Outside the WDK runtime (e.g. in tests), the directives are no-ops, so this
- * function executes as a plain async — perfect for assertion-style tests.
- */
 export async function generateSiteFilesWorkflow({
   generationId,
 }: GenerateSiteFilesPayload): Promise<{ ok: boolean }> {
@@ -26,11 +17,12 @@ export async function generateSiteFilesWorkflow({
 
   console.log(`[workflow] generateSiteFiles start id=${generationId}`);
   try {
-    const { sitemapUrl, rootUrl: _rootUrl } = await prepareStep(generationId);
+    const { sitemapUrl, rootUrl } = await prepareStep(generationId);
 
     await Promise.all([
       runGenStep(generationId, sitemapUrl),
       runFullStep(generationId, sitemapUrl),
+      runPagesStepSafe(generationId, sitemapUrl, rootUrl),
     ]);
 
     await completeStep(generationId);

@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
-import { ZipArchive } from 'archiver';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import archiver from 'archiver';
 import { get } from '@vercel/blob';
 import {
   apiErrorResponse,
@@ -44,14 +45,14 @@ export async function GET(_req: Request, ctx: Ctx) {
     const [site] = await getDb().select().from(sites).where(eq(sites.id, gen.siteId));
     const filename = `${slugify(site?.name ?? 'site')}-pages-${gen.id}.zip`;
 
-    const archive = new ZipArchive({ zlib: { level: 6 } });
+    const archive = archiver('zip', { zlib: { level: 6 } });
 
     archive.append(manifestText, { name: 'manifest.json' });
     for (const entry of manifest.pages) {
       if (entry.status !== 'ok' || !entry.blobPath || !entry.path) continue;
       const pageBlob = await get(entry.blobPath, { access: 'private' });
       if (!pageBlob) continue;
-      const nodeStream = Readable.fromWeb(pageBlob.stream as ReadableStream);
+      const nodeStream = Readable.fromWeb(pageBlob.stream as unknown as NodeReadableStream);
       archive.append(nodeStream, { name: `${entry.path}.md` });
     }
     void archive.finalize();

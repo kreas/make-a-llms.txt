@@ -325,4 +325,82 @@ describe('RobotsGenerator', () => {
     await user.click(screen.getByRole('button', { name: /dismiss/i }));
     expect(screen.queryByRole('alert')).toBeNull();
   });
+
+  it('suppresses the Allow section when wildcard already allows root', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nAllow: /\n'}
+        />,
+      ),
+    );
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    const allowBtn = row.querySelectorAll('button')[0];
+    await user.click(allowBtn);
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    expect(snippet).not.toMatch(/# Allowed AI crawlers/);
+    expect(snippet).not.toMatch(/User-agent: GPTBot/);
+  });
+
+  it('suppresses the Block section when wildcard already blocks root', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nDisallow: /\n'}
+        />,
+      ),
+    );
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    const blockBtn = row.querySelectorAll('button')[1];
+    await user.click(blockBtn);
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    expect(snippet).not.toMatch(/# Blocked AI crawlers/);
+    expect(snippet).not.toMatch(/User-agent: GPTBot/);
+  });
+
+  it('still emits the Block section when wildcard is permissive', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nAllow: /\n'}
+        />,
+      ),
+    );
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    const blockBtn = row.querySelectorAll('button')[1];
+    await user.click(blockBtn);
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    expect(snippet).toMatch(/# Blocked AI crawlers/);
+    expect(snippet).toMatch(/User-agent: GPTBot/);
+    expect(snippet).toMatch(/Disallow: \//);
+  });
+
+  it('still emits the Allow section when wildcard is restrictive', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nDisallow: /\n'}
+        />,
+      ),
+    );
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    const allowBtn = row.querySelectorAll('button')[0];
+    await user.click(allowBtn);
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    expect(snippet).toMatch(/# Allowed AI crawlers/);
+    expect(snippet).toMatch(/User-agent: GPTBot/);
+    expect(snippet).toMatch(/Allow: \//);
+  });
 });

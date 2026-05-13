@@ -357,7 +357,7 @@ export function RobotsGenerator({
                     {bot}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex justify-end gap-2">
                       <button
                         type="button"
                         aria-pressed={visual === 'allow'}

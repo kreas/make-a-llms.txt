@@ -74,10 +74,19 @@ describe('RobotsGenerator', () => {
 
   it('Copy button writes the snippet to the clipboard', async () => {
     const user = userEvent.setup();
+    // userEvent.setup() installs its own clipboard stub — re-install ours so
+    // we can assert against the spy reference directly.
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
     render(<RobotsGenerator initial={seeded} />);
     await user.click(screen.getByRole('button', { name: /copy/i }));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+    expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('User-agent: GPTBot'),
     );
   });

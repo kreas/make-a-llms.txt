@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RobotsGenerator } from './robots-generator';
 import { KNOWN_AI_BOTS, type AuditResults } from '@/lib/known-ai-bots';
+import { withQueryClient } from '@/test/utils';
 
 function defaultResults(): AuditResults {
   return Object.fromEntries(
@@ -10,8 +11,31 @@ function defaultResults(): AuditResults {
   ) as AuditResults;
 }
 
+function defaultFetchImpl(url: string, init?: RequestInit): Response {
+  if (
+    typeof url === 'string' &&
+    url.includes('/generator-draft') &&
+    (!init || !init.method || init.method === 'GET')
+  ) {
+    return new Response('', { status: 404 });
+  }
+  return new Response('{}', { status: 200 });
+}
+
+function stubFetch(
+  impl: (url: string, init?: RequestInit) => Response | Promise<Response> = defaultFetchImpl,
+) {
+  const spy = vi.fn((url: string, init?: RequestInit) =>
+    Promise.resolve(impl(url, init)),
+  );
+  vi.stubGlobal('fetch', spy);
+  return spy;
+}
+
 describe('RobotsGenerator', () => {
   beforeEach(() => {
+    vi.unstubAllGlobals();
+    stubFetch();
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
@@ -20,7 +44,11 @@ describe('RobotsGenerator', () => {
   });
 
   it('renders a toggle row for every known bot', () => {
-    render(<RobotsGenerator initial={defaultResults()} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
     for (const bot of KNOWN_AI_BOTS) {
       expect(screen.getByText(bot)).toBeInTheDocument();
     }
@@ -28,7 +56,11 @@ describe('RobotsGenerator', () => {
 
   it('seeds initial toggle state from the audit results', () => {
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
-    render(<RobotsGenerator initial={seeded} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+      ),
+    );
     // The blocked button for GPTBot has aria-pressed=true
     const row = screen.getByText('GPTBot').closest('tr')!;
     const buttons = row.querySelectorAll('button');
@@ -38,7 +70,11 @@ describe('RobotsGenerator', () => {
 
   it('clicking Block updates the snippet', async () => {
     const user = userEvent.setup();
-    render(<RobotsGenerator initial={defaultResults()} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
     const row = screen.getByText('GPTBot').closest('tr')!;
     const blockBtn = row.querySelectorAll('button')[1];
     await user.click(blockBtn);
@@ -50,7 +86,11 @@ describe('RobotsGenerator', () => {
   it('clicking the highlighted state again resets the bot to default', async () => {
     const user = userEvent.setup();
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
-    render(<RobotsGenerator initial={seeded} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+      ),
+    );
     const row = screen.getByText('GPTBot').closest('tr')!;
     const blockBtn = row.querySelectorAll('button')[1];
     await user.click(blockBtn);
@@ -61,7 +101,11 @@ describe('RobotsGenerator', () => {
   it('Reset button restores the initial state', async () => {
     const user = userEvent.setup();
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
-    render(<RobotsGenerator initial={seeded} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+      ),
+    );
     const row = screen.getByText('GPTBot').closest('tr')!;
     const allowBtn = row.querySelectorAll('button')[0];
     await user.click(allowBtn);
@@ -84,7 +128,11 @@ describe('RobotsGenerator', () => {
     });
 
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
-    render(<RobotsGenerator initial={seeded} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+      ),
+    );
     await user.click(screen.getByRole('button', { name: /copy/i }));
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('User-agent: GPTBot'),
@@ -92,9 +140,189 @@ describe('RobotsGenerator', () => {
   });
 
   it('renders a placeholder when all bots are default', () => {
-    render(<RobotsGenerator initial={defaultResults()} />);
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
     expect(screen.getByTestId('snippet')).toHaveTextContent(
       '# (No directives — toggle a bot to begin)',
     );
+  });
+
+  it('loads saved toggles from the draft endpoint', async () => {
+    stubFetch((url, init) => {
+      if (
+        url.includes('/generator-draft') &&
+        (!init || !init.method || init.method === 'GET')
+      ) {
+        return new Response(
+          JSON.stringify({ draft: { toggles: '{"GPTBot":"block"}' } }),
+          { status: 200 },
+        );
+      }
+      return new Response('{}', { status: 200 });
+    });
+
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
+
+    await waitFor(() => {
+      const row = screen.getByText('GPTBot').closest('tr')!;
+      const buttons = row.querySelectorAll('button');
+      expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
+    });
+  });
+
+  it('debounces a PUT to save toggles on click', async () => {
+    const fetchSpy = stubFetch();
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
+
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    const allowBtn = row.querySelectorAll('button')[0];
+    await user.click(allowBtn);
+
+    await waitFor(
+      () => {
+        const putCall = fetchSpy.mock.calls.find(
+          ([, init]) => (init as RequestInit | undefined)?.method === 'PUT',
+        );
+        expect(putCall).toBeTruthy();
+        const [putUrl, putInit] = putCall!;
+        expect(putUrl).toBe('/api/sites/1/generator-draft');
+        const body = JSON.parse((putInit as RequestInit).body as string);
+        expect(body.toggles.GPTBot).toBe('allow');
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it('includes robotsContent verbatim in the snippet when present', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: ExistingBot\nDisallow: /\n'}
+        />,
+      ),
+    );
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    const blockBtn = row.querySelectorAll('button')[1];
+    await user.click(blockBtn);
+
+    const snippet = screen.getByTestId('snippet');
+    expect(snippet).toHaveTextContent('User-agent: ExistingBot');
+    expect(snippet).toHaveTextContent('User-agent: GPTBot');
+  });
+
+  it('Download button triggers a download with filename robots.txt', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:test');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: createObjectURL,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: revokeObjectURL,
+      configurable: true,
+      writable: true,
+    });
+
+    const clickedAnchors: HTMLAnchorElement[] = [];
+    const origCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation((tagName: string, options?: ElementCreationOptions) => {
+        const el = origCreateElement(tagName, options);
+        if (tagName.toLowerCase() === 'a') {
+          const anchor = el as HTMLAnchorElement;
+          const origClick = anchor.click.bind(anchor);
+          anchor.click = () => {
+            clickedAnchors.push(anchor);
+            origClick();
+          };
+        }
+        return el;
+      });
+
+    try {
+      render(
+        withQueryClient(
+          <RobotsGenerator
+            siteId={1}
+            initial={defaultResults()}
+            robotsContent={'User-agent: ExistingBot\nDisallow: /\n'}
+          />,
+        ),
+      );
+      await user.click(screen.getByRole('button', { name: /download/i }));
+
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      const blobArg = createObjectURL.mock.calls[0][0] as Blob;
+      expect(blobArg).toBeInstanceOf(Blob);
+      expect(clickedAnchors).toHaveLength(1);
+      expect(clickedAnchors[0].getAttribute('download')).toBe('robots.txt');
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    } finally {
+      createElementSpy.mockRestore();
+    }
+  });
+
+  it('shows the no-robots warning when robotsContent is null', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(/no robots\.txt/i);
+  });
+
+  it('shows the wildcard-block warning when User-agent: * Disallow: / is set', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nDisallow: /\n'}
+        />,
+      ),
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(/blocks all crawlers/i);
+  });
+
+  it('does not show a warning when robotsContent is permissive', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nAllow: /\n'}
+        />,
+      ),
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('Dismiss button hides the warning', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /dismiss/i }));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

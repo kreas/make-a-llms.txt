@@ -119,3 +119,21 @@ export const crawlerAudits = sqliteTable(
 
 export type CrawlerAudit = typeof crawlerAudits.$inferSelect;
 export type NewCrawlerAudit = typeof crawlerAudits.$inferInsert;
+
+export const robotsGeneratorDrafts = sqliteTable(
+  'robots_generator_drafts',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    toggles: text('toggles').notNull(),
+    updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    uniqueSite: unique('robots_generator_drafts_site_unique').on(t.siteId),
+  }),
+);
+
+export type RobotsGeneratorDraft = typeof robotsGeneratorDrafts.$inferSelect;
+export type NewRobotsGeneratorDraft = typeof robotsGeneratorDrafts.$inferInsert;

@@ -135,7 +135,11 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
             from the snippet.
           </p>
         </div>
-        <RobotsGenerator initial={results} />
+        <RobotsGenerator
+          siteId={siteId}
+          initial={results}
+          robotsContent={audit?.robotsContent ?? null}
+        />
       </section>
     </div>
   );

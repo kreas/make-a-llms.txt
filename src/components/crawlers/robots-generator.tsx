@@ -1,15 +1,30 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   KNOWN_AI_BOTS,
   type AuditResults,
   type KnownAiBot,
 } from '@/lib/known-ai-bots';
+import { parseRobotsTxt } from '@/lib/robots-parser';
 import { cn } from '@/lib/utils';
 
 type ToggleState = 'allow' | 'block' | 'default';
+type WarningKind = 'no-robots' | 'wildcard-block' | null;
+
+function wildcardBlocksRoot(content: string): boolean {
+  const groups = parseRobotsTxt(content);
+  for (const g of groups) {
+    if (!g.userAgents.some((ua) => ua.trim() === '*')) continue;
+    const disallowsRoot = g.rules.some(
+      (r) => r.type === 'disallow' && (r.path === '/' || r.path === '/*'),
+    );
+    if (disallowsRoot) return true;
+  }
+  return false;
+}
 
 function seedToggles(initial: AuditResults): Record<KnownAiBot, ToggleState> {
   return Object.fromEntries(
@@ -57,27 +72,167 @@ function buildSnippet(
   return lines.join('\n');
 }
 
-export function RobotsGenerator({ initial }: { initial: AuditResults }) {
-  const [toggles, setToggles] = useState(() => seedToggles(initial));
+export function RobotsGenerator({
+  siteId,
+  initial,
+  robotsContent,
+}: {
+  siteId: number;
+  initial: AuditResults;
+  robotsContent: string | null;
+}) {
+  const qc = useQueryClient();
+  const draftKey = useMemo(
+    () => ['sites', siteId, 'generator-draft'] as const,
+    [siteId],
+  );
 
-  const snippet = useMemo(
+  const draft = useQuery({
+    queryKey: draftKey,
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${siteId}/generator-draft`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as { draft: { toggles: string } };
+    },
+  });
+
+  const seeded = useMemo(() => seedToggles(initial), [initial]);
+  const [toggles, setToggles] = useState<Record<KnownAiBot, ToggleState>>(seeded);
+  const hydrated = useRef(false);
+
+  // Hydrate from the saved draft once it arrives; otherwise leave at audit seed.
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (draft.isLoading) return;
+    hydrated.current = true;
+    if (!draft.data) return;
+    try {
+      const parsed = JSON.parse(draft.data.draft.toggles) as Record<string, ToggleState>;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from server-fetched draft after mount; not a cascading-render risk.
+      setToggles((prev) => {
+        const next = { ...prev };
+        for (const bot of KNOWN_AI_BOTS) {
+          const v = parsed[bot];
+          if (v === 'allow' || v === 'block' || v === 'default') next[bot] = v;
+        }
+        return next;
+      });
+    } catch {
+      // ignore corrupt draft
+    }
+  }, [draft.data, draft.isLoading]);
+
+  const save = useMutation({
+    mutationFn: async (next: Record<KnownAiBot, ToggleState>) => {
+      const res = await fetch(`/api/sites/${siteId}/generator-draft`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ toggles: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: draftKey }),
+  });
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hold the latest mutate fn in a ref so scheduleSave doesn't capture stale closures.
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  });
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
+  function scheduleSave(next: Record<KnownAiBot, ToggleState>): void {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveRef.current.mutate(next);
+    }, 400);
+  }
+
+  function set(bot: KnownAiBot, nextValue: 'allow' | 'block'): void {
+    setToggles((prev) => {
+      const updated = {
+        ...prev,
+        [bot]: prev[bot] === nextValue ? 'default' : nextValue,
+      } as Record<KnownAiBot, ToggleState>;
+      scheduleSave(updated);
+      return updated;
+    });
+  }
+
+  function reset(): void {
+    const fresh = seedToggles(initial);
+    setToggles(fresh);
+    scheduleSave(fresh);
+  }
+
+  const generatedBlock = useMemo(
     () => buildSnippet(toggles, new Date().toISOString().slice(0, 10)),
     [toggles],
   );
+
+  const snippet = useMemo(() => {
+    if (!robotsContent) return generatedBlock;
+    const trimmed = robotsContent.replace(/\s+$/, '');
+    return `${trimmed}\n\n# === AI Ready generated additions ===\n${generatedBlock}`;
+  }, [robotsContent, generatedBlock]);
+
   const empty = useMemo(
     () => KNOWN_AI_BOTS.every((b) => toggles[b] === 'default'),
     [toggles],
   );
 
-  function set(bot: KnownAiBot, next: 'allow' | 'block'): void {
-    setToggles((prev) => ({
-      ...prev,
-      [bot]: prev[bot] === next ? 'default' : next,
-    }));
+  function download(): void {
+    const blob = new Blob([snippet], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'robots.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
+  const warning: WarningKind = useMemo(() => {
+    if (robotsContent === null) return 'no-robots';
+    if (wildcardBlocksRoot(robotsContent)) return 'wildcard-block';
+    return null;
+  }, [robotsContent]);
+
+  const [dismissed, setDismissed] = useState(false);
+
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div className="space-y-6">
+      {warning && !dismissed && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-xl border border-timeline-thinking/60 bg-timeline-thinking/15 p-4"
+        >
+          <div className="space-y-1">
+            <div className="caption-uppercase text-[#7a4229]">Heads up</div>
+            <p className="text-sm text-ink">
+              {warning === 'no-robots'
+                ? `This site has no robots.txt. The directives below will be your starting point.`
+                : `Your robots.txt blocks all crawlers via User-agent: * Disallow: /. Even bots set to ALLOW below may skip your site if they don't have an explicit allow rule.`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="caption-uppercase text-muted-strong hover:text-ink"
+            aria-label="Dismiss warning"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl border border-hairline bg-surface-card">
         <table className="w-full">
           <tbody>
@@ -124,12 +279,7 @@ export function RobotsGenerator({ initial }: { initial: AuditResults }) {
           </tbody>
         </table>
         <div className="border-t border-hairline px-4 py-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setToggles(seedToggles(initial))}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={reset}>
             Reset to current state
           </Button>
         </div>
@@ -142,7 +292,7 @@ export function RobotsGenerator({ initial }: { initial: AuditResults }) {
         >
           {snippet}
         </pre>
-        <div className="border-t border-hairline px-4 py-3">
+        <div className="flex gap-2 border-t border-hairline px-4 py-3">
           <Button
             type="button"
             size="sm"
@@ -151,7 +301,16 @@ export function RobotsGenerator({ initial }: { initial: AuditResults }) {
           >
             Copy snippet
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={download}
+          >
+            Download robots.txt
+          </Button>
         </div>
+      </div>
       </div>
     </div>
   );

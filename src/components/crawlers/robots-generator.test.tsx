@@ -304,7 +304,7 @@ describe('RobotsGenerator', () => {
         />,
       ),
     );
-    expect(screen.getByRole('alert')).toHaveTextContent(/blocks all crawlers/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/blocks every crawler/i);
   });
 
   it('does not show a warning when robotsContent is permissive', () => {
@@ -439,7 +439,7 @@ describe('RobotsGenerator', () => {
     expect(snippet).toMatch(/Allow: \//);
   });
 
-  it('Allow-all toggle is checked and disabled when wildcard already allows', () => {
+  it('auto-marks every bot Allow when wildcard is permissive', () => {
     render(
       withQueryClient(
         <RobotsGenerator
@@ -449,27 +449,44 @@ describe('RobotsGenerator', () => {
         />,
       ),
     );
-    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
-    expect(toggle).toBeDisabled();
+    for (const bot of KNOWN_AI_BOTS) {
+      const row = screen.getByText(bot).closest('tr')!;
+      const allowBtn = row.querySelectorAll('button')[0];
+      expect(allowBtn).toHaveAttribute('aria-pressed', 'true');
+    }
   });
 
-  it('Allow-all toggle is unchecked and disabled when wildcard already blocks', () => {
+  it('does not show the "Allow all crawlers" button when wildcard is permissive', () => {
     render(
       withQueryClient(
         <RobotsGenerator
           siteId={1}
           initial={defaultResults()}
-          robotsContent={'User-agent: *\nDisallow: /\n'}
+          robotsContent={'User-agent: *\nAllow: /\n'}
         />,
       ),
     );
-    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
-    expect(toggle).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: /allow all crawlers/i }),
+    ).toBeNull();
   });
 
-  it('Allow-all toggle is interactive when no wildcard exists', async () => {
+  it('shows "Allow all crawlers" button when no wildcard exists', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={null}
+        />,
+      ),
+    );
+    expect(
+      screen.getByRole('button', { name: /allow all crawlers/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('clicking "Allow all crawlers" adds the wildcard rule to the snippet', async () => {
     const user = userEvent.setup();
     render(
       withQueryClient(
@@ -480,17 +497,15 @@ describe('RobotsGenerator', () => {
         />,
       ),
     );
-    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
-    expect(toggle).not.toBeDisabled();
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
-
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByTestId('snippet')).toHaveTextContent('User-agent: *');
-    expect(screen.getByTestId('snippet')).toHaveTextContent('Allow: /');
+    await user.click(
+      screen.getByRole('button', { name: /allow all crawlers/i }),
+    );
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    expect(snippet).toMatch(/User-agent: \*/);
+    expect(snippet).toMatch(/Allow: \//);
   });
 
-  it('saves allowAll via debounced PUT when toggled', async () => {
+  it('saves allowAll=true via debounced PUT when "Allow all crawlers" is clicked', async () => {
     const fetchSpy = stubFetch();
     const user = userEvent.setup();
     render(
@@ -502,10 +517,9 @@ describe('RobotsGenerator', () => {
         />,
       ),
     );
-
-    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
-    await user.click(toggle);
-
+    await user.click(
+      screen.getByRole('button', { name: /allow all crawlers/i }),
+    );
     await waitFor(
       () => {
         const putCall = fetchSpy.mock.calls.find(
@@ -519,7 +533,7 @@ describe('RobotsGenerator', () => {
     );
   });
 
-  it('hydrates allowAll from the draft endpoint', async () => {
+  it('hydrates allowAll from the draft and auto-marks bots Allow accordingly', async () => {
     stubFetch((url, init) => {
       if (
         url.includes('/generator-draft') &&
@@ -542,8 +556,108 @@ describe('RobotsGenerator', () => {
       ),
     );
     await waitFor(() => {
-      const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
-      expect(toggle).toHaveAttribute('aria-checked', 'true');
+      const row = screen.getByText('GPTBot').closest('tr')!;
+      const allowBtn = row.querySelectorAll('button')[0];
+      expect(allowBtn).toHaveAttribute('aria-pressed', 'true');
     });
+  });
+
+  it('wildcard-disallow warning includes a "Switch to Allow: /" button', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nDisallow: /\n'}
+        />,
+      ),
+    );
+    expect(
+      screen.getByRole('button', { name: /switch to allow/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('clicking "Switch to Allow: /" strips existing wildcard and adds Allow rule', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={
+            'User-agent: *\nDisallow: /\nSitemap: https://x.test/sitemap.xml\n'
+          }
+        />,
+      ),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /switch to allow/i }),
+    );
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    // Existing User-agent: * Disallow: / is stripped (only Sitemap line preserved).
+    expect(snippet).not.toMatch(/Disallow: \//);
+    // Sitemap line survives.
+    expect(snippet).toMatch(/Sitemap: https:\/\/x\.test/);
+    // Our Allow rule is present.
+    expect(snippet).toMatch(/User-agent: \*/);
+    expect(snippet).toMatch(/Allow: \//);
+  });
+
+  it('Switch to Allow: drops comments and Crawl-delay inside the wildcard group', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={[
+            '# Block everyone',
+            'User-agent: *',
+            '# This block applies to all bots',
+            'Crawl-delay: 10',
+            'Disallow: /',
+            '',
+            'Sitemap: https://x.test/sitemap.xml',
+          ].join('\n')}
+        />,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /switch to allow/i }));
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    // The entire wildcard group (including its inner comment and Crawl-delay) is stripped.
+    expect(snippet).not.toMatch(/Crawl-delay/);
+    expect(snippet).not.toMatch(/Disallow: \//);
+    expect(snippet).not.toMatch(/This block applies to all bots/);
+    // The pre-wildcard comment AND the Sitemap line survive.
+    expect(snippet).toMatch(/# Block everyone/);
+    expect(snippet).toMatch(/Sitemap: https:\/\/x\.test/);
+    // And our new Allow rule appears.
+    expect(snippet).toMatch(/Allow: \//);
+  });
+
+  it('Switch to Allow: preserves non-wildcard User-agent groups', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={[
+            'User-agent: *',
+            'Disallow: /',
+            '',
+            'User-agent: Googlebot',
+            'Allow: /',
+          ].join('\n')}
+        />,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /switch to allow/i }));
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    // Wildcard Disallow gone.
+    expect(snippet).not.toMatch(/User-agent: \*\nDisallow: \//);
+    // Googlebot group survives.
+    expect(snippet).toMatch(/User-agent: Googlebot/);
+    expect(snippet).toMatch(/Allow: \//);
   });
 });

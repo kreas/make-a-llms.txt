@@ -157,7 +157,9 @@ describe('RobotsGenerator', () => {
         (!init || !init.method || init.method === 'GET')
       ) {
         return new Response(
-          JSON.stringify({ draft: { toggles: '{"GPTBot":"block"}' } }),
+          JSON.stringify({
+            draft: { toggles: '{"GPTBot":"block"}', allowAll: false },
+          }),
           { status: 200 },
         );
       }
@@ -346,7 +348,7 @@ describe('RobotsGenerator', () => {
     const snippet = screen.getByTestId('snippet').textContent ?? '';
     expect(snippet).not.toMatch(/# Allowed AI crawlers/);
     expect(snippet).not.toMatch(/User-agent: GPTBot/);
-    expect(snippet).toMatch(/# Already allowed by your User-agent: \* rule/);
+    expect(snippet).toMatch(/# Already allowed by User-agent: \*/);
     expect(snippet).toMatch(/GPTBot/);
   });
 
@@ -367,7 +369,7 @@ describe('RobotsGenerator', () => {
     const snippet = screen.getByTestId('snippet').textContent ?? '';
     expect(snippet).not.toMatch(/# Blocked AI crawlers/);
     expect(snippet).not.toMatch(/User-agent: GPTBot/);
-    expect(snippet).toMatch(/# Already blocked by your User-agent: \* rule/);
+    expect(snippet).toMatch(/# Already blocked by User-agent: \*/);
     expect(snippet).toMatch(/GPTBot/);
   });
 
@@ -384,7 +386,7 @@ describe('RobotsGenerator', () => {
     );
     // Initially no Allow toggled — the suppression comment should NOT be there.
     expect(screen.getByTestId('snippet')).not.toHaveTextContent(
-      /Already allowed by your User-agent/,
+      /Already allowed by User-agent/,
     );
 
     const row = screen.getByText('GPTBot').closest('tr')!;
@@ -392,7 +394,7 @@ describe('RobotsGenerator', () => {
 
     // Snippet now lists GPTBot inside the informational comment.
     expect(screen.getByTestId('snippet')).toHaveTextContent(
-      /Already allowed by your User-agent/,
+      /Already allowed by User-agent/,
     );
     expect(screen.getByTestId('snippet')).toHaveTextContent('GPTBot');
   });
@@ -435,5 +437,113 @@ describe('RobotsGenerator', () => {
     expect(snippet).toMatch(/# Allowed AI crawlers/);
     expect(snippet).toMatch(/User-agent: GPTBot/);
     expect(snippet).toMatch(/Allow: \//);
+  });
+
+  it('Allow-all toggle is checked and disabled when wildcard already allows', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nAllow: /\n'}
+        />,
+      ),
+    );
+    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(toggle).toBeDisabled();
+  });
+
+  it('Allow-all toggle is unchecked and disabled when wildcard already blocks', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nDisallow: /\n'}
+        />,
+      ),
+    );
+    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(toggle).toBeDisabled();
+  });
+
+  it('Allow-all toggle is interactive when no wildcard exists', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={null}
+        />,
+      ),
+    );
+    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
+    expect(toggle).not.toBeDisabled();
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByTestId('snippet')).toHaveTextContent('User-agent: *');
+    expect(screen.getByTestId('snippet')).toHaveTextContent('Allow: /');
+  });
+
+  it('saves allowAll via debounced PUT when toggled', async () => {
+    const fetchSpy = stubFetch();
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={null}
+        />,
+      ),
+    );
+
+    const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
+    await user.click(toggle);
+
+    await waitFor(
+      () => {
+        const putCall = fetchSpy.mock.calls.find(
+          ([, init]) => (init as RequestInit | undefined)?.method === 'PUT',
+        );
+        expect(putCall).toBeTruthy();
+        const body = JSON.parse((putCall![1] as RequestInit).body as string);
+        expect(body.allowAll).toBe(true);
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it('hydrates allowAll from the draft endpoint', async () => {
+    stubFetch((url, init) => {
+      if (
+        url.includes('/generator-draft') &&
+        (!init || !init.method || init.method === 'GET')
+      ) {
+        return new Response(
+          JSON.stringify({ draft: { toggles: '{}', allowAll: true } }),
+          { status: 200 },
+        );
+      }
+      return new Response('{}', { status: 200 });
+    });
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={null}
+        />,
+      ),
+    );
+    await waitFor(() => {
+      const toggle = screen.getByRole('switch', { name: /allow all crawlers/i });
+      expect(toggle).toHaveAttribute('aria-checked', 'true');
+    });
   });
 });

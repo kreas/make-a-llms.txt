@@ -346,6 +346,8 @@ describe('RobotsGenerator', () => {
     const snippet = screen.getByTestId('snippet').textContent ?? '';
     expect(snippet).not.toMatch(/# Allowed AI crawlers/);
     expect(snippet).not.toMatch(/User-agent: GPTBot/);
+    expect(snippet).toMatch(/# Already allowed by your User-agent: \* rule/);
+    expect(snippet).toMatch(/GPTBot/);
   });
 
   it('suppresses the Block section when wildcard already blocks root', async () => {
@@ -365,6 +367,34 @@ describe('RobotsGenerator', () => {
     const snippet = screen.getByTestId('snippet').textContent ?? '';
     expect(snippet).not.toMatch(/# Blocked AI crawlers/);
     expect(snippet).not.toMatch(/User-agent: GPTBot/);
+    expect(snippet).toMatch(/# Already blocked by your User-agent: \* rule/);
+    expect(snippet).toMatch(/GPTBot/);
+  });
+
+  it('shows the toggled bot in an informational comment when Allow is suppressed', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nAllow: /\n'}
+        />,
+      ),
+    );
+    // Initially no Allow toggled — the suppression comment should NOT be there.
+    expect(screen.getByTestId('snippet')).not.toHaveTextContent(
+      /Already allowed by your User-agent/,
+    );
+
+    const row = screen.getByText('GPTBot').closest('tr')!;
+    await user.click(row.querySelectorAll('button')[0]);
+
+    // Snippet now lists GPTBot inside the informational comment.
+    expect(screen.getByTestId('snippet')).toHaveTextContent(
+      /Already allowed by your User-agent/,
+    );
+    expect(screen.getByTestId('snippet')).toHaveTextContent('GPTBot');
   });
 
   it('still emits the Block section when wildcard is permissive', async () => {

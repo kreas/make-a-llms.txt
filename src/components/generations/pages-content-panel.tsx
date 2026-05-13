@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FileText, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
+import { TabPanel } from '@/components/layout/tab-panel';
 import { PagesTree, type ManifestPage } from './pages-tree';
 import { PagesPreview } from './pages-preview';
 
@@ -76,9 +77,9 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
       : `${ok} of ${pages.length} pages rendered${failed > 0 ? ` — ${failed} failed` : ''}`;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-body">{summary}</p>
+    <TabPanel
+      meta={<p className="text-sm text-body">{summary}</p>}
+      actions={
         <a
           href={`/api/generations/${generation.id}/pages.zip`}
           className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface-card px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
@@ -86,7 +87,9 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
           <Download className="h-3.5 w-3.5" />
           Download all (.zip)
         </a>
-      </div>
+      }
+      contentClassName="p-4"
+    >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
         <div className="h-[600px] overflow-auto rounded-lg border border-hairline bg-surface-card p-2">
           {q.isPending ? (
@@ -97,6 +100,6 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
         </div>
         <PagesPreview generationId={generation.id} selectedPath={selected} />
       </div>
-    </div>
+    </TabPanel>
   );
 }

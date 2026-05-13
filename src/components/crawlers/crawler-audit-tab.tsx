@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { TabPanel } from '@/components/layout/tab-panel';
 import {
   CrawlerAuditTable,
   type CrawlerAuditRow,
@@ -154,11 +155,16 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
           </div>
         </div>
       ) : (
-        <div className="space-y-4 rounded-xl border border-hairline bg-surface-card p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-[12px] text-muted-strong">
-              Last checked {formatRelativeTime(audit.fetchedAt)}
-            </p>
+        <TabPanel
+          meta={
+            <div className="flex flex-wrap items-center gap-4">
+              <p className="font-mono text-[12px] text-muted-strong">
+                Last checked {formatRelativeTime(audit.fetchedAt)}
+              </p>
+              <SummaryChips counts={counts} />
+            </div>
+          }
+          actions={
             <Button
               variant="outline"
               size="sm"
@@ -167,10 +173,11 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
             >
               {reAudit.isPending ? 'Auditing…' : 'Re-audit'}
             </Button>
-          </div>
-          <SummaryChips counts={counts} />
+          }
+          contentClassName="p-0 overflow-hidden"
+        >
           <CrawlerAuditTable rows={rows} />
-        </div>
+        </TabPanel>
       )}
 
       <section className="space-y-3">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Copy, Download, Check } from 'lucide-react';
 import type { Generation } from '@/db/schema';
-import { cn } from '@/lib/utils';
+import { TabPanel } from '@/components/layout/tab-panel';
 
 export function LlmsContentPanel({
   generation,
@@ -49,7 +49,7 @@ export function LlmsContentPanel({
 
   if (!generation) {
     return (
-      <div className="flex h-[600px] flex-col items-center justify-center rounded-lg border border-hairline bg-surface-card p-8 text-center">
+      <div className="flex h-[600px] flex-col items-center justify-center rounded-xl border border-hairline bg-surface-card p-8 text-center">
         <FileText className="h-8 w-8 text-muted-soft" />
         <p className="mt-4 text-base text-muted-strong">
           No successful generation yet. Click{' '}
@@ -60,13 +60,15 @@ export function LlmsContentPanel({
   }
 
   return (
-    <div className="flex h-[600px] flex-col overflow-hidden rounded-lg border border-hairline bg-surface-card">
-      <div className="flex items-center justify-between border-b border-hairline bg-canvas px-4 py-3">
-        <div className="flex items-center gap-2">
+    <TabPanel
+      meta={
+        <span className="flex items-center gap-2 font-mono text-[13px] font-medium text-ink">
           <FileText className="h-4 w-4 text-muted-soft" />
-          <span className="font-mono text-[13px] font-medium text-ink">llms.txt</span>
-        </div>
-        <div className="flex gap-2">
+          llms.txt
+        </span>
+      }
+      actions={
+        <>
           <button
             type="button"
             onClick={handleCopy}
@@ -83,14 +85,11 @@ export function LlmsContentPanel({
             <Download className="h-3.5 w-3.5" />
             Download
           </a>
-        </div>
-      </div>
-      <div
-        className={cn(
-          'flex-grow overflow-auto bg-surface-card p-4',
-          !content && 'flex items-center justify-center',
-        )}
-      >
+        </>
+      }
+      contentClassName="p-0 overflow-hidden"
+    >
+      <div className="h-[600px] overflow-auto p-4">
         {error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : content ? (
@@ -101,6 +100,6 @@ export function LlmsContentPanel({
           <p className="font-mono text-[13px] text-muted-soft">Loading…</p>
         )}
       </div>
-    </div>
+    </TabPanel>
   );
 }

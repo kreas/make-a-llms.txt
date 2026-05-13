@@ -1,30 +1,52 @@
 import Link from 'next/link';
 
-const LINKS = [
+const RESOURCE_LINKS = [
   { href: '#', label: 'Privacy' },
   { href: '#', label: 'Terms' },
-  { href: 'https://github.com', label: 'GitHub' },
-  { href: '/documentation', label: 'API Documentation' },
+  { href: '/documentation', label: 'Security' },
 ] as const;
 
+const COMMUNITY_LINKS = [
+  { href: 'https://github.com', label: 'GitHub' },
+  { href: '#', label: 'Status' },
+] as const;
+
+const LINK_CLASS =
+  'font-mono text-[13px] text-muted-strong underline decoration-hairline transition-colors hover:text-primary';
+
 export function SiteFooter() {
-  const year = new Date().getFullYear();
   return (
-    <footer className="mt-12 w-full border-t border-hairline bg-canvas">
-      <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
-        <div className="font-mono text-[13px] text-ink">
-          © {year} AI READY. BUILT FOR BUILDERS.
+    <footer className="border-t border-hairline bg-canvas">
+      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-8 px-6 py-20 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-ink font-mono text-base text-canvas">
+              ai
+            </span>
+            <span className="display-sm">AI Ready</span>
+          </div>
+          <p className="max-w-sm font-mono text-[13px] text-muted-strong">
+            © {new Date().getFullYear()} AI Ready. Built for the next billion builders.
+            Empowering the Agent Era with high-fidelity context.
+          </p>
         </div>
-        <div className="flex gap-6">
-          {LINKS.map(({ href, label }) => (
-            <Link
-              key={label}
-              href={href}
-              className="caption-uppercase text-muted-strong transition-colors hover:text-ink hover:underline"
-            >
-              {label}
-            </Link>
-          ))}
+        <div className="flex flex-wrap gap-12 md:justify-end">
+          <div className="flex flex-col gap-2">
+            <h4 className="caption-uppercase mb-1 text-ink">Resources</h4>
+            {RESOURCE_LINKS.map(({ href, label }) => (
+              <Link key={label} href={href} className={LINK_CLASS}>
+                {label}
+              </Link>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="caption-uppercase mb-1 text-ink">Community</h4>
+            {COMMUNITY_LINKS.map(({ href, label }) => (
+              <Link key={label} href={href} className={LINK_CLASS}>
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

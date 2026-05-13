@@ -1,0 +1,7 @@
+this line has no colon
+User-agent GPTBot
+User-agent: ClaudeBot
+   :  : : :
+Disallow: /
+Sitemap: https://example.com/sitemap.xml
+Crawl-delay: 5

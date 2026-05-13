@@ -38,7 +38,7 @@ export function CrawlerAuditTable({ rows }: { rows: CrawlerAuditRow[] }) {
               <th className="caption-uppercase px-4 py-3 text-left text-muted-strong">
                 Bot
               </th>
-              <th className="caption-uppercase px-4 py-3 text-left text-muted-strong">
+              <th className="caption-uppercase px-4 py-3 text-right text-muted-strong">
                 Status
               </th>
             </tr>
@@ -55,7 +55,7 @@ export function CrawlerAuditTable({ rows }: { rows: CrawlerAuditRow[] }) {
                   <td className="px-4 py-3 font-mono text-[13px] text-ink">
                     {row.bot}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-right">
                     {row.reason ? (
                       <Tooltip>
                         <TooltipTrigger asChild>

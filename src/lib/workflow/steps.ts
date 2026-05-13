@@ -11,6 +11,7 @@ import { mapUrlsToPaths } from '@/lib/markdown-pages/url-to-path';
 import { buildManifest, type PageResult } from '@/lib/markdown-pages/manifest';
 import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
+import { runCrawlerAudit } from '@/lib/crawler-audit';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
 
@@ -304,5 +305,25 @@ export async function runPagesStepSafe(
       pagesStatus: 'failed',
       pagesErrorMessage: message.slice(0, 500),
     });
+  }
+}
+
+export async function runCrawlerAuditStep(generationId: number): Promise<void> {
+  'use step';
+  try {
+    const db = getDb();
+    const [g] = await db.select().from(generations).where(eq(generations.id, generationId));
+    if (!g) return;
+    await runCrawlerAudit({
+      siteId: g.siteId,
+      trigger: 'generation',
+      generationId,
+    });
+  } catch (err) {
+    console.error(
+      `[workflow] runCrawlerAuditStep failed id=${generationId}`,
+      err,
+    );
+    // Never re-throw — audit failure must not fail the generation workflow.
   }
 }

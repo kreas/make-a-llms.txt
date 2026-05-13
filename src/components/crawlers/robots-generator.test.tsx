@@ -248,10 +248,13 @@ describe('RobotsGenerator', () => {
         const el = origCreateElement(tagName, options);
         if (tagName.toLowerCase() === 'a') {
           const anchor = el as HTMLAnchorElement;
-          const origClick = anchor.click.bind(anchor);
+          // Override click to a no-op recorder. We deliberately do not call
+          // the original click here — jsdom logs "Not implemented: navigation
+          // to another Document" when an <a> with a blob href is clicked,
+          // and that surfaces as a non-zero Vitest exit even though every
+          // assertion in this test still passes.
           anchor.click = () => {
             clickedAnchors.push(anchor);
-            origClick();
           };
         }
         return el;

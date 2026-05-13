@@ -27,9 +27,9 @@ export function SiteHeader() {
             <Image
               src="/logo.webp"
               alt=""
-              width={32}
-              height={32}
-              className="h-8 w-8 rounded-md"
+              width={28}
+              height={28}
+              className="h-7 w-7 shrink-0 rounded-md"
               priority
             />
             <span className="display-sm">AI Ready</span>

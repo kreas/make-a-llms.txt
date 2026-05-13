@@ -1,3 +1,5 @@
+import type { AuditBotResult } from './known-ai-bots';
+
 export type RobotsRule = { type: 'allow' | 'disallow'; path: string };
 export type RobotsGroup = { userAgents: string[]; rules: RobotsRule[] };
 
@@ -41,8 +43,6 @@ export function parseRobotsTxt(text: string): RobotsGroup[] {
   if (current) groups.push(current);
   return groups;
 }
-
-import type { AuditBotResult } from './known-ai-bots';
 
 export function evaluateBot(
   groups: RobotsGroup[],

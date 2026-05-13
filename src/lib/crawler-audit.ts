@@ -57,7 +57,7 @@ async function defaultFetchRobots(rootUrl: string): Promise<FetchRobotsResult> {
       };
     }
     const text = await res.text();
-    if (text.length > MAX_BYTES) {
+    if (Buffer.byteLength(text, 'utf8') > MAX_BYTES) {
       return {
         ok: false,
         kind: 'too_large',
@@ -144,6 +144,22 @@ export async function runCrawlerAudit(params: {
         robotsUrl: fetched.robotsUrl,
         robotsContent: null,
         results: JSON.stringify(buildDefaultResults()),
+        trigger: params.trigger,
+        generationId: params.generationId ?? null,
+      })
+      .returning();
+    return row;
+  }
+
+  if (fetched.kind === 'invalid_url') {
+    const [row] = await db
+      .insert(crawlerAudits)
+      .values({
+        siteId: site.id,
+        status: 'failed',
+        robotsUrl: fetched.robotsUrl,
+        results: JSON.stringify(buildDefaultResults()),
+        errorMessage: `Invalid root URL: ${fetched.error}`,
         trigger: params.trigger,
         generationId: params.generationId ?? null,
       })

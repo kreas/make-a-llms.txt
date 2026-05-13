@@ -92,6 +92,22 @@ describe('runCrawlerAudit', () => {
     expect(audit.errorMessage).toContain('512KB');
   });
 
+  it('invalid_url: writes a failed row with a descriptive errorMessage', async () => {
+    const { site } = await makeUserAndSite();
+    __setFetchRobotsImpl(async () => ({
+      ok: false,
+      kind: 'invalid_url',
+      error: 'Invalid URL',
+      robotsUrl: 'not-a-real-url',
+    }));
+
+    const audit = await runCrawlerAudit({ siteId: site.id, trigger: 'manual' });
+
+    expect(audit.status).toBe('failed');
+    expect(audit.errorMessage).toContain('Invalid root URL');
+    expect(audit.robotsUrl).toBe('not-a-real-url');
+  });
+
   it('persists the row to crawler_audits', async () => {
     const { site } = await makeUserAndSite();
     __setFetchRobotsImpl(async () => ({

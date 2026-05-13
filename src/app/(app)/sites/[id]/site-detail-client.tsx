@@ -87,7 +87,7 @@ export function SiteDetailClient({
 
   return (
     <Tabs defaultValue="llms" className="flex flex-col gap-8">
-      <div className="flex flex-col gap-6 border-b border-hairline pb-6">
+      <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">

@@ -44,6 +44,35 @@ function wildcardBlocksRoot(content: string): boolean {
   return wildcardPosture(content) === 'disallow';
 }
 
+function stripWildcardGroup(content: string): string {
+  const lines = content.split(/\r?\n/);
+  const out: string[] = [];
+  let skipping = false;
+  for (const rawLine of lines) {
+    const stripped = rawLine.replace(/#.*$/, '').trim();
+    const colon = stripped.indexOf(':');
+    if (colon > 0) {
+      const directive = stripped.slice(0, colon).trim().toLowerCase();
+      const value = stripped.slice(colon + 1).trim();
+      if (directive === 'user-agent') {
+        skipping = value === '*';
+        if (skipping) continue;
+        out.push(rawLine);
+        continue;
+      }
+      if (skipping && (directive === 'allow' || directive === 'disallow')) {
+        continue;
+      }
+    }
+    // Non-rule lines (blank, comments, sitemap, etc.) end a group.
+    if (skipping && stripped === '') skipping = false;
+    out.push(rawLine);
+  }
+  // Trim trailing blank lines that the strip left behind.
+  while (out.length && out[out.length - 1].trim() === '') out.pop();
+  return out.join('\n');
+}
+
 function seedToggles(initial: AuditResults): Record<KnownAiBot, ToggleState> {
   return Object.fromEntries(
     KNOWN_AI_BOTS.map((bot) => {
@@ -61,7 +90,7 @@ function buildSnippet(
   existingWildcard: 'allow' | 'disallow' | 'unset',
   allowAll: boolean,
 ): string {
-  const addWildcardRule = allowAll && existingWildcard === 'unset';
+  const addWildcardRule = allowAll && existingWildcard !== 'allow';
   // The effective wildcard considers what we're about to emit.
   const effectiveWildcard: 'allow' | 'disallow' | 'unset' = addWildcardRule
     ? 'allow'
@@ -210,21 +239,21 @@ export function RobotsGenerator({
     [robotsContent],
   );
 
-  const allowAllInteractive = wildcard === 'unset';
+  const existingWildcard = wildcard;
 
   const allowAllDisplay: boolean =
-    wildcard === 'allow'
-      ? true
-      : wildcard === 'disallow'
-        ? false
-        : allowAllDraft;
+    wildcard === 'allow' ? true : allowAllDraft;
 
-  const allowAllHint: string | null =
-    wildcard === 'allow'
-      ? 'Your robots.txt already allows all crawlers.'
-      : wildcard === 'disallow'
-        ? 'Your robots.txt blocks all crawlers — see the warning above.'
-        : null;
+  const effectiveWildcard: 'allow' | 'disallow' | 'unset' =
+    allowAllDraft || existingWildcard === 'allow' ? 'allow' : existingWildcard;
+
+  type Visual = 'allow' | 'block' | 'default';
+  function visualState(bot: KnownAiBot): Visual {
+    const t = toggles[bot];
+    if (t !== 'default') return t;
+    if (effectiveWildcard === 'allow') return 'allow';
+    return 'default';
+  }
 
   function set(bot: KnownAiBot, nextValue: 'allow' | 'block'): void {
     setToggles((prev) => {
@@ -237,10 +266,9 @@ export function RobotsGenerator({
     });
   }
 
-  function setAllowAll(next: boolean): void {
-    if (!allowAllInteractive) return;
-    setAllowAllDraft(next);
-    scheduleSave({ toggles, allowAll: next });
+  function enableAllowAll(): void {
+    setAllowAllDraft(true);
+    scheduleSave({ toggles, allowAll: true });
   }
 
   function reset(): void {
@@ -263,9 +291,12 @@ export function RobotsGenerator({
 
   const snippet = useMemo(() => {
     if (!robotsContent) return generatedBlock;
-    const trimmed = robotsContent.replace(/\s+$/, '');
-    return `${trimmed}\n\n# === AI Ready directives ===\n${generatedBlock}`;
-  }, [robotsContent, generatedBlock]);
+    const prepend = allowAllDraft
+      ? stripWildcardGroup(robotsContent)
+      : robotsContent.replace(/\s+$/, '');
+    if (!prepend.trim()) return generatedBlock;
+    return `${prepend}\n\n# === AI Ready directives ===\n${generatedBlock}`;
+  }, [robotsContent, generatedBlock, allowAllDraft]);
 
   const empty = useMemo(
     () => KNOWN_AI_BOTS.every((b) => toggles[b] === 'default'),
@@ -297,13 +328,26 @@ export function RobotsGenerator({
           role="alert"
           className="flex items-start justify-between gap-3 rounded-xl border border-timeline-thinking/60 bg-timeline-thinking/15 p-4"
         >
-          <div className="space-y-1">
+          <div className="space-y-2">
             <div className="caption-uppercase text-[#7a4229]">Heads up</div>
-            <p className="text-sm text-ink">
-              {warning === 'no-robots'
-                ? `This site has no robots.txt. The directives below will be your starting point.`
-                : `Your robots.txt blocks all crawlers via User-agent: * Disallow: /. Even bots set to ALLOW below may skip your site if they don't have an explicit allow rule.`}
-            </p>
+            {warning === 'no-robots' ? (
+              <p className="text-sm text-ink">
+                This site has no robots.txt. The directives below will be your starting point.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-ink">
+                  No bots can access your site. Your robots.txt blocks every crawler
+                  via <code className="font-mono">User-agent: *</code> +{' '}
+                  <code className="font-mono">Disallow: /</code>.
+                </p>
+                {!allowAllDraft && (
+                  <Button type="button" size="sm" onClick={enableAllowAll}>
+                    Switch to Allow: /
+                  </Button>
+                )}
+              </>
+            )}
           </div>
           <button
             type="button"
@@ -316,86 +360,70 @@ export function RobotsGenerator({
         </div>
       )}
 
-      <div className="rounded-xl border border-hairline bg-surface-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="font-mono text-[14px] text-ink">Allow all crawlers</span>
-            <span className="text-xs text-muted-strong">
-              Emit a <code>User-agent: *</code> with <code>Allow: /</code> rule.
-            </span>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={allowAllDisplay}
-            aria-label="Allow all crawlers"
-            disabled={!allowAllInteractive}
-            onClick={() => setAllowAll(!allowAllDisplay)}
-            className={cn(
-              'relative h-6 w-11 rounded-full transition-colors',
-              allowAllDisplay ? 'bg-semantic-success' : 'bg-hairline-strong',
-              !allowAllInteractive && 'cursor-not-allowed opacity-50',
-            )}
-          >
-            <span
-              className={cn(
-                'absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
-                allowAllDisplay ? 'translate-x-5' : 'translate-x-0.5',
-              )}
-            />
-          </button>
-        </div>
-        {allowAllHint && (
-          <p className="mt-2 text-xs text-muted-strong">{allowAllHint}</p>
-        )}
-      </div>
-
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl border border-hairline bg-surface-card">
         <table className="w-full">
           <tbody>
-            {KNOWN_AI_BOTS.map((bot) => (
-              <tr
-                key={bot}
-                className="border-b border-hairline-soft last:border-0"
-              >
-                <td className="px-4 py-3 font-mono text-[13px] text-ink">
-                  {bot}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      aria-pressed={toggles[bot] === 'allow'}
-                      onClick={() => set(bot, 'allow')}
-                      className={cn(
-                        'rounded-full border px-3 py-1 text-xs transition-colors',
-                        toggles[bot] === 'allow'
-                          ? 'border-semantic-success bg-semantic-success/20 text-[#155e44]'
-                          : 'border-hairline-strong text-body hover:text-ink',
-                      )}
-                    >
-                      Allow
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={toggles[bot] === 'block'}
-                      onClick={() => set(bot, 'block')}
-                      className={cn(
-                        'rounded-full border px-3 py-1 text-xs transition-colors',
-                        toggles[bot] === 'block'
-                          ? 'border-destructive bg-destructive/15 text-destructive'
-                          : 'border-hairline-strong text-body hover:text-ink',
-                      )}
-                    >
-                      Block
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {KNOWN_AI_BOTS.map((bot) => {
+              const visual = visualState(bot);
+              return (
+                <tr
+                  key={bot}
+                  className="border-b border-hairline-soft last:border-0"
+                >
+                  <td className="px-4 py-3 font-mono text-[13px] text-ink">
+                    {bot}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={visual === 'allow'}
+                        onClick={() => set(bot, 'allow')}
+                        className={cn(
+                          'rounded-full border px-3 py-1 text-xs transition-colors',
+                          visual === 'allow'
+                            ? 'border-semantic-success bg-semantic-success/20 text-[#155e44]'
+                            : 'border-hairline-strong text-body hover:text-ink',
+                        )}
+                      >
+                        Allow
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={visual === 'block'}
+                        onClick={() => set(bot, 'block')}
+                        className={cn(
+                          'rounded-full border px-3 py-1 text-xs transition-colors',
+                          visual === 'block'
+                            ? 'border-destructive bg-destructive/15 text-destructive'
+                            : 'border-hairline-strong text-body hover:text-ink',
+                        )}
+                      >
+                        Block
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {existingWildcard === 'unset' && !allowAllDraft && (
+          <div className="border-t border-hairline px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={enableAllowAll}
+            >
+              Allow all crawlers
+            </Button>
+            <p className="mt-1 text-xs text-muted-strong">
+              Add a wildcard rule that lets every bot crawl your site.
+            </p>
+          </div>
+        )}
         <div className="border-t border-hairline px-4 py-3">
           <Button type="button" variant="outline" size="sm" onClick={reset}>
             Reset to current state

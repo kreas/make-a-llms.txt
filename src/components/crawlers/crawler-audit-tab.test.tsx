@@ -89,7 +89,7 @@ describe('CrawlerAuditTab', () => {
     });
     render(withQueryClient(<CrawlerAuditTab siteId={1} />));
     expect(await screen.findByText('BLOCKED')).toBeInTheDocument();
-    expect(screen.getByText(/generate the directives/i)).toBeInTheDocument();
+    expect(screen.getByText(/set who can crawl/i)).toBeInTheDocument();
   });
 
   it('clicking Re-audit POSTs and refreshes', async () => {

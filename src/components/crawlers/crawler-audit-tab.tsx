@@ -129,10 +129,9 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
 
       <section className="space-y-3">
         <div>
-          <h4 className="display-sm text-ink">Generate the directives you want</h4>
+          <h4 className="display-sm text-ink">Set who can crawl your site</h4>
           <p className="text-sm text-muted-strong">
-            Toggle each bot to ALLOW or BLOCK. Bots left as DEFAULT are omitted
-            from the snippet.
+            Mark each AI bot Allow or Block. Anything you don&apos;t change keeps your current setting.
           </p>
         </div>
         <RobotsGenerator

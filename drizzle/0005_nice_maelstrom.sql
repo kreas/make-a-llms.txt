@@ -1,0 +1,1 @@
+ALTER TABLE `robots_generator_drafts` ADD `allow_all` integer DEFAULT false NOT NULL;

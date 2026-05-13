@@ -8,41 +8,11 @@ import {
   type AuditResults,
   type KnownAiBot,
 } from '@/lib/known-ai-bots';
-import { parseRobotsTxt } from '@/lib/robots-parser';
+import { wildcardPosture, wildcardBlocksRoot } from '@/lib/robots-wildcard';
 import { cn } from '@/lib/utils';
 
 type ToggleState = 'allow' | 'block' | 'default';
 type WarningKind = 'no-robots' | 'wildcard-block' | null;
-
-function wildcardPosture(content: string | null): 'allow' | 'disallow' | 'unset' {
-  if (content === null) return 'unset';
-  const groups = parseRobotsTxt(content);
-  for (const g of groups) {
-    if (!g.userAgents.some((ua) => ua.trim() === '*')) continue;
-    // Determine if root "/" is allowed for this wildcard group.
-    // Walk rules; for each rule whose path matches root, track the longest
-    // match. On length tie, allow wins (mirrors RFC 9309 semantics).
-    let best: { type: 'allow' | 'disallow'; length: number } | null = null;
-    for (const r of g.rules) {
-      if (r.path !== '' && r.path !== '/' && r.path !== '/*') continue;
-      const len = r.path.length;
-      if (
-        !best ||
-        len > best.length ||
-        (len === best.length && r.type === 'allow')
-      ) {
-        best = { type: r.type, length: len };
-      }
-    }
-    if (!best) return 'allow';
-    return best.type === 'allow' ? 'allow' : 'disallow';
-  }
-  return 'unset';
-}
-
-function wildcardBlocksRoot(content: string): boolean {
-  return wildcardPosture(content) === 'disallow';
-}
 
 function stripWildcardGroup(content: string): string {
   const lines = content.split(/\r?\n/);

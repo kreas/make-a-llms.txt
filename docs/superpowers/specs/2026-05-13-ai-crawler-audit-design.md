@@ -136,7 +136,9 @@ For each name in `KNOWN_AI_BOTS`:
      Allow wins ties" rule for the root) → `{ status: 'blocked' }`.
    - No `Disallow` rules at all → `{ status: 'allowed' }`.
    - `Disallow` rules exist but none block `/` → `{ status: 'partial',
-     disallowedPaths: [...non-root Disallow paths] }`.
+     disallowedPaths: [...non-root Disallow paths] }`. If the only `Disallow`
+     was on `/` and was overridden by `Allow: /`, no non-root disallows remain
+     → `{ status: 'allowed' }`.
 
 Wildcard paths (e.g. `Disallow: /*.json`) are not expanded for the root check.
 Their presence in a group counts as evidence of "partial" but they are listed

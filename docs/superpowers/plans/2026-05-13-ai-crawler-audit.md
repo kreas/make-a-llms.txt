@@ -442,7 +442,10 @@ export function evaluateBot(
   if (!rootAllowed) return { status: 'blocked' };
 
   // Root reachable but other Disallow paths exist → partial.
+  // If the only Disallow was on root (and an Allow overrode it), there are
+  // no non-root disallows left, so the bot is fully allowed.
   const nonRoot = disallows.filter((p) => p !== '/' && p !== '');
+  if (nonRoot.length === 0) return { status: 'allowed' };
   return { status: 'partial', disallowedPaths: nonRoot };
 }
 

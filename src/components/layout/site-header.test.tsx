@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({
 describe('SiteHeader', () => {
   it('renders the wordmark', () => {
     render(withQueryClient(<SiteHeader />));
-    expect(screen.getByText('llms.txt Generator')).toBeInTheDocument();
+    expect(screen.getByText('AI Ready')).toBeInTheDocument();
   });
 
   it('renders all 3 nav links', () => {

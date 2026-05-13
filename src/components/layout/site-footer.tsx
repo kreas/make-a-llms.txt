@@ -13,7 +13,7 @@ export function SiteFooter() {
     <footer className="mt-12 w-full border-t border-hairline bg-canvas">
       <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
         <div className="font-mono text-[13px] text-ink">
-          © {year} LLMS.TXT ARCHITECT. BUILT FOR BUILDERS.
+          © {year} AI READY. BUILT FOR BUILDERS.
         </div>
         <div className="flex gap-6">
           {LINKS.map(({ href, label }) => (

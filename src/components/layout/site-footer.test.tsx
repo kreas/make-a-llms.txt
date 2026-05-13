@@ -5,7 +5,7 @@ import { SiteFooter } from './site-footer';
 describe('SiteFooter', () => {
   it('renders the copyright line and all 4 links', () => {
     render(<SiteFooter />);
-    expect(screen.getByText(/LLMS\.TXT ARCHITECT/i)).toBeInTheDocument();
+    expect(screen.getByText(/AI READY/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Privacy' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Terms' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'GitHub' })).toBeInTheDocument();

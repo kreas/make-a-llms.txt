@@ -20,6 +20,7 @@ async function parseSiteId(ctx: Ctx): Promise<number> {
 
 const putBodySchema = z.object({
   toggles: z.record(z.string(), z.enum(['allow', 'block', 'default'])),
+  allowAll: z.boolean().optional(),
 });
 
 export async function GET(_req: Request, ctx: Ctx) {
@@ -50,14 +51,15 @@ export async function PUT(req: Request, ctx: Ctx) {
 
     const db = getDb();
     const togglesJson = JSON.stringify(body.toggles);
+    const allowAll = body.allowAll ?? false;
     const now = new Date().toISOString();
 
     const [draft] = await db
       .insert(robotsGeneratorDrafts)
-      .values({ siteId: id, toggles: togglesJson, updatedAt: now })
+      .values({ siteId: id, toggles: togglesJson, allowAll, updatedAt: now })
       .onConflictDoUpdate({
         target: robotsGeneratorDrafts.siteId,
-        set: { toggles: togglesJson, updatedAt: now },
+        set: { toggles: togglesJson, allowAll, updatedAt: now },
       })
       .returning();
 

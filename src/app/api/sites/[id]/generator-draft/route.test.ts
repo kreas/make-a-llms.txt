@@ -130,4 +130,54 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
     const res = await PUT(putRequest({ toggles: {} }), ctx(site.id));
     expect(res.status).toBe(404);
   });
+
+  it('GET returns allowAll defaulting to false when not set', async () => {
+    const { user, site } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+    await getDb()
+      .insert(robotsGeneratorDrafts)
+      .values({ siteId: site.id, toggles: '{}' });
+    const res = await GET(new Request('http://t'), ctx(site.id));
+    const body = await res.json();
+    expect(body.draft.allowAll).toBe(false);
+  });
+
+  it('PUT accepts allowAll: true and persists it', async () => {
+    const { user, site } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+
+    const res = await PUT(
+      putRequest({ toggles: {}, allowAll: true }),
+      ctx(site.id),
+    );
+    expect(res.status).toBe(200);
+    const rows = await getDb().select().from(robotsGeneratorDrafts);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].allowAll).toBe(true);
+  });
+
+  it('PUT defaults allowAll to false when omitted', async () => {
+    const { user, site } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+
+    const res = await PUT(putRequest({ toggles: {} }), ctx(site.id));
+    expect(res.status).toBe(200);
+    const rows = await getDb().select().from(robotsGeneratorDrafts);
+    expect(rows[0].allowAll).toBe(false);
+  });
+
+  it('PUT upsert preserves allowAll across updates', async () => {
+    const { user, site } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+
+    // First PUT sets allowAll: true.
+    await PUT(putRequest({ toggles: {}, allowAll: true }), ctx(site.id));
+    // Second PUT omits allowAll (defaults to false).
+    await PUT(putRequest({ toggles: { GPTBot: 'block' } }), ctx(site.id));
+
+    const rows = await getDb().select().from(robotsGeneratorDrafts);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].allowAll).toBe(false);
+    expect(JSON.parse(rows[0].toggles).GPTBot).toBe('block');
+  });
 });

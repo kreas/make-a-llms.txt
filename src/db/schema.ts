@@ -128,6 +128,7 @@ export const robotsGeneratorDrafts = sqliteTable(
       .notNull()
       .references(() => sites.id, { onDelete: 'cascade' }),
     toggles: text('toggles').notNull(),
+    allowAll: integer('allow_all', { mode: 'boolean' }).notNull().default(false),
     updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
   },
   (t) => ({

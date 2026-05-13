@@ -442,7 +442,10 @@ export function evaluateBot(
   if (!rootAllowed) return { status: 'blocked' };
 
   // Root reachable but other Disallow paths exist → partial.
+  // If the only Disallow was on root (and an Allow overrode it), there are
+  // no non-root disallows left, so the bot is fully allowed.
   const nonRoot = disallows.filter((p) => p !== '/' && p !== '');
+  if (nonRoot.length === 0) return { status: 'allowed' };
   return { status: 'partial', disallowedPaths: nonRoot };
 }
 
@@ -518,7 +521,7 @@ Create `src/lib/crawler-audit.test.ts`:
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
-import { sites, users, crawlerAudits } from '@/db/schema';
+import { sites, users, crawlerAudits, generations } from '@/db/schema';
 import { runCrawlerAudit, __setFetchRobotsImpl } from './crawler-audit';
 
 async function makeUserAndSite(rootUrl = 'https://example.test') {
@@ -624,7 +627,12 @@ describe('runCrawlerAudit', () => {
   });
 
   it('sets generationId when trigger is generation', async () => {
-    const { site } = await makeUserAndSite();
+    const { user, site } = await makeUserAndSite();
+    const db = getDb();
+    const [gen] = await db
+      .insert(generations)
+      .values({ siteId: site.id, userId: user.id, trigger: 'manual' })
+      .returning();
     __setFetchRobotsImpl(async () => ({
       ok: true,
       body: '',
@@ -634,11 +642,11 @@ describe('runCrawlerAudit', () => {
     const audit = await runCrawlerAudit({
       siteId: site.id,
       trigger: 'generation',
-      generationId: 42,
+      generationId: gen.id,
     });
 
     expect(audit.trigger).toBe('generation');
-    expect(audit.generationId).toBe(42);
+    expect(audit.generationId).toBe(gen.id);
   });
 
   it('never throws on missing site (returns failed row)', async () => {
@@ -768,19 +776,21 @@ export async function runCrawlerAudit(params: {
   const [site] = await db.select().from(sites).where(eq(sites.id, params.siteId));
 
   if (!site) {
-    const [row] = await db
-      .insert(crawlerAudits)
-      .values({
-        siteId: params.siteId,
-        status: 'failed',
-        robotsUrl: '',
-        results: JSON.stringify(buildDefaultResults()),
-        errorMessage: `Site ${params.siteId} not found`,
-        trigger: params.trigger,
-        generationId: params.generationId ?? null,
-      })
-      .returning();
-    return row;
+    // Site row doesn't exist — we can't write a crawler_audits row (FK
+    // constraint), so return a non-persisted failed audit. Callers must not
+    // assume the returned row has a real id when the site is missing.
+    return {
+      id: -1,
+      siteId: params.siteId,
+      status: 'failed',
+      robotsUrl: '',
+      robotsContent: null,
+      results: JSON.stringify(buildDefaultResults()),
+      errorMessage: `Site ${params.siteId} not found`,
+      fetchedAt: new Date().toISOString(),
+      trigger: params.trigger,
+      generationId: params.generationId ?? null,
+    } as CrawlerAudit;
   }
 
   const fetched = await fetcher(site.rootUrl);
@@ -1531,8 +1541,10 @@ function defaultResults(): AuditResults {
 
 describe('RobotsGenerator', () => {
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+      writable: true,
     });
   });
 
@@ -1591,10 +1603,19 @@ describe('RobotsGenerator', () => {
 
   it('Copy button writes the snippet to the clipboard', async () => {
     const user = userEvent.setup();
+    // userEvent.setup() installs its own clipboard stub — re-install ours so
+    // we can assert against the spy reference directly.
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
     render(<RobotsGenerator initial={seeded} />);
     await user.click(screen.getByRole('button', { name: /copy/i }));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+    expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('User-agent: GPTBot'),
     );
   });

@@ -6,6 +6,7 @@ import {
   completeStep,
   notifyStep,
   failStep,
+  runCrawlerAuditStep,
 } from './steps';
 
 export type GenerateSiteFilesPayload = { generationId: number };
@@ -36,6 +37,7 @@ export async function generateSiteFilesWorkflow({
     ]);
 
     await completeStep(generationId);
+    await runCrawlerAuditStep(generationId);
     await notifyStep(generationId);
     console.log(`[workflow] generateSiteFiles ok id=${generationId}`);
     return { ok: true };

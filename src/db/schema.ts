@@ -93,3 +93,29 @@ export type Site = typeof sites.$inferSelect;
 export type NewSite = typeof sites.$inferInsert;
 export type Generation = typeof generations.$inferSelect;
 export type NewGeneration = typeof generations.$inferInsert;
+
+export const crawlerAudits = sqliteTable(
+  'crawler_audits',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    status: text('status', { enum: ['succeeded', 'failed'] }).notNull(),
+    robotsUrl: text('robots_url').notNull(),
+    robotsContent: text('robots_content'),
+    results: text('results').notNull(),
+    errorMessage: text('error_message'),
+    fetchedAt: text('fetched_at').notNull().default(sql`(current_timestamp)`),
+    trigger: text('trigger', { enum: ['generation', 'manual'] }).notNull(),
+    generationId: integer('generation_id').references(() => generations.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (t) => ({
+    bySiteRecent: index('crawler_audits_by_site_recent').on(t.siteId, t.fetchedAt),
+  }),
+);
+
+export type CrawlerAudit = typeof crawlerAudits.$inferSelect;
+export type NewCrawlerAudit = typeof crawlerAudits.$inferInsert;

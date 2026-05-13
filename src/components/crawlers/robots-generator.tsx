@@ -48,27 +48,39 @@ function stripWildcardGroup(content: string): string {
   const lines = content.split(/\r?\n/);
   const out: string[] = [];
   let skipping = false;
+
   for (const rawLine of lines) {
     const stripped = rawLine.replace(/#.*$/, '').trim();
     const colon = stripped.indexOf(':');
-    if (colon > 0) {
-      const directive = stripped.slice(0, colon).trim().toLowerCase();
-      const value = stripped.slice(colon + 1).trim();
-      if (directive === 'user-agent') {
-        skipping = value === '*';
-        if (skipping) continue;
-        out.push(rawLine);
-        continue;
-      }
-      if (skipping && (directive === 'allow' || directive === 'disallow')) {
-        continue;
-      }
+
+    // Comments or blank lines: drop while inside a skipped group, otherwise preserve.
+    if (colon <= 0) {
+      if (skipping) continue;
+      out.push(rawLine);
+      continue;
     }
-    // Non-rule lines (blank, comments, sitemap, etc.) end a group.
-    if (skipping && stripped === '') skipping = false;
+
+    const directive = stripped.slice(0, colon).trim().toLowerCase();
+    const value = stripped.slice(colon + 1).trim();
+
+    if (directive === 'user-agent') {
+      skipping = value === '*';
+      if (skipping) continue;
+      out.push(rawLine);
+      continue;
+    }
+
+    // Top-level directives survive even inside a skipped group.
+    if (directive === 'sitemap' || directive === 'host') {
+      out.push(rawLine);
+      continue;
+    }
+
+    // Group-scoped directives (Allow, Disallow, Crawl-delay, Clean-param, etc.)
+    if (skipping) continue;
     out.push(rawLine);
   }
-  // Trim trailing blank lines that the strip left behind.
+
   while (out.length && out[out.length - 1].trim() === '') out.pop();
   return out.join('\n');
 }

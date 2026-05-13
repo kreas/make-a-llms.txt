@@ -602,4 +602,62 @@ describe('RobotsGenerator', () => {
     expect(snippet).toMatch(/User-agent: \*/);
     expect(snippet).toMatch(/Allow: \//);
   });
+
+  it('Switch to Allow: drops comments and Crawl-delay inside the wildcard group', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={[
+            '# Block everyone',
+            'User-agent: *',
+            '# This block applies to all bots',
+            'Crawl-delay: 10',
+            'Disallow: /',
+            '',
+            'Sitemap: https://x.test/sitemap.xml',
+          ].join('\n')}
+        />,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /switch to allow/i }));
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    // The entire wildcard group (including its inner comment and Crawl-delay) is stripped.
+    expect(snippet).not.toMatch(/Crawl-delay/);
+    expect(snippet).not.toMatch(/Disallow: \//);
+    expect(snippet).not.toMatch(/This block applies to all bots/);
+    // The pre-wildcard comment AND the Sitemap line survive.
+    expect(snippet).toMatch(/# Block everyone/);
+    expect(snippet).toMatch(/Sitemap: https:\/\/x\.test/);
+    // And our new Allow rule appears.
+    expect(snippet).toMatch(/Allow: \//);
+  });
+
+  it('Switch to Allow: preserves non-wildcard User-agent groups', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={[
+            'User-agent: *',
+            'Disallow: /',
+            '',
+            'User-agent: Googlebot',
+            'Allow: /',
+          ].join('\n')}
+        />,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /switch to allow/i }));
+    const snippet = screen.getByTestId('snippet').textContent ?? '';
+    // Wildcard Disallow gone.
+    expect(snippet).not.toMatch(/User-agent: \*\nDisallow: \//);
+    // Googlebot group survives.
+    expect(snippet).toMatch(/User-agent: Googlebot/);
+    expect(snippet).toMatch(/Allow: \//);
+  });
 });

@@ -279,4 +279,50 @@ describe('RobotsGenerator', () => {
       createElementSpy.mockRestore();
     }
   });
+
+  it('shows the no-robots warning when robotsContent is null', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(/no robots\.txt/i);
+  });
+
+  it('shows the wildcard-block warning when User-agent: * Disallow: / is set', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nDisallow: /\n'}
+        />,
+      ),
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(/blocks all crawlers/i);
+  });
+
+  it('does not show a warning when robotsContent is permissive', () => {
+    render(
+      withQueryClient(
+        <RobotsGenerator
+          siteId={1}
+          initial={defaultResults()}
+          robotsContent={'User-agent: *\nAllow: /\n'}
+        />,
+      ),
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('Dismiss button hides the warning', async () => {
+    const user = userEvent.setup();
+    render(
+      withQueryClient(
+        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: /dismiss/i }));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

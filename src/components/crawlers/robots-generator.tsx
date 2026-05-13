@@ -8,9 +8,23 @@ import {
   type AuditResults,
   type KnownAiBot,
 } from '@/lib/known-ai-bots';
+import { parseRobotsTxt } from '@/lib/robots-parser';
 import { cn } from '@/lib/utils';
 
 type ToggleState = 'allow' | 'block' | 'default';
+type WarningKind = 'no-robots' | 'wildcard-block' | null;
+
+function wildcardBlocksRoot(content: string): boolean {
+  const groups = parseRobotsTxt(content);
+  for (const g of groups) {
+    if (!g.userAgents.some((ua) => ua.trim() === '*')) continue;
+    const disallowsRoot = g.rules.some(
+      (r) => r.type === 'disallow' && (r.path === '/' || r.path === '/*'),
+    );
+    if (disallowsRoot) return true;
+  }
+  return false;
+}
 
 function seedToggles(initial: AuditResults): Record<KnownAiBot, ToggleState> {
   return Object.fromEntries(
@@ -184,8 +198,41 @@ export function RobotsGenerator({
     URL.revokeObjectURL(url);
   }
 
+  const warning: WarningKind = useMemo(() => {
+    if (robotsContent === null) return 'no-robots';
+    if (wildcardBlocksRoot(robotsContent)) return 'wildcard-block';
+    return null;
+  }, [robotsContent]);
+
+  const [dismissed, setDismissed] = useState(false);
+
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div className="space-y-6">
+      {warning && !dismissed && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-xl border border-timeline-thinking/60 bg-timeline-thinking/15 p-4"
+        >
+          <div className="space-y-1">
+            <div className="caption-uppercase text-[#7a4229]">Heads up</div>
+            <p className="text-sm text-ink">
+              {warning === 'no-robots'
+                ? `This site has no robots.txt. The directives below will be your starting point.`
+                : `Your robots.txt blocks all crawlers via User-agent: * Disallow: /. Even bots set to ALLOW below may skip your site if they don't have an explicit allow rule.`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="caption-uppercase text-muted-strong hover:text-ink"
+            aria-label="Dismiss warning"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="rounded-xl border border-hairline bg-surface-card">
         <table className="w-full">
           <tbody>
@@ -263,6 +310,7 @@ export function RobotsGenerator({
             Download robots.txt
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

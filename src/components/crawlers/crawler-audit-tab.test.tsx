@@ -92,6 +92,38 @@ describe('CrawlerAuditTab', () => {
     expect(screen.getByText(/set who can crawl/i)).toBeInTheDocument();
   });
 
+  it('shows DEFAULT bots as ALLOWED when wildcard allows root', async () => {
+    const results: AuditResults = Object.fromEntries(
+      KNOWN_AI_BOTS.map((b) => [b, { status: 'default' as const }]),
+    ) as AuditResults;
+    mockFetch((url) => {
+      if (url.endsWith('/audits/latest')) {
+        return new Response(
+          JSON.stringify({
+            audit: {
+              id: 1,
+              siteId: 1,
+              status: 'succeeded',
+              robotsUrl: 'https://x.test/robots.txt',
+              results: JSON.stringify(results),
+              errorMessage: null,
+              fetchedAt: '2026-05-13T00:00:00Z',
+              trigger: 'manual',
+              generationId: null,
+              robotsContent: 'User-agent: *\nAllow: /\n',
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response('{}', { status: 200 });
+    });
+    render(withQueryClient(<CrawlerAuditTab siteId={1} />));
+    const allowed = await screen.findAllByText('ALLOWED');
+    expect(allowed.length).toBe(KNOWN_AI_BOTS.length);
+    expect(screen.queryByText('DEFAULT')).toBeNull();
+  });
+
   it('clicking Re-audit POSTs and refreshes', async () => {
     const fetchSpy = vi.fn((url: string, init?: RequestInit) => {
       if (url.endsWith('/audits/latest')) {

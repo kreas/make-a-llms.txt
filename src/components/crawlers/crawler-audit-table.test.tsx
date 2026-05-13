@@ -1,57 +1,52 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { CrawlerAuditTable } from './crawler-audit-table';
-import { KNOWN_AI_BOTS, type AuditResults } from '@/lib/known-ai-bots';
-
-function buildResults(overrides: Partial<AuditResults> = {}): AuditResults {
-  const base = Object.fromEntries(
-    KNOWN_AI_BOTS.map((b) => [b, { status: 'default' as const }]),
-  ) as AuditResults;
-  return { ...base, ...overrides };
-}
 
 describe('CrawlerAuditTable', () => {
-  it('renders one row per known bot', () => {
-    render(<CrawlerAuditTable results={buildResults()} />);
-    for (const bot of KNOWN_AI_BOTS) {
-      expect(screen.getByText(bot)).toBeInTheDocument();
-    }
+  it('renders one row per provided bot', () => {
+    const rows = [
+      { bot: 'GPTBot', status: 'allowed' as const },
+      { bot: 'ClaudeBot', status: 'blocked' as const },
+    ];
+    render(<CrawlerAuditTable rows={rows} />);
+    expect(screen.getByText('GPTBot')).toBeInTheDocument();
+    expect(screen.getByText('ClaudeBot')).toBeInTheDocument();
   });
 
-  it('shows ALLOWED pill for allowed bots', () => {
-    render(
-      <CrawlerAuditTable
-        results={buildResults({ GPTBot: { status: 'allowed' } })}
-      />,
-    );
+  it('renders the status pill text uppercase', () => {
+    render(<CrawlerAuditTable rows={[{ bot: 'GPTBot', status: 'allowed' }]} />);
     expect(screen.getByText('ALLOWED')).toBeInTheDocument();
   });
 
-  it('shows BLOCKED pill for blocked bots', () => {
+  it('no longer renders a DEFAULT status', () => {
     render(
       <CrawlerAuditTable
-        results={buildResults({ CCBot: { status: 'blocked' } })}
+        rows={[
+          {
+            bot: 'GPTBot',
+            status: 'allowed',
+            reason: 'Inherits allow from User-agent: *',
+          },
+        ]}
       />,
     );
-    expect(screen.getByText('BLOCKED')).toBeInTheDocument();
+    expect(screen.queryByText('DEFAULT')).toBeNull();
   });
 
-  it('shows PARTIAL pill plus disallowed paths in the detail column', () => {
+  it('renders the pill when a reason is provided (tooltip wraps it)', () => {
     render(
       <CrawlerAuditTable
-        results={buildResults({
-          GPTBot: { status: 'partial', disallowedPaths: ['/admin', '/private'] },
-        })}
+        rows={[
+          { bot: 'GPTBot', status: 'partial', reason: 'Blocked paths: /admin' },
+        ]}
       />,
     );
-    expect(screen.getByText('PARTIAL')).toBeInTheDocument();
-    expect(screen.getByText('/admin, /private')).toBeInTheDocument();
+    const pill = screen.getByText('PARTIAL');
+    expect(pill).toBeInTheDocument();
   });
 
-  it('shows "Falls under * rules" for default bots', () => {
-    render(<CrawlerAuditTable results={buildResults()} />);
-    expect(screen.getAllByText('Falls under * rules').length).toBe(
-      KNOWN_AI_BOTS.length,
-    );
+  it('renders the pill when no reason is provided (plain span)', () => {
+    render(<CrawlerAuditTable rows={[{ bot: 'GPTBot', status: 'allowed' }]} />);
+    expect(screen.getByText('ALLOWED')).toBeInTheDocument();
   });
 });

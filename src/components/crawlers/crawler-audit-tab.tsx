@@ -2,13 +2,22 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { CrawlerAuditTable } from './crawler-audit-table';
+import {
+  CrawlerAuditTable,
+  type CrawlerAuditRow,
+  type EffectiveStatus,
+} from './crawler-audit-table';
 import { RobotsGenerator } from './robots-generator';
 import {
   KNOWN_AI_BOTS,
+  type AuditBotResult,
   type AuditResults,
 } from '@/lib/known-ai-bots';
 import { formatRelativeTime } from '@/lib/format-time';
+import {
+  wildcardPosture,
+  type WildcardPosture,
+} from '@/lib/robots-wildcard';
 import type { CrawlerAudit } from '@/db/schema';
 
 type AuditResponse = { audit: CrawlerAudit };
@@ -19,19 +28,53 @@ function emptyResults(): AuditResults {
   ) as AuditResults;
 }
 
-function summary(results: AuditResults) {
+function effectiveStatus(
+  result: AuditBotResult,
+  wildcard: WildcardPosture,
+): { status: EffectiveStatus; reason?: string } {
+  if (result.status === 'allowed') return { status: 'allowed' };
+  if (result.status === 'blocked') return { status: 'blocked' };
+  if (result.status === 'partial') {
+    return {
+      status: 'partial',
+      reason: result.disallowedPaths?.length
+        ? `Blocked paths: ${result.disallowedPaths.join(', ')}`
+        : 'Some paths are disallowed',
+    };
+  }
+  // result.status === 'default' — derive from wildcard
+  if (wildcard === 'disallow') {
+    return { status: 'blocked', reason: 'Inherits block from User-agent: *' };
+  }
+  return {
+    status: 'allowed',
+    reason:
+      wildcard === 'allow'
+        ? 'Inherits allow from User-agent: *'
+        : 'No rule found in robots.txt',
+  };
+}
+
+function buildRows(
+  results: AuditResults,
+  wildcard: WildcardPosture,
+): CrawlerAuditRow[] {
+  return KNOWN_AI_BOTS.map((bot) => {
+    const { status, reason } = effectiveStatus(results[bot], wildcard);
+    return { bot, status, reason };
+  });
+}
+
+function summary(rows: CrawlerAuditRow[]) {
   let allowed = 0,
     blocked = 0,
-    partial = 0,
-    def = 0;
-  for (const b of KNOWN_AI_BOTS) {
-    const s = results[b].status;
-    if (s === 'allowed') allowed++;
-    else if (s === 'blocked') blocked++;
-    else if (s === 'partial') partial++;
-    else def++;
+    partial = 0;
+  for (const r of rows) {
+    if (r.status === 'allowed') allowed++;
+    else if (r.status === 'blocked') blocked++;
+    else partial++;
   }
-  return { allowed, blocked, partial, default: def };
+  return { allowed, blocked, partial };
 }
 
 export function CrawlerAuditTab({ siteId }: { siteId: number }) {
@@ -84,32 +127,22 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
     ? (JSON.parse(audit.results) as AuditResults)
     : emptyResults();
 
+  const wildcard = wildcardPosture(audit.robotsContent ?? null);
+  const rows = buildRows(results, wildcard);
+  const counts = summary(rows);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-ink">AI Crawler Audit</h3>
-          <p className="font-mono text-[12px] text-muted-strong">
-            Last checked {formatRelativeTime(audit.fetchedAt)}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => reAudit.mutate()}
-          disabled={reAudit.isPending}
-        >
-          {reAudit.isPending ? 'Auditing…' : 'Re-audit'}
-        </Button>
-      </div>
-
       {audit.status === 'failed' ? (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4">
           <div className="caption-uppercase mb-2 text-destructive">Audit failed</div>
           <p className="font-mono text-[13px] text-ink">
             {audit.errorMessage ?? 'Unknown error'}
           </p>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[12px] text-muted-strong">
+              Last checked {formatRelativeTime(audit.fetchedAt)}
+            </p>
             <Button
               variant="outline"
               size="sm"
@@ -121,10 +154,23 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
           </div>
         </div>
       ) : (
-        <>
-          <SummaryChips counts={summary(results)} />
-          <CrawlerAuditTable results={results} />
-        </>
+        <div className="space-y-4 rounded-xl border border-hairline bg-surface-card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[12px] text-muted-strong">
+              Last checked {formatRelativeTime(audit.fetchedAt)}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => reAudit.mutate()}
+              disabled={reAudit.isPending}
+            >
+              {reAudit.isPending ? 'Auditing…' : 'Re-audit'}
+            </Button>
+          </div>
+          <SummaryChips counts={counts} />
+          <CrawlerAuditTable rows={rows} />
+        </div>
       )}
 
       <section className="space-y-3">
@@ -147,11 +193,11 @@ export function CrawlerAuditTab({ siteId }: { siteId: number }) {
 function SummaryChips({
   counts,
 }: {
-  counts: { allowed: number; blocked: number; partial: number; default: number };
+  counts: { allowed: number; blocked: number; partial: number };
 }) {
   return (
     <div className="font-mono text-[13px] text-body">
-      {counts.allowed} allowed · {counts.blocked} blocked · {counts.partial} partial · {counts.default} default
+      {counts.allowed} allowed · {counts.blocked} blocked · {counts.partial} partial
     </div>
   );
 }

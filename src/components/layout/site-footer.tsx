@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 const RESOURCE_LINKS = [
@@ -20,9 +21,14 @@ export function SiteFooter() {
       <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-8 px-6 py-20 md:grid-cols-2">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-ink font-mono text-base text-canvas">
-              ai
-            </span>
+            <Image
+              src="/logo.webp"
+              alt=""
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-md"
+              priority={false}
+            />
             <span className="display-sm">AI Ready</span>
           </div>
           <p className="max-w-sm font-mono text-[13px] text-muted-strong">

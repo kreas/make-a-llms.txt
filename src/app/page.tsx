@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -63,9 +64,14 @@ export default async function Home() {
       <nav className="sticky top-0 z-50 border-b border-hairline bg-canvas">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-6 py-5">
           <Link href="/" className="flex items-center gap-2 text-ink">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-ink font-mono text-sm text-canvas">
-              ai
-            </span>
+            <Image
+              src="/logo.webp"
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-md"
+              priority
+            />
             <span className="display-sm">AI Ready</span>
           </Link>
           <div className="hidden gap-8 md:flex">

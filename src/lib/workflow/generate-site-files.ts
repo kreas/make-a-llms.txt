@@ -3,6 +3,7 @@ import {
   runGenStep,
   runFullStep,
   runPagesStepSafe,
+  runSummariesStepSafe,
   completeStep,
   notifyStep,
   failStep,
@@ -35,6 +36,8 @@ export async function generateSiteFilesWorkflow({
       runFullStep(generationId, sitemapUrl),
       runPagesStepSafe(generationId, sitemapUrl, rootUrl),
     ]);
+
+    await runSummariesStepSafe(generationId);
 
     await completeStep(generationId);
     await runCrawlerAuditStep(generationId);

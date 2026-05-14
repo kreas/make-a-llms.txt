@@ -1,0 +1,107 @@
+import { z } from 'zod';
+// Import zod-openapi to extend Zod's .meta() with OpenAPI-specific TypeScript types
+import 'zod-openapi';
+
+const httpUrl = z
+  .string()
+  .url()
+  .refine((u) => /^https?:\/\//i.test(u), 'must start with http:// or https://');
+
+export const generationStatusEnum = z
+  .enum(['pending', 'running', 'succeeded', 'failed', 'cancelled'])
+  .meta({ id: 'GenerationStatus' });
+
+export const pagesStatusEnum = z
+  .enum(['pending', 'running', 'succeeded', 'failed', 'skipped', 'cancelled'])
+  .meta({ id: 'PagesStatus' });
+
+export const summariesStatusEnum = pagesStatusEnum.meta({ id: 'SummariesStatus' });
+
+const createGenerationBySiteId = z
+  .object({
+    siteId: z.number().int().positive(),
+  })
+  .strict();
+
+const createGenerationByRootUrl = z
+  .object({
+    name: z.string().min(1).max(80),
+    rootUrl: httpUrl,
+    sitemapUrl: httpUrl.optional(),
+  })
+  .strict();
+
+export const createGenerationV1Schema = z
+  .union([createGenerationBySiteId, createGenerationByRootUrl])
+  .meta({ id: 'CreateGenerationRequest' });
+
+export const generationCreatedSchema = z
+  .object({
+    generation: z.object({
+      id: z.number().int(),
+      siteId: z.number().int(),
+      status: generationStatusEnum,
+      trigger: z.enum(['manual', 'webhook']),
+      createdAt: z.string(),
+      urls: z.object({
+        self: z.string(),
+        llms: z.string(),
+        llmsFull: z.string(),
+        pages: z.string(),
+      }),
+    }),
+  })
+  .meta({ id: 'GenerationCreated' });
+
+export const generationViewSchema = z
+  .object({
+    id: z.number().int(),
+    status: generationStatusEnum,
+    pages: z.object({
+      status: pagesStatusEnum,
+      count: z.number().int(),
+      errorMessage: z.string().optional(),
+    }),
+    summaries: z.object({
+      status: summariesStatusEnum,
+      count: z.number().int(),
+      emptyCount: z.number().int(),
+      failedCount: z.number().int(),
+      errorMessage: z.string().optional(),
+    }),
+    files: z.object({
+      llms: z.object({ ready: z.boolean(), url: z.string().optional() }),
+      llmsFull: z.object({ ready: z.boolean(), url: z.string().optional() }),
+      pages: z.object({ ready: z.boolean(), url: z.string().optional() }),
+    }),
+    errorMessage: z.string().optional(),
+    startedAt: z.string().optional(),
+    completedAt: z.string().optional(),
+    createdAt: z.string(),
+  })
+  .meta({ id: 'GenerationView' });
+
+export const pageManifestSchema = z
+  .object({
+    status: pagesStatusEnum,
+    count: z.number().int(),
+    pages: z.array(
+      z.object({
+        path: z.string(),
+        url: z.string(),
+        status: z.enum(['ok', 'error', 'skipped']),
+        bytes: z.number().int().optional(),
+      }),
+    ),
+  })
+  .meta({ id: 'PageManifest' });
+
+export const errorSchema = z
+  .object({
+    error: z.object({ code: z.string(), message: z.string() }),
+  })
+  .meta({ id: 'ApiError' });
+
+export type CreateGenerationV1Input = z.infer<typeof createGenerationV1Schema>;
+export type GenerationViewDto = z.infer<typeof generationViewSchema>;
+export type PageManifestDto = z.infer<typeof pageManifestSchema>;

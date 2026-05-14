@@ -34,7 +34,10 @@ export function ApiTokensClient() {
       const r = await fetch(`/api/api-tokens/${id}`, { method: 'DELETE' });
       if (!r.ok) throw new Error('failed');
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['api-tokens'] }),
+    onSuccess: () => {
+      setConfirmingId(null);
+      qc.invalidateQueries({ queryKey: ['api-tokens'] });
+    },
   });
 
   const tokens = tokensQuery.data?.tokens ?? [];
@@ -60,14 +63,7 @@ export function ApiTokensClient() {
               ) : confirmingId === t.id ? (
                 <div className="flex gap-2">
                   <Button variant="ghost" onClick={() => setConfirmingId(null)}>Cancel</Button>
-                  <Button
-                    onClick={() => {
-                      revoke.mutate(t.id);
-                      setConfirmingId(null);
-                    }}
-                  >
-                    Confirm
-                  </Button>
+                  <Button onClick={() => revoke.mutate(t.id)}>Confirm</Button>
                 </div>
               ) : (
                 <Button variant="ghost" onClick={() => setConfirmingId(t.id)}>Revoke</Button>
@@ -78,7 +74,7 @@ export function ApiTokensClient() {
       )}
       <CreateTokenDialog
         open={creating}
-        onClose={() => setCreating(false)}
+        onOpenChange={setCreating}
         onCreated={() => qc.invalidateQueries({ queryKey: ['api-tokens'] })}
       />
     </section>

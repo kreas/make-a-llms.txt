@@ -17,7 +17,7 @@ describe('CreateTokenDialog', () => {
       }),
     });
     const onCreated = vi.fn();
-    render(<CreateTokenDialog open onClose={() => {}} onCreated={onCreated} />);
+    render(<CreateTokenDialog open onOpenChange={() => {}} onCreated={onCreated} />);
     await userEvent.type(screen.getByLabelText(/name/i), 'CI');
     await userEvent.click(screen.getByRole('button', { name: /create/i }));
     expect(await screen.findByText('mklt_pat_secret123')).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe('CreateTokenDialog', () => {
   });
 
   it('disables Create when name is empty', () => {
-    render(<CreateTokenDialog open onClose={() => {}} onCreated={() => {}} />);
+    render(<CreateTokenDialog open onOpenChange={() => {}} onCreated={() => {}} />);
     expect(screen.getByRole('button', { name: /create/i })).toBeDisabled();
   });
 });

@@ -1,7 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const EXPIRY_OPTIONS = [
   { label: '30 days', days: 30 },
@@ -12,27 +19,40 @@ const EXPIRY_OPTIONS = [
 
 type Props = {
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   onCreated: () => void;
 };
 
-export function CreateTokenDialog({ open, onClose, onCreated }: Props) {
+export function CreateTokenDialog({ open, onOpenChange, onCreated }: Props) {
   const [name, setName] = useState('');
   const [days, setDays] = useState<number | null>(90);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setDays(90);
+      setCreatedToken(null);
+      setError(null);
+      setSubmitting(false);
+    }
+  }, [open]);
 
   const handleCreate = async () => {
     setSubmitting(true);
+    setError(null);
     try {
       const r = await fetch('/api/api-tokens', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name, expiresInDays: days ?? undefined }),
       });
-      if (!r.ok) return;
+      if (!r.ok) {
+        setError('Could not create token. Please try again.');
+        return;
+      }
       const body = await r.json();
       setCreatedToken(body.token);
       onCreated();
@@ -42,32 +62,28 @@ export function CreateTokenDialog({ open, onClose, onCreated }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg border border-hairline bg-surface-card p-6">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         {createdToken ? (
           <div>
-            <h3 className="text-lg font-semibold text-ink">Token created</h3>
-            <p className="mt-2 text-sm text-muted-strong">
-              Copy this now — you won&apos;t see it again.
-            </p>
+            <DialogHeader>
+              <DialogTitle>Token created</DialogTitle>
+              <DialogDescription>
+                Copy this now — you won&apos;t see it again.
+              </DialogDescription>
+            </DialogHeader>
             <pre className="mt-4 overflow-x-auto rounded bg-canvas-soft p-3 font-mono text-sm">
               {createdToken}
             </pre>
             <div className="mt-6 flex justify-end">
-              <Button
-                onClick={() => {
-                  setCreatedToken(null);
-                  setName('');
-                  onClose();
-                }}
-              >
-                Done
-              </Button>
+              <Button onClick={() => onOpenChange(false)}>Done</Button>
             </div>
           </div>
         ) : (
           <div>
-            <h3 className="text-lg font-semibold text-ink">New API token</h3>
+            <DialogHeader>
+              <DialogTitle>New API token</DialogTitle>
+            </DialogHeader>
             <label className="mt-4 block text-sm text-ink">
               Name
               <input
@@ -90,15 +106,20 @@ export function CreateTokenDialog({ open, onClose, onCreated }: Props) {
                 ))}
               </select>
             </label>
+            {error ? (
+              <p className="mt-4 text-sm text-destructive">{error}</p>
+            ) : null}
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleCreate} disabled={!name || submitting}>
                 Create
               </Button>
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

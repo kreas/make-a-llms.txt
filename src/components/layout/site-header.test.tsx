@@ -14,11 +14,12 @@ describe('SiteHeader', () => {
     expect(screen.getByText('AI Ready')).toBeInTheDocument();
   });
 
-  it('renders all 3 nav links', () => {
+  it('renders all 4 nav links', () => {
     render(withQueryClient(<SiteHeader />));
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Add Site' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Documentation' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'API Tokens' })).toBeInTheDocument();
   });
 
   it('renders the New Project CTA linking to /sites/new', () => {

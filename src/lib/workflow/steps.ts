@@ -12,6 +12,7 @@ import { buildManifest, type PageResult } from '@/lib/markdown-pages/manifest';
 import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
 import { runCrawlerAudit } from '@/lib/crawler-audit';
+import { buildFrontmatter, extractTitle } from './frontmatter';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
 
@@ -165,10 +166,6 @@ async function markPagesStatus(
     .where(eq(generations.id, generationId));
 }
 
-function frontmatter(url: string, generatedAt: string): string {
-  return `---\nsource: ${url}\ngenerated_at: ${generatedAt}\n---\n\n`;
-}
-
 export async function runPagesStepSafe(
   generationId: number,
   sitemapUrl: string,
@@ -220,7 +217,12 @@ export async function runPagesStepSafe(
       async (entry): Promise<PageResult> => {
         try {
           const { markdown, durationMs } = await fetchPageMarkdown(entry.url);
-          const body = frontmatter(entry.url, generatedAt) + markdown;
+          const body =
+            buildFrontmatter({
+              url: entry.url,
+              updated: generatedAt.slice(0, 10),
+              title: extractTitle(markdown),
+            }) + markdown;
           const bytes = Buffer.byteLength(body, 'utf8');
           const blobPath = `gens/${generationId}/pages/${entry.path}.md`;
           await put(blobPath, body, {

@@ -90,12 +90,6 @@ function buildSnippet(
     lines.push('Allow: /');
   }
 
-  if (allowed.length === 0 && blocked.length === 0 && !addWildcardRule) {
-    lines.push('');
-    lines.push('# (No directives — toggle a bot to begin)');
-    return lines.join('\n');
-  }
-
   if (allowed.length > 0) {
     lines.push('');
     if (effectiveWildcard === 'allow') {

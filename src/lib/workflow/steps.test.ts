@@ -271,6 +271,7 @@ describe('runSummariesStepSafe', () => {
       .returning();
     generationId = g.id;
     vi.clearAllMocks();
+    process.env.AI_SUMMARY_RETRY_DELAY_MS = '0';
   });
 
   function manifestBlob(pages: Array<{ url: string; path: string; status: 'ok' | 'failed' | 'skipped' }>) {
@@ -395,12 +396,17 @@ describe('runSummariesStepSafe', () => {
       ]) as any)
       .mockResolvedValueOnce(pageBlob('https://x.test/a') as any)
       .mockResolvedValueOnce(pageBlob('https://x.test/b') as any)
+      .mockResolvedValueOnce(pageBlob('https://x.test/c') as any)
+      // Pass 2 retry of C re-reads its blob.
       .mockResolvedValueOnce(pageBlob('https://x.test/c') as any);
 
     vi.mocked(generateText)
+      // Pass 1: A ok, B empty, C fails
       .mockResolvedValueOnce({ output: { summary: 'Good summary.', page_type: 'article' } } as any)
       .mockResolvedValueOnce({ output: { summary: '[NO_SUMMARY]', page_type: 'other' } } as any)
-      .mockRejectedValueOnce(new Error('gateway down'));
+      .mockRejectedValueOnce(new Error('gateway down'))
+      // Pass 2 (only C retries): also fails
+      .mockRejectedValueOnce(new Error('still down'));
 
     await runSummariesStepSafe(generationId);
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
@@ -408,6 +414,36 @@ describe('runSummariesStepSafe', () => {
     expect(g.summariesCount).toBe(1);
     expect(g.summariesEmptyCount).toBe(1);
     expect(g.summariesFailedCount).toBe(1);
+  });
+
+  it('retries pages that fail in the first pass and succeeds on retry', async () => {
+    await getDb()
+      .update(generations)
+      .set({
+        pagesStatus: 'succeeded',
+        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+      })
+      .where(eq(generations.id, generationId));
+    process.env.AI_GATEWAY_API_KEY = 'test';
+
+    vi.mocked(get)
+      .mockResolvedValueOnce(manifestBlob([
+        { url: 'https://x.test/a', path: 'a', status: 'ok' },
+      ]) as any)
+      // Pass 1 reads the page blob
+      .mockResolvedValueOnce(pageBlob('https://x.test/a') as any)
+      // Pass 2 (retry) reads it again
+      .mockResolvedValueOnce(pageBlob('https://x.test/a') as any);
+
+    vi.mocked(generateText)
+      .mockRejectedValueOnce(new Error('transient 503'))
+      .mockResolvedValueOnce({ output: { summary: 'Worked on retry.', page_type: 'article' } } as any);
+
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('succeeded');
+    expect(g.summariesCount).toBe(1);
+    expect(g.summariesFailedCount).toBe(0);
   });
 
   it('marks cancelled when the generation is cancelled mid-loop', async () => {

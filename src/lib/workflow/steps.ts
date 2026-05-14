@@ -152,6 +152,11 @@ const SUMMARY_MAX_INPUT_BYTES = Number(
   process.env.AI_SUMMARY_MAX_INPUT_BYTES ?? 200_000,
 );
 
+// Read at call time so tests can override via process.env in a beforeEach.
+function summaryRetryDelayMs(): number {
+  return Number(process.env.AI_SUMMARY_RETRY_DELAY_MS ?? 2000);
+}
+
 async function readCancelled(generationId: number): Promise<boolean> {
   const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
   return g?.status === 'cancelled';
@@ -442,25 +447,46 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
 
     await markSummariesStatus(generationId, { summariesStatus: 'running' });
 
-    const outcomes = await runWithPool(
-      eligible,
-      (page) =>
-        summarizePage({
-          generationId,
-          page: {
-            url: page.url,
-            path: page.path,
-            filename: page.filename,
-            blobPath: page.blobPath,
-          },
-          siteName: site.name,
-          maxInputBytes: SUMMARY_MAX_INPUT_BYTES,
-        }),
-      {
+    const summarizeOnePage = (page: PagesManifestPage & { blobPath: string }) =>
+      summarizePage({
+        generationId,
+        page: {
+          url: page.url,
+          path: page.path,
+          filename: page.filename,
+          blobPath: page.blobPath,
+        },
+        siteName: site.name,
+        maxInputBytes: SUMMARY_MAX_INPUT_BYTES,
+      });
+
+    const outcomes = await runWithPool(eligible, summarizeOnePage, {
+      concurrency: SUMMARY_CONCURRENCY,
+      isCancelled: () => readCancelled(generationId),
+    });
+
+    // Second pass: retry pages that failed in the first pass once. Catches
+    // bursty rate-limits where AI SDK's per-call maxRetries got exhausted on
+    // one wave of contention but a later wave would succeed.
+    const retryIndices = outcomes
+      .map((o, i) => (o instanceof Error || o.status === 'failed' ? i : -1))
+      .filter((i) => i >= 0);
+    if (retryIndices.length > 0 && !(await readCancelled(generationId))) {
+      const delayMs = summaryRetryDelayMs();
+      if (delayMs > 0) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+      const retryPages = retryIndices.map((i) => eligible[i]);
+      const retryOutcomes = await runWithPool(retryPages, summarizeOnePage, {
         concurrency: SUMMARY_CONCURRENCY,
         isCancelled: () => readCancelled(generationId),
-      },
-    );
+      });
+      for (let j = 0; j < retryIndices.length; j++) {
+        if (j < retryOutcomes.length) {
+          outcomes[retryIndices[j]] = retryOutcomes[j];
+        }
+      }
+    }
 
     const { succeeded, empty, failed, resolved } = tallyOutcomes(outcomes);
 

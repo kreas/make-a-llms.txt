@@ -15,7 +15,9 @@ export const pagesStatusEnum = z
   .enum(['pending', 'running', 'succeeded', 'failed', 'skipped', 'cancelled'])
   .meta({ id: 'PagesStatus' });
 
-export const summariesStatusEnum = pagesStatusEnum.meta({ id: 'SummariesStatus' });
+export const summariesStatusEnum = z
+  .enum(['pending', 'running', 'succeeded', 'failed', 'skipped', 'cancelled'])
+  .meta({ id: 'SummariesStatus' });
 
 const createGenerationBySiteId = z
   .object({
@@ -33,7 +35,15 @@ const createGenerationByRootUrl = z
 
 export const createGenerationV1Schema = z
   .union([createGenerationBySiteId, createGenerationByRootUrl])
-  .meta({ id: 'CreateGenerationRequest' });
+  .meta({
+    id: 'CreateGenerationRequest',
+    override: ({ jsonSchema }) => {
+      if (jsonSchema.anyOf) {
+        jsonSchema.oneOf = jsonSchema.anyOf;
+        delete jsonSchema.anyOf;
+      }
+    },
+  });
 
 export const generationCreatedSchema = z
   .object({
@@ -42,7 +52,7 @@ export const generationCreatedSchema = z
       siteId: z.number().int(),
       status: generationStatusEnum,
       trigger: z.enum(['manual', 'webhook']),
-      createdAt: z.string(),
+      createdAt: z.string().meta({ format: 'date-time' }),
       urls: z.object({
         self: z.string(),
         llms: z.string(),
@@ -75,9 +85,9 @@ export const generationViewSchema = z
       pages: z.object({ ready: z.boolean(), url: z.string().optional() }),
     }),
     errorMessage: z.string().optional(),
-    startedAt: z.string().optional(),
-    completedAt: z.string().optional(),
-    createdAt: z.string(),
+    startedAt: z.string().meta({ format: 'date-time' }).optional(),
+    completedAt: z.string().meta({ format: 'date-time' }).optional(),
+    createdAt: z.string().meta({ format: 'date-time' }),
   })
   .meta({ id: 'GenerationView' });
 

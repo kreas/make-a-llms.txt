@@ -25,7 +25,6 @@ export async function POST(req: Request) {
       await assertOwnsSite(body.siteId, user.id);
       siteId = body.siteId;
     } else {
-      const tok = createWebhookToken();
       const existing = await getDb()
         .select()
         .from(sites)
@@ -33,6 +32,7 @@ export async function POST(req: Request) {
       if (existing.length > 0) {
         siteId = existing[0].id;
       } else {
+        const tok = createWebhookToken();
         const [row] = await getDb()
           .insert(sites)
           .values({

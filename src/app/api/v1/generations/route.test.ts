@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
 import { users, sites, apiTokens } from '@/db/schema';
@@ -74,5 +75,28 @@ describe('POST /api/v1/generations', () => {
       .returning();
     const res = await POST(postReq({ siteId: s.id }, { authorization: `Bearer ${token}` }));
     expect(res.status).toBe(404);
+  });
+
+  it('normalizes rootUrl host to lowercase on inline create', async () => {
+    const { user, token } = await seed();
+    const db = getDb();
+    // pre-create a site with normalized rootUrl
+    await db.insert(sites).values({
+      userId: user.id,
+      name: 'Acme',
+      rootUrl: 'https://acme.test',
+      webhookTokenHash: 'h'.repeat(64),
+      webhookTokenPrefix: 'lmt_aaaa',
+    });
+    const before = await db.select().from(sites).where(eq(sites.userId, user.id));
+    expect(before).toHaveLength(1);
+
+    // post with uppercase host — should dedupe to the existing site
+    const res = await POST(
+      postReq({ name: 'Acme2', rootUrl: 'https://ACME.test/' }, { authorization: `Bearer ${token}` }),
+    );
+    expect(res.status).toBe(201);
+    const after = await db.select().from(sites).where(eq(sites.userId, user.id));
+    expect(after).toHaveLength(1); // dedupe worked
   });
 });

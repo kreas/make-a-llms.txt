@@ -1,6 +1,7 @@
 import { z } from 'zod';
 // Import zod-openapi to extend Zod's .meta() with OpenAPI-specific TypeScript types
 import 'zod-openapi';
+import { normalizeRootUrl } from '@/lib/validators';
 
 const httpUrl = z
   .string()
@@ -31,7 +32,8 @@ const createGenerationByRootUrl = z
     rootUrl: httpUrl,
     sitemapUrl: httpUrl.optional(),
   })
-  .strict();
+  .strict()
+  .transform((v) => ({ ...v, rootUrl: normalizeRootUrl(v.rootUrl) }));
 
 export const createGenerationV1Schema = z
   .union([createGenerationBySiteId, createGenerationByRootUrl])

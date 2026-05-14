@@ -94,6 +94,7 @@ export async function summarizePage(
       model: MODEL,
       output: Output.object({ schema: summarySchema }),
       prompt,
+      maxRetries: 5,
     });
 
     const trimmed = output.summary.trim();

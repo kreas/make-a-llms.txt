@@ -28,7 +28,7 @@ describe('extractTitle', () => {
 });
 
 describe('buildFrontmatter', () => {
-  it('renders all four fields in canonical order', () => {
+  it('renders all four fields in canonical order, wrapped in --- delimiters', () => {
     const fm = buildFrontmatter({
       title: 'AI Strategy Services',
       url: 'https://civ.co/services/ai-strategy',
@@ -36,10 +36,12 @@ describe('buildFrontmatter', () => {
       updated: '2026-05-01',
     });
     expect(fm).toBe(
-      'title: AI Strategy Services\n' +
+      '---\n' +
+        'title: AI Strategy Services\n' +
         'url: https://civ.co/services/ai-strategy\n' +
         'summary: Workshops and roadmaps.\n' +
-        'updated: 2026-05-01\n\n',
+        'updated: 2026-05-01\n' +
+        '---\n\n',
     );
   });
 
@@ -64,13 +66,14 @@ describe('buildFrontmatter', () => {
     expect(fm).toMatch(/^summary: $/m);
   });
 
-  it('ends with a blank line separating frontmatter from the body', () => {
+  it('ends with --- and a blank line separating frontmatter from the body', () => {
     const fm = buildFrontmatter({
       url: 'https://example.test',
       updated: '2026-05-14',
       title: 'Home',
     });
-    expect(fm.endsWith('\n\n')).toBe(true);
+    expect(fm.endsWith('---\n\n')).toBe(true);
+    expect(fm.startsWith('---\n')).toBe(true);
   });
 });
 
@@ -165,5 +168,47 @@ describe('parseFrontmatter', () => {
   it('throws when the frontmatter has no url field', () => {
     const blob = 'title: Hello\nsummary: \nupdated: 2026-05-14\n\nbody';
     expect(() => parseFrontmatter(blob)).toThrow(/url/i);
+  });
+
+  it('parses the new --- delimited format', () => {
+    const blob =
+      '---\n' +
+      'title: Hello\n' +
+      'url: https://x.test/p\n' +
+      'summary: A summary.\n' +
+      'page_type: article\n' +
+      'updated: 2026-05-14\n' +
+      '---\n\n' +
+      '# Hello\n\nBody here.\n';
+    const { fields, body } = parseFrontmatter(blob);
+    expect(fields.title).toBe('Hello');
+    expect(fields.url).toBe('https://x.test/p');
+    expect(fields.summary).toBe('A summary.');
+    expect(fields.pageType).toBe('article');
+    expect(fields.updated).toBe('2026-05-14');
+    expect(body).toBe('# Hello\n\nBody here.\n');
+  });
+
+  it('round-trips with the new --- format', () => {
+    const input = {
+      title: 'About',
+      url: 'https://x.test/about',
+      summary: 'A short description.',
+      pageType: 'about' as const,
+      updated: '2026-05-14',
+    };
+    const fm = buildFrontmatter(input);
+    const { fields, body } = parseFrontmatter(fm + 'body text');
+    expect(fields.title).toBe(input.title);
+    expect(fields.url).toBe(input.url);
+    expect(fields.summary).toBe(input.summary);
+    expect(fields.pageType).toBe(input.pageType);
+    expect(fields.updated).toBe(input.updated);
+    expect(body).toBe('body text');
+  });
+
+  it('throws on --- opener without a closing ---', () => {
+    const blob = '---\ntitle: Hello\nurl: https://x.test/p\n\nbody';
+    expect(() => parseFrontmatter(blob)).toThrow(/closing|---/i);
   });
 });

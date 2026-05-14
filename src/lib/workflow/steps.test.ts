@@ -11,7 +11,12 @@ vi.mock('@vercel/blob', () => ({
     url: `https://blob.test/${pathname}`,
     pathname,
   })),
+  get: vi.fn(),
 }));
+vi.mock('ai', async () => {
+  const actual = await vi.importActual<typeof import('ai')>('ai');
+  return { ...actual, generateText: vi.fn() };
+});
 vi.mock('@/lib/sitemap-discover', () => ({
   discoverSitemap: vi.fn(async () => 'https://x.test/sitemap.xml'),
 }));
@@ -29,9 +34,20 @@ vi.mock('@/lib/markdown-pages/sitemap-urls', () => ({
 }));
 
 import { execa } from 'execa';
+import { get } from '@vercel/blob';
+import { generateText } from 'ai';
 import { fetchPageMarkdown } from '@/lib/markdown-pages/cloudflare';
 import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
-import { prepareStep, runGenStep, runFullStep, completeStep, notifyStep, failStep, runPagesStepSafe } from './steps';
+import {
+  prepareStep,
+  runGenStep,
+  runFullStep,
+  completeStep,
+  notifyStep,
+  failStep,
+  runPagesStepSafe,
+  runSummariesStepSafe,
+} from './steps';
 
 function fakeProc(stdout: string, exitCode = 0) {
   const promise: any = Promise.resolve({ stdout, stderr: '', exitCode });
@@ -225,5 +241,192 @@ describe('workflow steps', () => {
     await notifyStep(generationId);
     const body = send.mock.calls[0]?.[0]?.html as string;
     expect(body).toMatch(/markdown for 7/i);
+  });
+});
+
+describe('runSummariesStepSafe', () => {
+  let userId: number;
+  let siteId: number;
+  let generationId: number;
+
+  beforeEach(async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'A', email: 's@s.test' }).returning();
+    userId = u.id;
+    const [s] = await db
+      .insert(sites)
+      .values({
+        userId,
+        name: 'Acme',
+        rootUrl: 'https://x.test',
+        webhookTokenHash: 'a'.repeat(64),
+        webhookTokenPrefix: 'lmt_aaaa',
+      })
+      .returning();
+    siteId = s.id;
+    const [g] = await db
+      .insert(generations)
+      .values({ siteId, userId, trigger: 'manual', notifyEmail: false })
+      .returning();
+    generationId = g.id;
+    vi.clearAllMocks();
+  });
+
+  function manifestBlob(pages: Array<{ url: string; path: string; status: 'ok' | 'failed' | 'skipped' }>) {
+    return {
+      stream: new Response(
+        JSON.stringify({
+          version: 1,
+          generationId,
+          siteRootUrl: 'https://x.test',
+          sitemapUrl: 'https://x.test/sitemap.xml',
+          generatedAt: '2026-05-14T00:00:00Z',
+          totalUrls: pages.length,
+          successCount: pages.filter(p => p.status === 'ok').length,
+          failedCount: 0,
+          skippedCount: 0,
+          pages: pages.map(p => ({
+            url: p.url,
+            path: p.path,
+            filename: `${p.path}.md`,
+            status: p.status,
+            blobPath: p.status === 'ok' ? `gens/${generationId}/pages/${p.path}.md` : null,
+            bytes: 100,
+            durationMs: 1,
+          })),
+        }),
+      ).body!,
+    };
+  }
+
+  function pageBlob(url: string) {
+    return {
+      stream: new Response(
+        `title: T\nurl: ${url}\nsummary: \nupdated: 2026-05-14\n\n# Hello\n`,
+      ).body!,
+    };
+  }
+
+  it('skips when upstream pagesStatus is not succeeded', async () => {
+    await getDb()
+      .update(generations)
+      .set({ pagesStatus: 'failed' })
+      .where(eq(generations.id, generationId));
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('skipped');
+    expect(generateText).not.toHaveBeenCalled();
+  });
+
+  it('skips when there is no pages manifest', async () => {
+    await getDb()
+      .update(generations)
+      .set({ pagesStatus: 'succeeded', pagesManifestBlobPath: null })
+      .where(eq(generations.id, generationId));
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('skipped');
+  });
+
+  it('fails when AI Gateway credentials are missing', async () => {
+    await getDb()
+      .update(generations)
+      .set({
+        pagesStatus: 'succeeded',
+        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+      })
+      .where(eq(generations.id, generationId));
+    vi.mocked(get).mockResolvedValueOnce(manifestBlob([{ url: 'https://x.test/a', path: 'a', status: 'ok' }]) as any);
+    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.VERCEL_OIDC_TOKEN;
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('failed');
+    expect(g.summariesErrorMessage).toMatch(/credentials/i);
+  });
+
+  it('succeeds on happy path and writes manifest + counts', async () => {
+    await getDb()
+      .update(generations)
+      .set({
+        pagesStatus: 'succeeded',
+        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+      })
+      .where(eq(generations.id, generationId));
+    process.env.AI_GATEWAY_API_KEY = 'test';
+
+    vi.mocked(get)
+      .mockResolvedValueOnce(manifestBlob([
+        { url: 'https://x.test/a', path: 'a', status: 'ok' },
+        { url: 'https://x.test/b', path: 'b', status: 'ok' },
+      ]) as any)
+      .mockResolvedValueOnce(pageBlob('https://x.test/a') as any)
+      .mockResolvedValueOnce(pageBlob('https://x.test/b') as any);
+
+    vi.mocked(generateText).mockResolvedValue({
+      output: { summary: 'A short summary.', page_type: 'article' },
+    } as any);
+
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('succeeded');
+    expect(g.summariesCount).toBe(2);
+    expect(g.summariesEmptyCount).toBe(0);
+    expect(g.summariesFailedCount).toBe(0);
+    expect(g.summariesManifestBlobPath).toBe(`gens/${generationId}/summaries-manifest.json`);
+  });
+
+  it('tallies empty and failed outcomes separately', async () => {
+    await getDb()
+      .update(generations)
+      .set({
+        pagesStatus: 'succeeded',
+        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+      })
+      .where(eq(generations.id, generationId));
+    process.env.AI_GATEWAY_API_KEY = 'test';
+
+    vi.mocked(get)
+      .mockResolvedValueOnce(manifestBlob([
+        { url: 'https://x.test/a', path: 'a', status: 'ok' },
+        { url: 'https://x.test/b', path: 'b', status: 'ok' },
+        { url: 'https://x.test/c', path: 'c', status: 'ok' },
+      ]) as any)
+      .mockResolvedValueOnce(pageBlob('https://x.test/a') as any)
+      .mockResolvedValueOnce(pageBlob('https://x.test/b') as any)
+      .mockResolvedValueOnce(pageBlob('https://x.test/c') as any);
+
+    vi.mocked(generateText)
+      .mockResolvedValueOnce({ output: { summary: 'Good summary.', page_type: 'article' } } as any)
+      .mockResolvedValueOnce({ output: { summary: '[NO_SUMMARY]', page_type: 'other' } } as any)
+      .mockRejectedValueOnce(new Error('gateway down'));
+
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('succeeded');
+    expect(g.summariesCount).toBe(1);
+    expect(g.summariesEmptyCount).toBe(1);
+    expect(g.summariesFailedCount).toBe(1);
+  });
+
+  it('marks cancelled when the generation is cancelled mid-loop', async () => {
+    await getDb()
+      .update(generations)
+      .set({
+        pagesStatus: 'succeeded',
+        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+        status: 'cancelled',
+      })
+      .where(eq(generations.id, generationId));
+    process.env.AI_GATEWAY_API_KEY = 'test';
+
+    vi.mocked(get).mockResolvedValueOnce(manifestBlob([
+      { url: 'https://x.test/a', path: 'a', status: 'ok' },
+    ]) as any);
+
+    await runSummariesStepSafe(generationId);
+    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    expect(g.summariesStatus).toBe('cancelled');
   });
 });

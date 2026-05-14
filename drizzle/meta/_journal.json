@@ -43,6 +43,13 @@
       "when": 1778702865724,
       "tag": "0005_nice_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1778778758796,
+      "tag": "0006_soft_roland_deschain",
+      "breakpoints": true
     }
   ]
 }

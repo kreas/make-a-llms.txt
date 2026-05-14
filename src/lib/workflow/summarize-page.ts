@@ -108,6 +108,8 @@ export async function summarizePage(
       updated: fields.updated ?? '',
     });
 
+    // Rewrite with the full original body, not the truncated `sendBody` — we
+    // only truncate for the model prompt, never for the stored blob.
     await put(page.blobPath, newFrontmatter + body, {
       access: 'private',
       contentType: 'text/markdown; charset=utf-8',

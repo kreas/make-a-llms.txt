@@ -96,7 +96,7 @@ export async function readPageManifest(
     return { status: g.pagesStatus, count: g.pagesCount, pages: [] };
   }
   const blob = await get(g.pagesManifestBlobPath, { access: 'private' });
-  if (!blob) return { status: g.pagesStatus, count: g.pagesCount, pages: [] };
+  if (!blob || !blob.stream) return { status: g.pagesStatus, count: g.pagesCount, pages: [] };
   const text = await new Response(blob.stream).text();
   const parsed = JSON.parse(text) as { pages?: ManifestEntry[] };
   return {
@@ -120,7 +120,7 @@ export async function readPageMarkdown(
     throw new ApiError(404, 'not_found', 'No pages for this generation');
   }
   const manifestBlob = await get(g.pagesManifestBlobPath, { access: 'private' });
-  if (!manifestBlob) throw new ApiError(404, 'not_found', 'Manifest missing');
+  if (!manifestBlob || !manifestBlob.stream) throw new ApiError(404, 'not_found', 'Manifest missing');
   const manifest = JSON.parse(await new Response(manifestBlob.stream).text()) as {
     pages: ManifestEntry[];
   };

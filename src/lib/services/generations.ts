@@ -77,6 +77,7 @@ export async function readGenerationFile(
   if (!path) throw new ApiError(404, 'not_ready', 'File not ready');
   const blob = await get(path, { access: 'private' });
   if (!blob) throw new ApiError(404, 'not_found', 'File not found');
+  if (!blob.stream) throw new ApiError(404, 'not_found', 'File stream unavailable');
   return { stream: blob.stream, filename };
 }
 
@@ -128,5 +129,6 @@ export async function readPageMarkdown(
   if (!entry?.blobPath) throw new ApiError(404, 'not_found', 'Page not found');
   const blob = await get(entry.blobPath, { access: 'private' });
   if (!blob) throw new ApiError(404, 'not_found', 'Page blob missing');
+  if (!blob.stream) throw new ApiError(404, 'not_found', 'Page stream unavailable');
   return blob.stream;
 }

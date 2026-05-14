@@ -80,12 +80,22 @@ export async function requireApiTokenOrThrow(req: Request): Promise<User> {
 
   const hash = hashTokenSecret(raw);
   const db = getDb();
-  const [row] = await db.select().from(apiTokens).where(eq(apiTokens.tokenHash, hash));
+  let row: (typeof apiTokens.$inferSelect) | undefined;
+  try {
+    [row] = await db.select().from(apiTokens).where(eq(apiTokens.tokenHash, hash));
+  } catch {
+    throw fail();
+  }
   if (!row) throw fail();
   if (row.revokedAt) throw fail();
   if (row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now()) throw fail();
 
-  const [user] = await db.select().from(users).where(eq(users.id, row.userId));
+  let user: (typeof users.$inferSelect) | undefined;
+  try {
+    [user] = await db.select().from(users).where(eq(users.id, row.userId));
+  } catch {
+    throw fail();
+  }
   if (!user) throw fail();
 
   // Fire-and-forget: do not await, do not throw.

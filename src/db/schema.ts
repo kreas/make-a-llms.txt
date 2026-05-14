@@ -148,3 +148,26 @@ export const robotsGeneratorDrafts = sqliteTable(
 
 export type RobotsGeneratorDraft = typeof robotsGeneratorDrafts.$inferSelect;
 export type NewRobotsGeneratorDraft = typeof robotsGeneratorDrafts.$inferInsert;
+
+export const apiTokens = sqliteTable(
+  'api_tokens',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    tokenPrefix: text('token_prefix').notNull(),
+    lastUsedAt: text('last_used_at'),
+    expiresAt: text('expires_at'),
+    revokedAt: text('revoked_at'),
+    createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    byUser: index('api_tokens_by_user').on(t.userId),
+  }),
+);
+
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type NewApiToken = typeof apiTokens.$inferInsert;

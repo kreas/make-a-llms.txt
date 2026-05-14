@@ -18,7 +18,7 @@ export function buildFrontmatter(opts: {
   lines.push(`summary: ${opts.summary ?? ''}`);
   if (opts.pageType) lines.push(`page_type: ${opts.pageType}`);
   lines.push(`updated: ${opts.updated}`);
-  return lines.join('\n') + '\n\n';
+  return `---\n${lines.join('\n')}\n---\n\n`;
 }
 
 export type ParsedFrontmatter = {
@@ -32,13 +32,30 @@ export type ParsedFrontmatter = {
   body: string;
 };
 
-export function parseFrontmatter(blob: string): ParsedFrontmatter {
+function splitFrontmatter(blob: string): { head: string; body: string } {
+  if (blob.startsWith('---\n')) {
+    // YAML-style: --- on its own line opens, --- on its own line closes.
+    const closing = blob.indexOf('\n---', 4);
+    if (closing === -1) {
+      throw new Error('parseFrontmatter: closing --- delimiter not found');
+    }
+    const head = blob.slice(4, closing);
+    let bodyStart = closing + 4; // past "\n---"
+    if (blob[bodyStart] === '\n') bodyStart++; // past the newline after "---"
+    if (blob[bodyStart] === '\n') bodyStart++; // past the blank separator line
+    return { head, body: blob.slice(bodyStart) };
+  }
+
+  // Legacy: key:value lines terminated by a blank line. Kept for old blobs.
   const sepIndex = blob.indexOf('\n\n');
   if (sepIndex === -1) {
-    throw new Error('parseFrontmatter: frontmatter terminator (\\n\\n) not found');
+    throw new Error('parseFrontmatter: frontmatter terminator not found');
   }
-  const head = blob.slice(0, sepIndex);
-  const body = blob.slice(sepIndex + 2);
+  return { head: blob.slice(0, sepIndex), body: blob.slice(sepIndex + 2) };
+}
+
+export function parseFrontmatter(blob: string): ParsedFrontmatter {
+  const { head, body } = splitFrontmatter(blob);
 
   const fields: {
     title?: string;

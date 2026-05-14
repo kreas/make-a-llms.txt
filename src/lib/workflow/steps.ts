@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { put } from '@vercel/blob';
+import { put, get } from '@vercel/blob';
 import { getDb } from '@/db';
 import { generations, sites, users } from '@/db/schema';
 import { discoverSitemap } from '@/lib/sitemap-discover';
@@ -13,6 +13,7 @@ import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
 import { runCrawlerAudit } from '@/lib/crawler-audit';
 import { buildFrontmatter, extractTitle } from './frontmatter';
+import { summarizePage, type SummaryOutcome } from './summarize-page';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
 
@@ -145,6 +146,11 @@ export async function failStep(
 
 const PAGES_CAP = Number(process.env.PAGES_PER_RUN_CAP ?? 250);
 const PAGES_CONCURRENCY = Number(process.env.CLOUDFLARE_BR_CONCURRENCY ?? 5);
+
+const SUMMARY_CONCURRENCY = Number(process.env.AI_SUMMARY_CONCURRENCY ?? 15);
+const SUMMARY_MAX_INPUT_BYTES = Number(
+  process.env.AI_SUMMARY_MAX_INPUT_BYTES ?? 200_000,
+);
 
 async function readCancelled(generationId: number): Promise<boolean> {
   const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
@@ -327,5 +333,179 @@ export async function runCrawlerAuditStep(generationId: number): Promise<void> {
       err,
     );
     // Never re-throw — audit failure must not fail the generation workflow.
+  }
+}
+
+function hasGatewayAuth(): boolean {
+  return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+}
+
+async function markSummariesStatus(
+  generationId: number,
+  fields: Partial<{
+    summariesStatus: 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped' | 'cancelled';
+    summariesCount: number;
+    summariesEmptyCount: number;
+    summariesFailedCount: number;
+    summariesManifestBlobPath: string | null;
+    summariesErrorMessage: string | null;
+  }>,
+): Promise<void> {
+  await getDb()
+    .update(generations)
+    .set({ ...fields, updatedAt: nowIso() })
+    .where(eq(generations.id, generationId));
+}
+
+type PagesManifestPage = {
+  url: string;
+  path: string;
+  filename: string | null;
+  status: 'ok' | 'failed' | 'skipped';
+  blobPath: string | null;
+};
+
+async function loadPagesManifestPages(
+  pathname: string,
+): Promise<PagesManifestPage[] | null> {
+  const blob = await get(pathname, { access: 'private' });
+  if (!blob) return null;
+  const text = await new Response(blob.stream).text();
+  let parsed: { pages?: PagesManifestPage[] };
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  return parsed.pages ?? [];
+}
+
+function tallyOutcomes(outcomes: (SummaryOutcome | Error)[]): {
+  succeeded: number;
+  empty: number;
+  failed: number;
+  resolved: SummaryOutcome[];
+} {
+  let succeeded = 0;
+  let empty = 0;
+  let failed = 0;
+  const resolved: SummaryOutcome[] = [];
+  for (const o of outcomes) {
+    if (o instanceof Error) {
+      failed++;
+      continue;
+    }
+    resolved.push(o);
+    if (o.status === 'ok') succeeded++;
+    else if (o.status === 'empty') empty++;
+    else if (o.status === 'failed') failed++;
+  }
+  return { succeeded, empty, failed, resolved };
+}
+
+export async function runSummariesStepSafe(generationId: number): Promise<void> {
+  'use step';
+  try {
+    const db = getDb();
+    const [g] = await db.select().from(generations).where(eq(generations.id, generationId));
+    if (!g) return;
+    if (g.pagesStatus !== 'succeeded' || !g.pagesManifestBlobPath) {
+      return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
+    }
+
+    const allPages = await loadPagesManifestPages(g.pagesManifestBlobPath);
+    if (!allPages) {
+      return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
+    }
+    const eligible = allPages.filter(
+      (p): p is PagesManifestPage & { status: 'ok'; blobPath: string } =>
+        p.status === 'ok' && p.blobPath !== null,
+    );
+    if (eligible.length === 0) {
+      return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
+    }
+
+    if (!hasGatewayAuth()) {
+      return markSummariesStatus(generationId, {
+        summariesStatus: 'failed',
+        summariesErrorMessage: 'AI Gateway credentials missing',
+      });
+    }
+
+    const [site] = await db.select().from(sites).where(eq(sites.id, g.siteId));
+    if (!site) {
+      return markSummariesStatus(generationId, {
+        summariesStatus: 'failed',
+        summariesErrorMessage: 'site not found',
+      });
+    }
+
+    await markSummariesStatus(generationId, { summariesStatus: 'running' });
+
+    const outcomes = await runWithPool(
+      eligible,
+      (page) =>
+        summarizePage({
+          generationId,
+          page: {
+            url: page.url,
+            path: page.path,
+            filename: page.filename,
+            blobPath: page.blobPath,
+          },
+          siteName: site.name,
+          maxInputBytes: SUMMARY_MAX_INPUT_BYTES,
+        }),
+      {
+        concurrency: SUMMARY_CONCURRENCY,
+        isCancelled: () => readCancelled(generationId),
+      },
+    );
+
+    const { succeeded, empty, failed, resolved } = tallyOutcomes(outcomes);
+
+    const manifestPath = `gens/${generationId}/summaries-manifest.json`;
+    await put(
+      manifestPath,
+      JSON.stringify({
+        version: 1,
+        generationId,
+        generatedAt: nowIso(),
+        okCount: succeeded,
+        emptyCount: empty,
+        failedCount: failed,
+        results: resolved,
+      }),
+      {
+        access: 'private',
+        contentType: 'application/json',
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      },
+    );
+
+    if (await readCancelled(generationId)) {
+      return markSummariesStatus(generationId, {
+        summariesStatus: 'cancelled',
+        summariesCount: succeeded,
+        summariesEmptyCount: empty,
+        summariesFailedCount: failed,
+        summariesManifestBlobPath: manifestPath,
+      });
+    }
+
+    return markSummariesStatus(generationId, {
+      summariesStatus: 'succeeded',
+      summariesCount: succeeded,
+      summariesEmptyCount: empty,
+      summariesFailedCount: failed,
+      summariesManifestBlobPath: manifestPath,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return markSummariesStatus(generationId, {
+      summariesStatus: 'failed',
+      summariesErrorMessage: message.slice(0, 500),
+    });
   }
 }

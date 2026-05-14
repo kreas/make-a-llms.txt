@@ -79,6 +79,16 @@ export const generations = sqliteTable(
       .notNull()
       .default('pending'),
     pagesErrorMessage: text('pages_error_message'),
+    summariesStatus: text('summaries_status', {
+      enum: ['pending', 'running', 'succeeded', 'failed', 'skipped', 'cancelled'],
+    })
+      .notNull()
+      .default('pending'),
+    summariesCount: integer('summaries_count').notNull().default(0),
+    summariesEmptyCount: integer('summaries_empty_count').notNull().default(0),
+    summariesFailedCount: integer('summaries_failed_count').notNull().default(0),
+    summariesManifestBlobPath: text('summaries_manifest_blob_path'),
+    summariesErrorMessage: text('summaries_error_message'),
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
     createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),

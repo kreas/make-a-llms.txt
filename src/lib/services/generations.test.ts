@@ -1,0 +1,103 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { setupTestDb } from '@/test/db';
+import { getDb } from '@/db';
+import { users, sites, generations } from '@/db/schema';
+
+vi.mock('@vercel/blob', () => ({
+  get: vi.fn(async (path: string) => {
+    if (path === 'pages/manifest.json') {
+      return { stream: new Response(JSON.stringify({ pages: [{ path: 'a', blobPath: 'pages/a.md', status: 'ok', bytes: 10 }] })).body };
+    }
+    if (path === 'pages/a.md') {
+      return { stream: new Response('# A').body };
+    }
+    if (path === 'llms.txt') {
+      return { stream: new Response('llms here').body };
+    }
+    return null;
+  }),
+}));
+
+import { getGenerationView, readGenerationFile, readPageManifest, readPageMarkdown } from './generations';
+import { ApiError } from '@/lib/auth-guards';
+
+async function seed() {
+  await setupTestDb();
+  const db = getDb();
+  const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+  const [s] = await db
+    .insert(sites)
+    .values({ userId: u.id, name: 'S', rootUrl: 'https://s.test', webhookTokenHash: 'h'.repeat(64), webhookTokenPrefix: 'lmt_aaaa' })
+    .returning();
+  const [g] = await db
+    .insert(generations)
+    .values({
+      siteId: s.id,
+      userId: u.id,
+      status: 'succeeded',
+      trigger: 'manual',
+      pagesManifestBlobPath: 'pages/manifest.json',
+      llmsBlobPath: 'llms.txt',
+      pagesCount: 1,
+      pagesStatus: 'succeeded',
+      summariesStatus: 'succeeded',
+      summariesCount: 1,
+    })
+    .returning();
+  return { user: u, gen: g };
+}
+
+describe('getGenerationView', () => {
+  it('returns a curated view with file readiness flags', async () => {
+    const { user, gen } = await seed();
+    const v = await getGenerationView(gen.id, user.id);
+    expect(v.status).toBe('succeeded');
+    expect(v.files.llms.ready).toBe(true);
+    expect(v.files.llmsFull.ready).toBe(false);
+    expect(v.files.pages.ready).toBe(true);
+    expect(v.pages.count).toBe(1);
+  });
+
+  it('throws 404 when generation is not owned', async () => {
+    const { gen } = await seed();
+    await expect(getGenerationView(gen.id, 9999)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('readGenerationFile', () => {
+  it('returns a stream and filename for llms', async () => {
+    const { user, gen } = await seed();
+    const r = await readGenerationFile(gen.id, user.id, 'llms');
+    expect(r.filename).toBe('llms.txt');
+    expect(await new Response(r.stream).text()).toBe('llms here');
+  });
+
+  it('throws 404 not_ready when blob path is missing', async () => {
+    const { user, gen } = await seed();
+    await expect(readGenerationFile(gen.id, user.id, 'llms-full')).rejects.toMatchObject({
+      status: 404,
+      code: 'not_ready',
+    });
+  });
+});
+
+describe('readPageManifest / readPageMarkdown', () => {
+  it('returns the manifest pages', async () => {
+    const { user, gen } = await seed();
+    const m = await readPageManifest(gen.id, user.id);
+    expect(m.pages[0].path).toBe('a');
+  });
+
+  it('returns markdown for a page in the manifest', async () => {
+    const { user, gen } = await seed();
+    const s = await readPageMarkdown(gen.id, user.id, 'a');
+    expect(await new Response(s).text()).toBe('# A');
+  });
+
+  it('throws 404 when the page is not in the manifest', async () => {
+    const { user, gen } = await seed();
+    await expect(readPageMarkdown(gen.id, user.id, 'missing')).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+});

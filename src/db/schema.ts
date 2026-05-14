@@ -99,6 +99,8 @@ export const generations = sqliteTable(
   }),
 );
 
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 export type Site = typeof sites.$inferSelect;
 export type NewSite = typeof sites.$inferInsert;
 export type Generation = typeof generations.$inferSelect;

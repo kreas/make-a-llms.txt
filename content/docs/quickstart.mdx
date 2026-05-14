@@ -1,0 +1,55 @@
+---
+title: Quickstart
+description: Kick off a generation, poll, download artifacts.
+---
+
+This walkthrough creates a generation for a brand-new site, polls until it's
+done, and downloads each artifact.
+
+## 1. Kick off a generation
+
+```bash
+curl -X POST https://make-a-llms.txt/api/v1/generations \
+  -H "Authorization: Bearer mklt_pat_..." \
+  -H "content-type: application/json" \
+  -d '{ "name": "Acme", "rootUrl": "https://acme.test" }'
+```
+
+Response:
+
+```json
+{
+  "generation": {
+    "id": 42,
+    "siteId": 7,
+    "status": "pending",
+    "trigger": "manual",
+    "createdAt": "...",
+    "urls": {
+      "self": "https://make-a-llms.txt/api/v1/generations/42",
+      "llms": ".../llms.txt",
+      "llmsFull": ".../llms-full.txt",
+      "pages": ".../pages"
+    }
+  }
+}
+```
+
+## 2. Poll until ready
+
+```bash
+curl -H "Authorization: Bearer mklt_pat_..." \
+  https://make-a-llms.txt/api/v1/generations/42
+```
+
+Repeat until `status` is `"succeeded"` (or `"failed"`).
+
+## 3. Download
+
+```bash
+curl -H "Authorization: Bearer mklt_pat_..." \
+  https://make-a-llms.txt/api/v1/generations/42/llms.txt
+```
+
+For per-page markdown, hit `/pages` first to see the manifest, then
+`/pages/<path>` for any page.

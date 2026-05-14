@@ -1,0 +1,19 @@
+---
+title: Authentication
+description: Mint a personal access token and use it as a Bearer token.
+---
+
+The API is authenticated by **personal access tokens (PATs)**. Mint a token in
+[Settings → API Tokens](/settings/api-tokens). The full token is shown exactly
+once on creation — copy it immediately.
+
+Send the token as a `Bearer` header on every request:
+
+```bash
+curl -H "Authorization: Bearer mklt_pat_..." https://make-a-llms.txt/api/v1/generations/1
+```
+
+If a token is missing, malformed, expired, or revoked, the API returns
+`401 Unauthenticated` with the same generic message in every case. Rotate
+tokens by creating a new one and revoking the old one from the same settings
+page.

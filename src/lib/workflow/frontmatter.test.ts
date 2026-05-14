@@ -161,4 +161,9 @@ describe('parseFrontmatter', () => {
       /frontmatter/i,
     );
   });
+
+  it('throws when the frontmatter has no url field', () => {
+    const blob = 'title: Hello\nsummary: \nupdated: 2026-05-14\n\nbody';
+    expect(() => parseFrontmatter(blob)).toThrow(/url/i);
+  });
 });

@@ -24,7 +24,7 @@ export function buildFrontmatter(opts: {
 export type ParsedFrontmatter = {
   fields: {
     title?: string;
-    url?: string;
+    url: string;
     summary?: string;
     pageType?: PageType;
     updated?: string;
@@ -40,7 +40,13 @@ export function parseFrontmatter(blob: string): ParsedFrontmatter {
   const head = blob.slice(0, sepIndex);
   const body = blob.slice(sepIndex + 2);
 
-  const fields: ParsedFrontmatter['fields'] = {};
+  const fields: {
+    title?: string;
+    url?: string;
+    summary?: string;
+    pageType?: PageType;
+    updated?: string;
+  } = {};
   for (const line of head.split('\n')) {
     const colon = line.indexOf(':');
     if (colon === -1) continue;
@@ -66,5 +72,8 @@ export function parseFrontmatter(blob: string): ParsedFrontmatter {
         break;
     }
   }
-  return { fields, body };
+  if (fields.url === undefined) {
+    throw new Error('parseFrontmatter: required url field not found');
+  }
+  return { fields: { ...fields, url: fields.url }, body };
 }

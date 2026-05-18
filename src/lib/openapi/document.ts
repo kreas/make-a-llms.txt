@@ -43,25 +43,27 @@ export function buildOpenApiDocument(opts: { publicBaseUrl?: string }) {
 
     const parameters: unknown[] = [];
     if ('pathParams' in r && r.pathParams) {
-      for (const [name, type] of Object.entries(r.pathParams)) {
-        parameters.push({
-          name,
-          in: 'path',
-          required: true,
-          schema: { type: type === 'integer' ? 'integer' : 'string' },
-        });
+      for (const [name, paramType] of Object.entries(r.pathParams as Record<string, string>)) {
+        const schema: Record<string, unknown> =
+          paramType === 'integer'
+            ? { type: 'integer' }
+            : paramType === 'uuid'
+              ? { type: 'string', format: 'uuid' }
+              : { type: 'string' };
+        parameters.push({ name, in: 'path', required: true, schema });
       }
     }
     if ('queryParams' in r && r.queryParams) {
       for (const [name, spec] of Object.entries(
         r.queryParams as Record<
           string,
-          { type: 'integer' | 'string'; required?: boolean; enum?: readonly string[] }
+          { type: 'integer' | 'string'; format?: string; required?: boolean; enum?: readonly string[] }
         >,
       )) {
         const schema: Record<string, unknown> = {
           type: spec.type === 'integer' ? 'integer' : 'string',
         };
+        if (spec.format) schema.format = spec.format;
         if (spec.enum) schema.enum = [...spec.enum];
         parameters.push({
           name,

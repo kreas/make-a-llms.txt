@@ -16,7 +16,7 @@ export const v1Routes = {
     summary: 'List recent generations',
     tags: ['generations'],
     queryParams: {
-      siteId: { type: 'integer' as const, required: false },
+      siteId: { type: 'string' as const, format: 'uuid', required: false },
       status: { type: 'string' as const, required: false, enum: generationStatusEnum.options },
       limit: { type: 'integer' as const, required: false },
     },
@@ -44,7 +44,7 @@ export const v1Routes = {
     path: '/generations/{id}/cancel',
     summary: 'Cancel a generation',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const },
+    pathParams: { id: 'uuid' as const },
     responses: {
       200: { description: 'OK', schema: generationCancelledSchema },
       401: { description: 'Unauthenticated', schema: errorSchema },
@@ -56,7 +56,7 @@ export const v1Routes = {
     path: '/generations/{id}/pages.zip',
     summary: 'Download all pages as a zip',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const },
+    pathParams: { id: 'uuid' as const },
     responses: {
       200: { description: 'OK', contentType: 'application/zip' },
       401: { description: 'Unauthenticated', schema: errorSchema },
@@ -68,7 +68,7 @@ export const v1Routes = {
     path: '/generations/{id}',
     summary: 'Get generation status',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const },
+    pathParams: { id: 'uuid' as const },
     responses: {
       200: { description: 'OK', schema: generationViewSchema },
       401: { description: 'Unauthenticated', schema: errorSchema },
@@ -80,7 +80,7 @@ export const v1Routes = {
     path: '/generations/{id}/llms.txt',
     summary: 'Download llms.txt',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const },
+    pathParams: { id: 'uuid' as const },
     responses: {
       200: { description: 'OK', contentType: 'text/plain' },
       401: { description: 'Unauthenticated', schema: errorSchema },
@@ -92,7 +92,7 @@ export const v1Routes = {
     path: '/generations/{id}/llms-full.txt',
     summary: 'Download llms-full.txt',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const },
+    pathParams: { id: 'uuid' as const },
     responses: {
       200: { description: 'OK', contentType: 'text/plain' },
       401: { description: 'Unauthenticated', schema: errorSchema },
@@ -104,7 +104,7 @@ export const v1Routes = {
     path: '/generations/{id}/pages',
     summary: 'List page manifest',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const },
+    pathParams: { id: 'uuid' as const },
     responses: {
       200: { description: 'OK', schema: pageManifestSchema },
       401: { description: 'Unauthenticated', schema: errorSchema },
@@ -116,7 +116,7 @@ export const v1Routes = {
     path: '/generations/{id}/pages/{path}',
     summary: 'Get one page as markdown',
     tags: ['generations'],
-    pathParams: { id: 'integer' as const, path: 'string' as const },
+    pathParams: { id: 'uuid' as const, path: 'string' as const },
     responses: {
       200: { description: 'OK', contentType: 'text/markdown' },
       401: { description: 'Unauthenticated', schema: errorSchema },

@@ -20,13 +20,13 @@ Response:
 ```json
 {
   "generation": {
-    "id": 42,
-    "siteId": 7,
+    "id": "0190f8a1-c0c0-4000-8000-aaaaaaaaaaaa",
+    "siteId": "0190f8a1-c0c0-4000-8000-bbbbbbbbbbbb",
     "status": "pending",
     "trigger": "manual",
     "createdAt": "...",
     "urls": {
-      "self": "https://www.aiready.cat/api/v1/generations/42",
+      "self": "https://www.aiready.cat/api/v1/generations/0190f8a1-c0c0-4000-8000-aaaaaaaaaaaa",
       "llms": ".../llms.txt",
       "llmsFull": ".../llms-full.txt",
       "pages": ".../pages"
@@ -39,7 +39,7 @@ Response:
 
 ```bash
 curl -H "Authorization: Bearer mklt_pat_..." \
-  https://www.aiready.cat/api/v1/generations/42
+  https://www.aiready.cat/api/v1/generations/0190f8a1-c0c0-4000-8000-aaaaaaaaaaaa
 ```
 
 Repeat until `status` is `"succeeded"` (or `"failed"`).
@@ -48,7 +48,7 @@ Repeat until `status` is `"succeeded"` (or `"failed"`).
 
 ```bash
 curl -H "Authorization: Bearer mklt_pat_..." \
-  https://www.aiready.cat/api/v1/generations/42/llms.txt
+  https://www.aiready.cat/api/v1/generations/0190f8a1-c0c0-4000-8000-aaaaaaaaaaaa/llms.txt
 ```
 
 For per-page markdown, hit `/pages` first to see the manifest, then

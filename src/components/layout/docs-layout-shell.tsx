@@ -25,6 +25,9 @@ export function DocsLayoutShell({ tree, authenticated, children }: Props) {
         sidebar={{ collapsible: false }}
         themeSwitch={{ enabled: false }}
         slots={{ header: HeaderSlot }}
+        containerProps={{
+          style: { '--fd-header-height': '72px' } as React.CSSProperties,
+        }}
       >
         {children}
       </DocsLayout>

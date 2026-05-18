@@ -3,8 +3,7 @@ import { getDb } from '@/db';
 import { generations } from '@/db/schema';
 import {
   apiErrorResponse,
-  ApiError,
-  assertOwnsGeneration,
+  assertOwnsGenerationByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 
@@ -68,11 +67,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id } = await ctx.params;
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) {
-      throw new ApiError(404, 'not_found', 'Generation not found');
-    }
-    await assertOwnsGeneration(n, user.id);
+    const gen = await assertOwnsGenerationByUid(id, user.id);
 
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -81,7 +76,7 @@ export async function GET(_req: Request, ctx: Ctx) {
           write: (s) => controller.enqueue(enc.encode(s)),
           close: () => controller.close(),
         };
-        buildEventStream(n, user.id, writer, {
+        buildEventStream(gen.id, user.id, writer, {
           intervalMs: 1000,
           heartbeatMs: 15_000,
           idleTimeoutMs: 10 * 60_000,

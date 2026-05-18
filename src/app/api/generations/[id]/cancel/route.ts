@@ -3,8 +3,7 @@ import { getDb } from '@/db';
 import { generations } from '@/db/schema';
 import {
   apiErrorResponse,
-  ApiError,
-  assertOwnsGeneration,
+  assertOwnsGenerationByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 import { cancelRun } from '@/lib/workflow/wdk';
@@ -17,11 +16,7 @@ export async function POST(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id } = await ctx.params;
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) {
-      throw new ApiError(404, 'not_found', 'Generation not found');
-    }
-    const gen = await assertOwnsGeneration(n, user.id);
+    const gen = await assertOwnsGenerationByUid(id, user.id);
 
     if (TERMINAL.has(gen.status)) {
       return Response.json({ generation: gen });
@@ -39,7 +34,7 @@ export async function POST(_req: Request, ctx: Ctx) {
     const [updated] = await getDb()
       .update(generations)
       .set({ status: 'cancelled', completedAt: ts, updatedAt: ts })
-      .where(eq(generations.id, n))
+      .where(eq(generations.id, gen.id))
       .returning();
 
     return Response.json({ generation: updated });

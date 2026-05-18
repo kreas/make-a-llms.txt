@@ -3,9 +3,9 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import archiver from 'archiver';
 import { get } from '@vercel/blob';
 import {
-  apiErrorResponse,
   ApiError,
-  assertOwnsGeneration,
+  apiErrorResponse,
+  assertOwnsGenerationByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 import { getDb } from '@/db';
@@ -25,11 +25,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id } = await ctx.params;
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) {
-      throw new ApiError(404, 'not_found', 'Generation not found');
-    }
-    const gen = await assertOwnsGeneration(n, user.id);
+    const gen = await assertOwnsGenerationByUid(id, user.id);
 
     if (!gen.pagesManifestBlobPath) {
       throw new ApiError(404, 'not_found', 'No pages available');

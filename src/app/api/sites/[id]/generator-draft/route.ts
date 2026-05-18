@@ -5,18 +5,11 @@ import { robotsGeneratorDrafts } from '@/db/schema';
 import {
   apiErrorResponse,
   ApiError,
-  assertOwnsSite,
+  assertOwnsSiteByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 
 type Ctx = { params: Promise<{ id: string }> };
-
-async function parseSiteId(ctx: Ctx): Promise<number> {
-  const { id } = await ctx.params;
-  const n = Number(id);
-  if (!Number.isInteger(n) || n <= 0) throw new ApiError(404, 'not_found', 'Site not found');
-  return n;
-}
 
 const putBodySchema = z.object({
   toggles: z.record(z.string(), z.enum(['allow', 'block', 'default'])),
@@ -26,13 +19,13 @@ const putBodySchema = z.object({
 export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
-    const id = await parseSiteId(ctx);
-    await assertOwnsSite(id, user.id);
+    const { id } = await ctx.params;
+    const site = await assertOwnsSiteByUid(id, user.id);
 
     const [draft] = await getDb()
       .select()
       .from(robotsGeneratorDrafts)
-      .where(eq(robotsGeneratorDrafts.siteId, id))
+      .where(eq(robotsGeneratorDrafts.siteId, site.id))
       .limit(1);
 
     if (!draft) throw new ApiError(404, 'not_found', 'No draft yet');
@@ -45,8 +38,8 @@ export async function GET(_req: Request, ctx: Ctx) {
 export async function PUT(req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
-    const id = await parseSiteId(ctx);
-    await assertOwnsSite(id, user.id);
+    const { id } = await ctx.params;
+    const site = await assertOwnsSiteByUid(id, user.id);
     const body = putBodySchema.parse(await req.json());
 
     const db = getDb();
@@ -56,7 +49,7 @@ export async function PUT(req: Request, ctx: Ctx) {
 
     const [draft] = await db
       .insert(robotsGeneratorDrafts)
-      .values({ siteId: id, toggles: togglesJson, allowAll, updatedAt: now })
+      .values({ siteId: site.id, toggles: togglesJson, allowAll, updatedAt: now })
       .onConflictDoUpdate({
         target: robotsGeneratorDrafts.siteId,
         set: { toggles: togglesJson, allowAll, updatedAt: now },

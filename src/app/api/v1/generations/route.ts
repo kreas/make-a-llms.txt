@@ -4,7 +4,7 @@ import { sites } from '@/db/schema';
 import {
   ApiError,
   apiErrorResponse,
-  assertOwnsSite,
+  assertOwnsSiteByUid,
   requireApiTokenOrThrow,
 } from '@/lib/auth-guards';
 import {
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     let siteId: number;
     if ('siteId' in body) {
-      await assertOwnsSite(body.siteId, user.id);
+      await assertOwnsSiteByUid(String(body.siteId), user.id);
       siteId = body.siteId;
     } else {
       const existing = await getDb()

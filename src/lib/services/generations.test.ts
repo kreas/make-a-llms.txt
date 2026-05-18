@@ -50,7 +50,7 @@ async function seed() {
 describe('getGenerationView', () => {
   it('returns a curated view with file readiness flags', async () => {
     const { user, gen } = await seed();
-    const v = await getGenerationView(gen.id, user.id);
+    const v = await getGenerationView(gen.uid, user.id);
     expect(v.status).toBe('succeeded');
     expect(v.files.llms.ready).toBe(true);
     expect(v.files.llmsFull.ready).toBe(false);
@@ -60,21 +60,21 @@ describe('getGenerationView', () => {
 
   it('throws 404 when generation is not owned', async () => {
     const { gen } = await seed();
-    await expect(getGenerationView(gen.id, 9999)).rejects.toMatchObject({ status: 404 });
+    await expect(getGenerationView(gen.uid, 9999)).rejects.toMatchObject({ status: 404 });
   });
 });
 
 describe('readGenerationFile', () => {
   it('returns a stream and filename for llms', async () => {
     const { user, gen } = await seed();
-    const r = await readGenerationFile(gen.id, user.id, 'llms');
+    const r = await readGenerationFile(gen.uid, user.id, 'llms');
     expect(r.filename).toBe('llms.txt');
     expect(await new Response(r.stream).text()).toBe('llms here');
   });
 
   it('throws 404 not_ready when blob path is missing', async () => {
     const { user, gen } = await seed();
-    await expect(readGenerationFile(gen.id, user.id, 'llms-full')).rejects.toMatchObject({
+    await expect(readGenerationFile(gen.uid, user.id, 'llms-full')).rejects.toMatchObject({
       status: 404,
       code: 'not_ready',
     });
@@ -84,19 +84,19 @@ describe('readGenerationFile', () => {
 describe('readPageManifest / readPageMarkdown', () => {
   it('returns the manifest pages', async () => {
     const { user, gen } = await seed();
-    const m = await readPageManifest(gen.id, user.id);
+    const m = await readPageManifest(gen.uid, user.id);
     expect(m.pages[0].path).toBe('a');
   });
 
   it('returns markdown for a page in the manifest', async () => {
     const { user, gen } = await seed();
-    const s = await readPageMarkdown(gen.id, user.id, 'a');
+    const s = await readPageMarkdown(gen.uid, user.id, 'a');
     expect(await new Response(s).text()).toBe('# A');
   });
 
   it('throws 404 when the page is not in the manifest', async () => {
     const { user, gen } = await seed();
-    await expect(readPageMarkdown(gen.id, user.id, 'missing')).rejects.toMatchObject({
+    await expect(readPageMarkdown(gen.uid, user.id, 'missing')).rejects.toMatchObject({
       status: 404,
     });
   });

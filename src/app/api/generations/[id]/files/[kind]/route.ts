@@ -16,11 +16,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       throw new ApiError(400, 'validation', `Invalid kind: ${kind}`);
     }
     const user = await requireUserOrThrow();
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) {
-      throw new ApiError(404, 'not_found', 'Generation not found');
-    }
-    const { stream, filename } = await readGenerationFile(n, user.id, kind as GenerationFileKind);
+    const { stream, filename } = await readGenerationFile(id, user.id, kind as GenerationFileKind);
     return new Response(stream, {
       status: 200,
       headers: {

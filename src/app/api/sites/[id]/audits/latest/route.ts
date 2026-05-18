@@ -2,31 +2,24 @@ import { desc, eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { crawlerAudits } from '@/db/schema';
 import {
-  apiErrorResponse,
   ApiError,
-  assertOwnsSite,
+  apiErrorResponse,
+  assertOwnsSiteByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 
 type Ctx = { params: Promise<{ id: string }> };
 
-async function parseSiteId(ctx: Ctx): Promise<number> {
-  const { id } = await ctx.params;
-  const n = Number(id);
-  if (!Number.isInteger(n) || n <= 0) throw new ApiError(404, 'not_found', 'Site not found');
-  return n;
-}
-
 export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
-    const id = await parseSiteId(ctx);
-    await assertOwnsSite(id, user.id);
+    const { id } = await ctx.params;
+    const site = await assertOwnsSiteByUid(id, user.id);
 
     const [audit] = await getDb()
       .select()
       .from(crawlerAudits)
-      .where(eq(crawlerAudits.siteId, id))
+      .where(eq(crawlerAudits.siteId, site.id))
       .orderBy(desc(crawlerAudits.fetchedAt))
       .limit(1);
 

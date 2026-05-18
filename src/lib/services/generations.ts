@@ -3,7 +3,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import archiver from 'archiver';
 import { and, desc, eq } from 'drizzle-orm';
 import { get } from '@vercel/blob';
-import { ApiError, assertOwnsGeneration } from '@/lib/auth-guards';
+import { ApiError, assertOwnsGenerationByUid } from '@/lib/auth-guards';
 import { getDb } from '@/db';
 import { generations, sites, type Generation } from '@/db/schema';
 import { cancelRun } from '@/lib/workflow/wdk';
@@ -35,10 +35,10 @@ export type GenerationView = {
 };
 
 export async function getGenerationView(
-  generationId: number,
+  generationUid: string,
   userId: number,
 ): Promise<GenerationView> {
-  const g = await assertOwnsGeneration(generationId, userId);
+  const g = await assertOwnsGenerationByUid(generationUid, userId);
   return {
     id: g.id,
     status: g.status,
@@ -73,11 +73,11 @@ const FILE_FIELDS = {
 export type GenerationFileKind = keyof typeof FILE_FIELDS;
 
 export async function readGenerationFile(
-  generationId: number,
+  generationUid: string,
   userId: number,
   kind: GenerationFileKind,
 ): Promise<{ stream: ReadableStream; filename: string }> {
-  const g = await assertOwnsGeneration(generationId, userId);
+  const g = await assertOwnsGenerationByUid(generationUid, userId);
   const { field, filename } = FILE_FIELDS[kind];
   const path = g[field];
   if (!path) throw new ApiError(404, 'not_ready', 'File not ready');
@@ -90,14 +90,14 @@ export async function readGenerationFile(
 type ManifestEntry = { path: string; blobPath: string | null; status: 'ok' | 'error' | 'skipped'; bytes?: number };
 
 export async function readPageManifest(
-  generationId: number,
+  generationUid: string,
   userId: number,
 ): Promise<{
   status: PagesStatus;
   count: number;
   pages: Array<{ path: string; status: 'ok' | 'error' | 'skipped'; bytes?: number }>;
 }> {
-  const g = await assertOwnsGeneration(generationId, userId);
+  const g = await assertOwnsGenerationByUid(generationUid, userId);
   if (!g.pagesManifestBlobPath) {
     return { status: g.pagesStatus, count: g.pagesCount, pages: [] };
   }
@@ -117,11 +117,11 @@ export async function readPageManifest(
 }
 
 export async function readPageMarkdown(
-  generationId: number,
+  generationUid: string,
   userId: number,
   path: string,
 ): Promise<ReadableStream> {
-  const g = await assertOwnsGeneration(generationId, userId);
+  const g = await assertOwnsGenerationByUid(generationUid, userId);
   if (!g.pagesManifestBlobPath) {
     throw new ApiError(404, 'not_found', 'No pages for this generation');
   }
@@ -142,10 +142,10 @@ export async function readPageMarkdown(
 const TERMINAL_STATUSES = new Set<GenerationStatus>(['succeeded', 'failed', 'cancelled']);
 
 export async function cancelGeneration(
-  generationId: number,
+  generationUid: string,
   userId: number,
 ): Promise<Generation> {
-  const gen = await assertOwnsGeneration(generationId, userId);
+  const gen = await assertOwnsGenerationByUid(generationUid, userId);
   if (TERMINAL_STATUSES.has(gen.status)) return gen;
 
   if (gen.workflowRunId) {
@@ -160,7 +160,7 @@ export async function cancelGeneration(
   const [updated] = await getDb()
     .update(generations)
     .set({ status: 'cancelled', completedAt: ts, updatedAt: ts })
-    .where(eq(generations.id, generationId))
+    .where(eq(generations.id, gen.id))
     .returning();
   return updated;
 }
@@ -175,10 +175,10 @@ function slugify(s: string): string {
 }
 
 export async function streamPagesZip(
-  generationId: number,
+  generationUid: string,
   userId: number,
 ): Promise<{ stream: ReadableStream<Uint8Array>; filename: string }> {
-  const gen = await assertOwnsGeneration(generationId, userId);
+  const gen = await assertOwnsGenerationByUid(generationUid, userId);
   if (!gen.pagesManifestBlobPath) {
     throw new ApiError(404, 'not_found', 'No pages available');
   }

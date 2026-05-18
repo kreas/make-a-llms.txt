@@ -7,11 +7,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id, path } = await ctx.params;
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) {
-      throw new ApiError(404, 'not_found', 'Generation not found');
-    }
-    const stream = await readPageMarkdown(n, user.id, path.join('/'));
+    const stream = await readPageMarkdown(id, user.id, path.join('/'));
     return new Response(stream, {
       status: 200,
       headers: {

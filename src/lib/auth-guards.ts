@@ -33,23 +33,23 @@ export async function requireUserOrThrow() {
   return user;
 }
 
-export async function assertOwnsSite(siteId: number, userId: number): Promise<Site> {
+export async function assertOwnsSiteByUid(siteUid: string, userId: number): Promise<Site> {
   const [row] = await getDb()
     .select()
     .from(sites)
-    .where(and(eq(sites.id, siteId), eq(sites.userId, userId)));
+    .where(and(eq(sites.uid, siteUid), eq(sites.userId, userId)));
   if (!row) throw new ApiError(404, 'not_found', 'Site not found');
   return row;
 }
 
-export async function assertOwnsGeneration(
-  generationId: number,
+export async function assertOwnsGenerationByUid(
+  generationUid: string,
   userId: number,
 ): Promise<Generation> {
   const [row] = await getDb()
     .select()
     .from(generations)
-    .where(and(eq(generations.id, generationId), eq(generations.userId, userId)));
+    .where(and(eq(generations.uid, generationUid), eq(generations.userId, userId)));
   if (!row) throw new ApiError(404, 'not_found', 'Generation not found');
   return row;
 }

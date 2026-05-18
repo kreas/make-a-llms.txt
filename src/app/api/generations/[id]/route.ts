@@ -1,7 +1,6 @@
 import {
   apiErrorResponse,
-  ApiError,
-  assertOwnsGeneration,
+  assertOwnsGenerationByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 
@@ -11,11 +10,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id } = await ctx.params;
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) {
-      throw new ApiError(404, 'not_found', 'Generation not found');
-    }
-    const generation = await assertOwnsGeneration(n, user.id);
+    const generation = await assertOwnsGenerationByUid(id, user.id);
 
     const downloads: { llms?: string; llmsFull?: string } = {};
     if (generation.llmsBlobPath) downloads.llms = `/api/generations/${generation.id}/files/llms`;

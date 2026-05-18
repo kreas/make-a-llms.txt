@@ -97,6 +97,22 @@ describe('site id route', () => {
     expect(res.status).toBe(400);
   });
 
+  it('PATCH returns 404 for non-owner (cross-tenant)', async () => {
+    const { site } = await makeUserAndSite('a@a.test');
+    const { user: other } = await makeUserAndSite('b@b.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(other);
+
+    const res = await PATCH(
+      new Request('http://t', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'New' }),
+      }),
+      ctx(site.uid),
+    );
+    expect(res.status).toBe(404);
+  });
+
   it('DELETE returns 204 and removes the row', async () => {
     const { user, site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(user);

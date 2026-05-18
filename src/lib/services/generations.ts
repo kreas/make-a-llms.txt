@@ -7,40 +7,19 @@ import { ApiError, assertOwnsGenerationByUid } from '@/lib/auth-guards';
 import { getDb } from '@/db';
 import { generations, sites, type Generation } from '@/db/schema';
 import { cancelRun } from '@/lib/workflow/wdk';
+import { GenerationViewPublic, GenerationPublic } from '@/lib/types/public';
 
 export type GenerationStatus = Generation['status'];
 export type PagesStatus = Generation['pagesStatus'];
 export type SummariesStatus = Generation['summariesStatus'];
 
-export type GenerationView = {
-  id: number;
-  status: GenerationStatus;
-  pages: { status: PagesStatus; count: number; errorMessage?: string };
-  summaries: {
-    status: SummariesStatus;
-    count: number;
-    emptyCount: number;
-    failedCount: number;
-    errorMessage?: string;
-  };
-  files: {
-    llms: { ready: boolean };
-    llmsFull: { ready: boolean };
-    pages: { ready: boolean };
-  };
-  errorMessage?: string;
-  startedAt?: string;
-  completedAt?: string;
-  createdAt: string;
-};
-
 export async function getGenerationView(
   generationUid: string,
   userId: number,
-): Promise<GenerationView> {
+): Promise<GenerationViewPublic> {
   const g = await assertOwnsGenerationByUid(generationUid, userId);
   return {
-    id: g.id,
+    id: g.uid,
     status: g.status,
     pages: {
       status: g.pagesStatus,
@@ -195,7 +174,7 @@ export async function streamPagesZip(
   }
 
   const [site] = await getDb().select().from(sites).where(eq(sites.id, gen.siteId));
-  const filename = `${slugify(site?.name ?? 'site')}-pages-${gen.id}.zip`;
+  const filename = `${slugify(site?.name ?? 'site')}-pages-${gen.uid}.zip`;
 
   const archive = archiver('zip', { zlib: { level: 6 } });
   archive.append(manifestText, { name: 'manifest.json' });
@@ -212,20 +191,8 @@ export async function streamPagesZip(
   return { stream, filename };
 }
 
-export type GenerationListItem = {
-  id: number;
-  siteId: number;
-  status: GenerationStatus;
-  trigger: 'manual' | 'webhook';
-  pagesStatus: PagesStatus;
-  pagesCount: number;
-  createdAt: string;
-  startedAt?: string;
-  completedAt?: string;
-};
-
 export type ListGenerationsOptions = {
-  siteId?: number;
+  siteUid?: string;
   status?: GenerationStatus;
   limit?: number;
 };
@@ -236,28 +203,38 @@ const MAX_LIST_LIMIT = 100;
 export async function listGenerations(
   userId: number,
   opts: ListGenerationsOptions = {},
-): Promise<GenerationListItem[]> {
+): Promise<GenerationPublic[]> {
   const limit = Math.min(Math.max(opts.limit ?? DEFAULT_LIST_LIMIT, 1), MAX_LIST_LIMIT);
   const filters = [eq(generations.userId, userId)];
-  if (opts.siteId !== undefined) filters.push(eq(generations.siteId, opts.siteId));
+  if (opts.siteUid !== undefined) {
+    const [s] = await getDb().select({ id: sites.id }).from(sites).where(
+      and(eq(sites.uid, opts.siteUid), eq(sites.userId, userId)),
+    );
+    if (!s) return [];
+    filters.push(eq(generations.siteId, s.id));
+  }
   if (opts.status !== undefined) filters.push(eq(generations.status, opts.status));
 
   const rows = await getDb()
-    .select()
+    .select({
+      gen: generations,
+      siteUid: sites.uid,
+    })
     .from(generations)
+    .innerJoin(sites, eq(generations.siteId, sites.id))
     .where(and(...filters))
     .orderBy(desc(generations.createdAt))
     .limit(limit);
 
-  return rows.map((g) => ({
-    id: g.id,
-    siteId: g.siteId,
-    status: g.status,
-    trigger: g.trigger,
-    pagesStatus: g.pagesStatus,
-    pagesCount: g.pagesCount,
-    createdAt: g.createdAt,
-    startedAt: g.startedAt ?? undefined,
-    completedAt: g.completedAt ?? undefined,
+  return rows.map(({ gen, siteUid }) => ({
+    id: gen.uid,
+    siteId: siteUid,
+    status: gen.status,
+    trigger: gen.trigger,
+    pagesStatus: gen.pagesStatus,
+    pagesCount: gen.pagesCount,
+    createdAt: gen.createdAt,
+    startedAt: gen.startedAt ?? undefined,
+    completedAt: gen.completedAt ?? undefined,
   }));
 }

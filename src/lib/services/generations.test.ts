@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
 import { users, sites, generations } from '@/db/schema';
@@ -61,6 +61,20 @@ describe('getGenerationView', () => {
   it('throws 404 when generation is not owned', async () => {
     const { gen } = await seed();
     await expect(getGenerationView(gen.uid, 9999)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('cross-tenant: throws 404 when another user owns the generation', async () => {
+    const db = await setupTestDb();
+    const [u1] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    const [u2] = await db.insert(users).values({ name: 'B', email: 'b@b.test' }).returning();
+    const [s] = await db.insert(sites).values({
+      userId: u1.id, name: 'S', rootUrl: 'https://s.test',
+      webhookTokenHash: 'h'.repeat(64), webhookTokenPrefix: 'lmt_aaaa',
+    }).returning();
+    const [g] = await db.insert(generations).values({
+      siteId: s.id, userId: u1.id, status: 'pending', trigger: 'manual',
+    }).returning();
+    await expect(getGenerationView(g.uid, u2.id)).rejects.toMatchObject({ status: 404 });
   });
 });
 

@@ -1,6 +1,6 @@
 import { loader } from 'fumadocs-core/source';
 import { openapiSource } from 'fumadocs-openapi/server';
-import type { PageTree } from 'fumadocs-core/server';
+import type { Root } from 'fumadocs-core/page-tree';
 import { docs } from '../../../.source/server';
 import { openapi } from './openapi';
 
@@ -26,7 +26,7 @@ function getApiSource() {
  * docs sidebar lists both. Routing is unchanged: MDX → /docs/[[...slug]], and
  * OpenAPI → /docs/api/[[...slug]].
  */
-export async function getMergedPageTree(): Promise<PageTree.Root> {
+export async function getMergedPageTree(): Promise<Root> {
   const apiSource = await getApiSource();
   return {
     ...source.pageTree,

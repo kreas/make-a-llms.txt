@@ -4,7 +4,7 @@ import { loader } from 'fumadocs-core/source';
 import { openapi, APIPage } from '@/lib/docs/openapi';
 import { openapiSource } from 'fumadocs-openapi/server';
 import type { OpenAPIPageData } from 'fumadocs-openapi/server';
-import type { TOCItemType } from 'fumadocs-core/server';
+import type { TOCItemType } from 'fumadocs-core/toc';
 
 type Props = { params: Promise<{ slug?: string[] }> };
 

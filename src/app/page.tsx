@@ -13,12 +13,9 @@ import { getCurrentUser } from '@/lib/auth';
 const NAV_LINKS: ReadonlyArray<{
   href: string;
   label: string;
-  active?: boolean;
 }> = [
-  { href: '#', label: 'Docs', active: true },
-  { href: '#', label: 'Changelog' },
   { href: '#', label: 'Pricing' },
-  { href: '#', label: 'API' },
+  { href: '/docs', label: 'Docs' },
 ];
 
 const CRAWLER_ROWS = [
@@ -62,32 +59,30 @@ export default async function Home() {
     <div className="bg-canvas text-ink">
       {/* Top Navigation */}
       <nav className="sticky top-0 z-50 border-b border-hairline bg-canvas">
-        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-6 py-5">
-          <Link href="/" className="flex items-center gap-2 text-ink">
-            <Image
-              src="/logo.webp"
-              alt=""
-              width={28}
-              height={28}
-              className="h-7 w-7 shrink-0 rounded-md"
-              priority
-            />
-            <span className="display-sm">AI Ready</span>
-          </Link>
-          <div className="hidden gap-8 md:flex">
-            {NAV_LINKS.map(({ href, label, active }) => (
-              <Link
-                key={label}
-                href={href}
-                className={
-                  active
-                    ? 'border-b-2 border-primary pb-1 text-sm text-primary'
-                    : 'text-sm text-body transition-colors duration-200 hover:text-primary'
-                }
-              >
-                {label}
-              </Link>
-            ))}
+        <div className="mx-auto flex h-[71px] w-full max-w-[1200px] items-center justify-between px-6">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2 text-ink">
+              <Image
+                src="/logo.webp"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 shrink-0 rounded-md"
+                priority
+              />
+              <span className="display-sm">AI Ready</span>
+            </Link>
+            <div className="hidden gap-8 md:flex">
+              {NAV_LINKS.map(({ href, label }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className="text-sm text-body transition-colors duration-200 hover:text-primary"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {user ? (
@@ -131,7 +126,7 @@ export default async function Home() {
               <Link href={primaryHref}>{primaryLabel}</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11">
-              <Link href="#how-it-works">Read the Manifesto</Link>
+              <Link href="/docs/manifesto">Read the Manifesto</Link>
             </Button>
           </div>
         </div>

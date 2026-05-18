@@ -16,7 +16,7 @@ async function buildApiSource() {
   return loader(src, { baseUrl: '/docs/api' });
 }
 
-function getApiSource() {
+export function getApiSource() {
   if (!_apiSourcePromise) _apiSourcePromise = buildApiSource();
   return _apiSourcePromise;
 }

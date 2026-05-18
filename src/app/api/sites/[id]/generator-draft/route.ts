@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDb } from '@/db';
@@ -8,6 +9,7 @@ import {
   assertOwnsSiteByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
+import { parseUid } from '@/lib/uid';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -16,11 +18,21 @@ const putBodySchema = z.object({
   allowAll: z.boolean().optional(),
 });
 
+async function parseSiteUid(ctx: Ctx): Promise<string> {
+  const { id } = await ctx.params;
+  try {
+    return parseUid(id);
+  } catch (e) {
+    if (e instanceof ZodError) throw new ApiError(400, 'validation', 'Site id must be a UUID');
+    throw e;
+  }
+}
+
 export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
-    const { id } = await ctx.params;
-    const site = await assertOwnsSiteByUid(id, user.id);
+    const uid = await parseSiteUid(ctx);
+    const site = await assertOwnsSiteByUid(uid, user.id);
 
     const [draft] = await getDb()
       .select()
@@ -38,8 +50,8 @@ export async function GET(_req: Request, ctx: Ctx) {
 export async function PUT(req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
-    const { id } = await ctx.params;
-    const site = await assertOwnsSiteByUid(id, user.id);
+    const uid = await parseSiteUid(ctx);
+    const site = await assertOwnsSiteByUid(uid, user.id);
     const body = putBodySchema.parse(await req.json());
 
     const db = getDb();

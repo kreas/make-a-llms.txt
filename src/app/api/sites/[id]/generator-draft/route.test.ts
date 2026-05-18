@@ -26,7 +26,7 @@ async function makeUserAndSite(email: string) {
   return { user: u, site: s };
 }
 
-const ctx = (id: number | string) => ({ params: Promise.resolve({ id: String(id) }) });
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
 function putRequest(body: unknown) {
   return new Request('http://t', {
@@ -48,31 +48,38 @@ describe('GET /api/sites/[id]/generator-draft', () => {
       .insert(robotsGeneratorDrafts)
       .values({ siteId: site.id, toggles: '{"GPTBot":"block"}' });
 
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.draft.toggles).toBe('{"GPTBot":"block"}');
   });
 
+  it('returns 400 for non-UUID id', async () => {
+    const { user } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+    const res = await GET(new Request('http://t'), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
+  });
+
   it('returns 404 when no draft exists', async () => {
     const { user, site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(user);
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(404);
   });
 
-  it('returns 404 for a non-owner', async () => {
+  it('returns 404 for a non-owner (cross-tenant)', async () => {
     const { site } = await makeUserAndSite('a@a.test');
     const { user: other } = await makeUserAndSite('b@b.test');
     vi.mocked(getCurrentUser).mockResolvedValue(other);
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(404);
   });
 
   it('returns 401 when unauthenticated', async () => {
     const { site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(null);
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(401);
   });
 });
@@ -88,11 +95,18 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
 
     const res = await PUT(
       putRequest({ toggles: { GPTBot: 'block', ClaudeBot: 'allow' } }),
-      ctx(site.id),
+      ctx(site.uid),
     );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(JSON.parse(body.draft.toggles).GPTBot).toBe('block');
+  });
+
+  it('returns 400 for non-UUID id', async () => {
+    const { user } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+    const res = await PUT(putRequest({ toggles: {} }), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
   });
 
   it('updates an existing draft (upsert)', async () => {
@@ -104,7 +118,7 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
 
     const res = await PUT(
       putRequest({ toggles: { GPTBot: 'allow' } }),
-      ctx(site.id),
+      ctx(site.uid),
     );
     expect(res.status).toBe(200);
     const rows = await getDb().select().from(robotsGeneratorDrafts);
@@ -118,16 +132,16 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
 
     const res = await PUT(
       putRequest({ toggles: 'not-an-object' }),
-      ctx(site.id),
+      ctx(site.uid),
     );
     expect(res.status).toBe(400);
   });
 
-  it('returns 404 for a non-owner', async () => {
+  it('returns 404 for a non-owner (cross-tenant)', async () => {
     const { site } = await makeUserAndSite('a@a.test');
     const { user: other } = await makeUserAndSite('b@b.test');
     vi.mocked(getCurrentUser).mockResolvedValue(other);
-    const res = await PUT(putRequest({ toggles: {} }), ctx(site.id));
+    const res = await PUT(putRequest({ toggles: {} }), ctx(site.uid));
     expect(res.status).toBe(404);
   });
 
@@ -137,7 +151,7 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
     await getDb()
       .insert(robotsGeneratorDrafts)
       .values({ siteId: site.id, toggles: '{}' });
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     const body = await res.json();
     expect(body.draft.allowAll).toBe(false);
   });
@@ -148,7 +162,7 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
 
     const res = await PUT(
       putRequest({ toggles: {}, allowAll: true }),
-      ctx(site.id),
+      ctx(site.uid),
     );
     expect(res.status).toBe(200);
     const rows = await getDb().select().from(robotsGeneratorDrafts);
@@ -160,7 +174,7 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
     const { user, site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(user);
 
-    const res = await PUT(putRequest({ toggles: {} }), ctx(site.id));
+    const res = await PUT(putRequest({ toggles: {} }), ctx(site.uid));
     expect(res.status).toBe(200);
     const rows = await getDb().select().from(robotsGeneratorDrafts);
     expect(rows[0].allowAll).toBe(false);
@@ -171,9 +185,9 @@ describe('PUT /api/sites/[id]/generator-draft', () => {
     vi.mocked(getCurrentUser).mockResolvedValue(user);
 
     // First PUT sets allowAll: true.
-    await PUT(putRequest({ toggles: {}, allowAll: true }), ctx(site.id));
+    await PUT(putRequest({ toggles: {}, allowAll: true }), ctx(site.uid));
     // Second PUT omits allowAll (defaults to false).
-    await PUT(putRequest({ toggles: { GPTBot: 'block' } }), ctx(site.id));
+    await PUT(putRequest({ toggles: { GPTBot: 'block' } }), ctx(site.uid));
 
     const rows = await getDb().select().from(robotsGeneratorDrafts);
     expect(rows).toHaveLength(1);

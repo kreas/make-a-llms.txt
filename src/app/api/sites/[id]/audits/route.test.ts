@@ -27,7 +27,7 @@ async function makeUserAndSite(email: string) {
   return { user: u, site: s };
 }
 
-const ctx = (id: number | string) => ({ params: Promise.resolve({ id: String(id) }) });
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
 describe('POST /api/sites/[id]/audits', () => {
   beforeEach(async () => {
@@ -43,7 +43,7 @@ describe('POST /api/sites/[id]/audits', () => {
     const { user, site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(user);
 
-    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.id));
+    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.uid));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.audit.siteId).toBe(site.id);
@@ -51,12 +51,20 @@ describe('POST /api/sites/[id]/audits', () => {
     expect(body.audit.status).toBe('succeeded');
   });
 
-  it('returns 404 for a non-owner', async () => {
+  it('returns 400 for non-UUID id', async () => {
+    const { user } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+
+    const res = await POST(new Request('http://t', { method: 'POST' }), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for a non-owner (cross-tenant)', async () => {
     const { site } = await makeUserAndSite('a@a.test');
     const { user: other } = await makeUserAndSite('b@b.test');
     vi.mocked(getCurrentUser).mockResolvedValue(other);
 
-    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.id));
+    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.uid));
     expect(res.status).toBe(404);
   });
 
@@ -64,7 +72,7 @@ describe('POST /api/sites/[id]/audits', () => {
     const { site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(null);
 
-    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.id));
+    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.uid));
     expect(res.status).toBe(401);
   });
 });

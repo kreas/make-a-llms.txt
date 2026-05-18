@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { crawlerAudits } from '@/db/schema';
@@ -7,14 +8,25 @@ import {
   assertOwnsSiteByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
+import { parseUid } from '@/lib/uid';
 
 type Ctx = { params: Promise<{ id: string }> };
+
+async function parseSiteUid(ctx: Ctx): Promise<string> {
+  const { id } = await ctx.params;
+  try {
+    return parseUid(id);
+  } catch (e) {
+    if (e instanceof ZodError) throw new ApiError(400, 'validation', 'Site id must be a UUID');
+    throw e;
+  }
+}
 
 export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
-    const { id } = await ctx.params;
-    const site = await assertOwnsSiteByUid(id, user.id);
+    const uid = await parseSiteUid(ctx);
+    const site = await assertOwnsSiteByUid(uid, user.id);
 
     const [audit] = await getDb()
       .select()

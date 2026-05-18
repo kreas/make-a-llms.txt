@@ -4,6 +4,7 @@ import { sites } from '@/db/schema';
 import { ApiError, apiErrorResponse, requireUserOrThrow } from '@/lib/auth-guards';
 import { createSiteSchema } from '@/lib/validators';
 import { createWebhookToken } from '@/lib/webhook-token';
+import { toPublicSite } from '@/lib/services/sites';
 
 export async function POST(req: Request) {
   try {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    return Response.json({ site: row, webhookToken: tok.token }, { status: 201 });
+    return Response.json({ site: toPublicSite(row), webhookToken: tok.token }, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.name === 'ZodError') {
       return apiErrorResponse(new ApiError(400, 'validation', err.message));
@@ -44,7 +45,7 @@ export async function GET() {
   try {
     const user = await requireUserOrThrow();
     const rows = await getDb().select().from(sites).where(eq(sites.userId, user.id));
-    return Response.json({ sites: rows });
+    return Response.json({ sites: rows.map(toPublicSite) });
   } catch (err) {
     return apiErrorResponse(err);
   }

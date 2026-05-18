@@ -27,7 +27,11 @@ export async function GET(req: Request) {
     if (!parsed.success) {
       throw new ApiError(400, 'validation', parsed.error.message);
     }
-    const generations = await listGenerations(user.id, parsed.data);
+    const generations = await listGenerations(user.id, {
+      siteUid: parsed.data.siteId,
+      status: parsed.data.status,
+      limit: parsed.data.limit,
+    });
     return Response.json({ generations });
   } catch (err) {
     return apiErrorResponse(err);
@@ -43,55 +47,43 @@ export async function POST(req: Request) {
     }
     const body = parsed.data;
 
-    let siteId: number;
+    let siteRow: { id: number; uid: string };
     if ('siteId' in body) {
-      await assertOwnsSiteByUid(String(body.siteId), user.id);
-      siteId = body.siteId;
+      const s = await assertOwnsSiteByUid(body.siteId, user.id);
+      siteRow = { id: s.id, uid: s.uid };
     } else {
-      const existing = await getDb()
-        .select()
-        .from(sites)
-        .where(and(eq(sites.userId, user.id), eq(sites.rootUrl, body.rootUrl)));
+      const existing = await getDb().select().from(sites).where(
+        and(eq(sites.userId, user.id), eq(sites.rootUrl, body.rootUrl)),
+      );
       if (existing.length > 0) {
-        siteId = existing[0].id;
+        siteRow = { id: existing[0].id, uid: existing[0].uid };
       } else {
         const tok = createWebhookToken();
-        const [row] = await getDb()
-          .insert(sites)
-          .values({
-            userId: user.id,
-            name: body.name,
-            rootUrl: body.rootUrl,
-            sitemapUrl: body.sitemapUrl ?? null,
-            webhookTokenHash: tok.hash,
-            webhookTokenPrefix: tok.prefix,
-          })
-          .returning();
-        siteId = row.id;
+        const [row] = await getDb().insert(sites).values({
+          userId: user.id,
+          name: body.name,
+          rootUrl: body.rootUrl,
+          sitemapUrl: body.sitemapUrl ?? null,
+          webhookTokenHash: tok.hash,
+          webhookTokenPrefix: tok.prefix,
+        }).returning();
+        siteRow = { id: row.id, uid: row.uid };
       }
     }
 
-    const generation = await enqueueGenerationsForSite(siteId, { trigger: 'manual' });
+    const generation = await enqueueGenerationsForSite(siteRow.id, { trigger: 'manual' });
     const base = new URL(req.url);
-    const self = `${base.origin}/api/v1/generations/${generation.id}`;
-    return Response.json(
-      {
-        generation: {
-          id: generation.id,
-          siteId: generation.siteId,
-          status: generation.status,
-          trigger: generation.trigger,
-          createdAt: generation.createdAt,
-          urls: {
-            self,
-            llms: `${self}/llms.txt`,
-            llmsFull: `${self}/llms-full.txt`,
-            pages: `${self}/pages`,
-          },
-        },
+    const self = `${base.origin}/api/v1/generations/${generation.uid}`;
+    return Response.json({
+      generation: {
+        id: generation.uid,
+        siteId: siteRow.uid,
+        status: generation.status,
+        trigger: generation.trigger,
+        createdAt: generation.createdAt,
+        urls: { self, llms: `${self}/llms.txt`, llmsFull: `${self}/llms-full.txt`, pages: `${self}/pages` },
       },
-      { status: 201 },
-    );
+    }, { status: 201 });
   } catch (err) {
     return apiErrorResponse(err);
   }

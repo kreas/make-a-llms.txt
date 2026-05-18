@@ -22,7 +22,7 @@ export const summariesStatusEnum = z
 
 const createGenerationBySiteId = z
   .object({
-    siteId: z.number().int().positive(),
+    siteId: z.string().uuid(),
   })
   .strict();
 
@@ -50,8 +50,8 @@ export const createGenerationV1Schema = z
 export const generationCreatedSchema = z
   .object({
     generation: z.object({
-      id: z.number().int(),
-      siteId: z.number().int(),
+      id: z.string().uuid(),
+      siteId: z.string().uuid(),
       status: generationStatusEnum,
       trigger: z.enum(['manual', 'webhook']),
       createdAt: z.string().meta({ format: 'date-time' }),
@@ -67,7 +67,7 @@ export const generationCreatedSchema = z
 
 export const generationViewSchema = z
   .object({
-    id: z.number().int(),
+    id: z.string().uuid(),
     status: generationStatusEnum,
     pages: z.object({
       status: pagesStatusEnum,
@@ -116,8 +116,8 @@ export const errorSchema = z
 
 export const generationListItemSchema = z
   .object({
-    id: z.number().int(),
-    siteId: z.number().int(),
+    id: z.string().uuid(),
+    siteId: z.string().uuid(),
     status: generationStatusEnum,
     trigger: z.enum(['manual', 'webhook']),
     pagesStatus: pagesStatusEnum,
@@ -137,8 +137,8 @@ export const generationListSchema = z
 export const generationCancelledSchema = z
   .object({
     generation: z.object({
-      id: z.number().int(),
-      siteId: z.number().int(),
+      id: z.string().uuid(),
+      siteId: z.string().uuid(),
       status: generationStatusEnum,
       completedAt: z.string().meta({ format: 'date-time' }).nullable().optional(),
     }),
@@ -147,7 +147,7 @@ export const generationCancelledSchema = z
 
 export const listGenerationsV1QuerySchema = z
   .object({
-    siteId: z.coerce.number().int().positive().optional(),
+    siteId: z.string().uuid().optional(),
     status: generationStatusEnum.optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),
   })

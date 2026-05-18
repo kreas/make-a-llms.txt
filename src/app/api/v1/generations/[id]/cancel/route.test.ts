@@ -34,46 +34,44 @@ async function seed(status: 'pending' | 'running' | 'succeeded' = 'running') {
     .returning();
   const { token, hash, prefix } = createApiToken();
   await db.insert(apiTokens).values({ userId: u.id, name: 'CI', tokenHash: hash, tokenPrefix: prefix });
-  return { user: u, gen: g, token };
+  return { user: u, site: s, gen: g, token };
 }
 
-function ctx(id: number) {
-  return { params: Promise.resolve({ id: String(id) }) };
+function req(token: string, id: string) {
+  return new Request(`http://t/api/v1/generations/${id}/cancel`, { method: 'POST', headers: { authorization: `Bearer ${token}` } });
 }
 
 describe('POST /api/v1/generations/[id]/cancel', () => {
   it('401 without bearer token', async () => {
     const { gen } = await seed();
-    const res = await POST(new Request(`http://t/api/v1/generations/${gen.id}/cancel`, { method: 'POST' }), ctx(gen.id));
+    const res = await POST(new Request(`http://t/api/v1/generations/${gen.uid}/cancel`, { method: 'POST' }), { params: Promise.resolve({ id: gen.uid }) });
     expect(res.status).toBe(401);
   });
 
+  it('400 for a non-UUID path segment', async () => {
+    const { token } = await seed();
+    const res = await POST(req(token, 'not-uuid'), { params: Promise.resolve({ id: 'not-uuid' }) });
+    expect(res.status).toBe(400);
+  });
+
   it('cancels a running generation and returns it', async () => {
-    const { gen, token } = await seed('running');
-    const res = await POST(
-      new Request(`http://t/api/v1/generations/${gen.id}/cancel`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}` },
-      }),
-      ctx(gen.id),
-    );
+    const { gen, site, token } = await seed('running');
+    const res = await POST(req(token, gen.uid), { params: Promise.resolve({ id: gen.uid }) });
     expect(res.status).toBe(200);
     const body = await res.json();
+    expect(body.generation.id).toBe(gen.uid);
+    expect(body.generation.siteId).toBe(site.uid);
     expect(body.generation.status).toBe('cancelled');
     expect(body.generation.completedAt).toBeTruthy();
   });
 
   it('is idempotent for terminal generations', async () => {
-    const { gen, token } = await seed('succeeded');
-    const res = await POST(
-      new Request(`http://t/api/v1/generations/${gen.id}/cancel`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}` },
-      }),
-      ctx(gen.id),
-    );
+    const { gen, site, token } = await seed('succeeded');
+    const res = await POST(req(token, gen.uid), { params: Promise.resolve({ id: gen.uid }) });
     expect(res.status).toBe(200);
     const body = await res.json();
+    expect(body.generation.id).toBe(gen.uid);
+    expect(body.generation.siteId).toBe(site.uid);
     expect(body.generation.status).toBe('succeeded');
   });
 
@@ -95,13 +93,7 @@ describe('POST /api/v1/generations/[id]/cancel', () => {
       .insert(generations)
       .values({ siteId: s.id, userId: other.id, status: 'running', trigger: 'manual' })
       .returning();
-    const res = await POST(
-      new Request(`http://t/api/v1/generations/${g.id}/cancel`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}` },
-      }),
-      ctx(g.id),
-    );
+    const res = await POST(req(token, g.uid), { params: Promise.resolve({ id: g.uid }) });
     expect(res.status).toBe(404);
   });
 });

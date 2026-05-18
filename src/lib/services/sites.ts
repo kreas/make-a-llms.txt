@@ -27,3 +27,8 @@ export function toPublicSite(s: Site): SitePublic {
     updatedAt: s.updatedAt,
   };
 }
+
+export async function getSiteUidById(siteId: number): Promise<string | null> {
+  const [s] = await getDb().select({ uid: sites.uid }).from(sites).where(eq(sites.id, siteId));
+  return s?.uid ?? null;
+}

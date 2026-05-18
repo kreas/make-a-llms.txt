@@ -21,6 +21,7 @@ describe('POST /api/sitemap/discover', () => {
   beforeEach(() => {
     vi.mocked(getCurrentUser).mockResolvedValue({
       id: 1,
+      uid: '00000000-0000-0000-0000-000000000001',
       name: 'A',
       email: 'a@a.test',
       role: 'user',

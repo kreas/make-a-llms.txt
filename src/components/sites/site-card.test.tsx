@@ -5,6 +5,7 @@ import type { Site, Generation } from '@/db/schema';
 
 const mkSite = (over: Partial<Site> = {}): Site => ({
   id: 1,
+  uid: '00000000-0000-0000-0000-000000000001',
   userId: 1,
   name: 'Acme',
   rootUrl: 'https://acme.com',

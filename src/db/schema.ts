@@ -1,8 +1,10 @@
 import { index, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { generateUid } from '@/lib/uid';
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  uid: text('uid').notNull().unique().$defaultFn(generateUid),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   role: text('role', { enum: ['user', 'admin'] })
@@ -18,6 +20,7 @@ export const users = sqliteTable('users', {
 
 export const otpCodes = sqliteTable('otp_codes', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  uid: text('uid').notNull().unique().$defaultFn(generateUid),
   email: text('email').notNull(),
   codeHash: text('code_hash').notNull(),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
@@ -31,6 +34,7 @@ export const sites = sqliteTable(
   'sites',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -52,6 +56,7 @@ export const generations = sqliteTable(
   'generations',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
     siteId: integer('site_id')
       .notNull()
       .references(() => sites.id, { onDelete: 'cascade' }),
@@ -110,6 +115,7 @@ export const crawlerAudits = sqliteTable(
   'crawler_audits',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
     siteId: integer('site_id')
       .notNull()
       .references(() => sites.id, { onDelete: 'cascade' }),
@@ -136,6 +142,7 @@ export const robotsGeneratorDrafts = sqliteTable(
   'robots_generator_drafts',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
     siteId: integer('site_id')
       .notNull()
       .references(() => sites.id, { onDelete: 'cascade' }),
@@ -155,6 +162,7 @@ export const apiTokens = sqliteTable(
   'api_tokens',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

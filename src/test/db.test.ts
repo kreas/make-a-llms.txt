@@ -26,4 +26,10 @@ describe('test db helper', () => {
     expect(s.id).toBeGreaterThan(0);
     expect(s.userId).toBe(u.id);
   });
+
+  it('auto-fills uid on insert', async () => {
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'T', email: 't@t.test' }).returning();
+    expect(u.uid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  });
 });

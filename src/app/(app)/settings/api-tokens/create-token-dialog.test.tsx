@@ -13,7 +13,7 @@ describe('CreateTokenDialog', () => {
       ok: true,
       json: async () => ({
         token: 'mklt_pat_secret123',
-        record: { id: 1, name: 'CI', tokenPrefix: 'mklt_pat_se', createdAt: '', expiresAt: null },
+        record: { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: 'CI', tokenPrefix: 'mklt_pat_se', createdAt: '', expiresAt: null, lastUsedAt: null, revokedAt: null },
       }),
     });
     const onCreated = vi.fn();

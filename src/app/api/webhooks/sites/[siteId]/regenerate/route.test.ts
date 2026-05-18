@@ -3,6 +3,7 @@ import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
 import { sites, users } from '@/db/schema';
 import { createWebhookToken } from '@/lib/webhook-token';
+import { generateUid } from '@/lib/uid';
 
 vi.mock('workflow/api', () => ({
   start: vi.fn(async () => ({ runId: 'wf-1' })),
@@ -10,7 +11,7 @@ vi.mock('workflow/api', () => ({
 
 import { POST } from './route';
 
-const ctx = (siteId: number) => ({ params: Promise.resolve({ siteId: String(siteId) }) });
+const ctx = (siteUid: string) => ({ params: Promise.resolve({ siteId: siteUid }) });
 
 async function setup() {
   await setupTestDb();
@@ -38,37 +39,50 @@ function tokenReq(token: string) {
 }
 
 describe('webhook regenerate', () => {
-  it('202 with generation, notifyEmail forced true', async () => {
+  it('202 with generation shape using uids', async () => {
     const { site, token } = await setup();
-    const res = await POST(tokenReq(token), ctx(site.id));
+    const res = await POST(tokenReq(token), ctx(site.uid));
     expect(res.status).toBe(202);
     const body = await res.json();
-    expect(body.generation.notifyEmail).toBe(true);
+    expect(body.generation.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(body.generation.siteId).toBe(site.uid);
     expect(body.generation.trigger).toBe('webhook');
+    expect(body.generation.status).toBeDefined();
+    expect(body.generation.createdAt).toBeDefined();
   });
 
   it('401 on missing token', async () => {
     const { site } = await setup();
-    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.id));
+    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(site.uid));
     expect(res.status).toBe(401);
   });
 
-  it('401 on bad token', async () => {
+  it('401 on invalid webhook token', async () => {
     const { site } = await setup();
-    const res = await POST(tokenReq('lmt_wrong'), ctx(site.id));
+    const res = await POST(tokenReq('lmt_wrong'), ctx(site.uid));
     expect(res.status).toBe(401);
   });
 
-  it('404 on unknown siteId', async () => {
+  it('400 for non-UUID siteId', async () => {
     const { token } = await setup();
-    const res = await POST(tokenReq(token), ctx(999_999));
+    const res = await POST(tokenReq(token), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe('validation');
+  });
+
+  it('404 for unknown site uid', async () => {
+    const { token } = await setup();
+    const res = await POST(tokenReq(token), ctx(generateUid()));
     expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error.code).toBe('not_found');
   });
 
   it('dedupe sets X-Dedup: hit', async () => {
     const { site, token } = await setup();
-    await POST(tokenReq(token), ctx(site.id));
-    const second = await POST(tokenReq(token), ctx(site.id));
+    await POST(tokenReq(token), ctx(site.uid));
+    const second = await POST(tokenReq(token), ctx(site.uid));
     expect(second.status).toBe(202);
     expect(second.headers.get('x-dedup')).toBe('hit');
   });

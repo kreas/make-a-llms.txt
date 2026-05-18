@@ -3,6 +3,7 @@ import {
   assertOwnsGenerationByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
+import { parseGenerationUid } from '@/lib/uid';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -10,12 +11,13 @@ export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id } = await ctx.params;
-    const generation = await assertOwnsGenerationByUid(id, user.id);
+    const uid = parseGenerationUid(id);
+    const generation = await assertOwnsGenerationByUid(uid, user.id);
 
     const downloads: { llms?: string; llmsFull?: string } = {};
-    if (generation.llmsBlobPath) downloads.llms = `/api/generations/${generation.id}/files/llms`;
+    if (generation.llmsBlobPath) downloads.llms = `/api/generations/${generation.uid}/files/llms`;
     if (generation.llmsFullBlobPath) {
-      downloads.llmsFull = `/api/generations/${generation.id}/files/llms-full`;
+      downloads.llmsFull = `/api/generations/${generation.uid}/files/llms-full`;
     }
 
     return Response.json({ generation, downloads });

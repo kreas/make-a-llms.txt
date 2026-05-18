@@ -4,6 +4,7 @@ import {
   requireUserOrThrow,
 } from '@/lib/auth-guards';
 import { readGenerationFile, type GenerationFileKind } from '@/lib/services/generations';
+import { parseGenerationUid } from '@/lib/uid';
 
 type Ctx = { params: Promise<{ id: string; kind: string }> };
 
@@ -15,8 +16,9 @@ export async function GET(_req: Request, ctx: Ctx) {
     if (!(VALID_KINDS as string[]).includes(kind)) {
       throw new ApiError(400, 'validation', `Invalid kind: ${kind}`);
     }
+    const uid = parseGenerationUid(id);
     const user = await requireUserOrThrow();
-    const { stream, filename } = await readGenerationFile(id, user.id, kind as GenerationFileKind);
+    const { stream, filename } = await readGenerationFile(uid, user.id, kind as GenerationFileKind);
     return new Response(stream, {
       status: 200,
       headers: {

@@ -42,6 +42,8 @@ async function seedWithManifest(pages: { path: string; blobPath: string; status:
   return { u, g };
 }
 
+const ctx = (id: string, path: string[]) => ({ params: Promise.resolve({ id, path }) });
+
 describe('GET /api/generations/[id]/pages/[...path]', () => {
   beforeEach(() => {
     getBlobSpy.mockReset();
@@ -53,9 +55,7 @@ describe('GET /api/generations/[id]/pages/[...path]', () => {
       { path: 'docs/cdn', blobPath: 'gens/x/pages/docs/cdn.md', status: 'ok' },
     ]);
     vi.mocked(getCurrentUser).mockResolvedValue(u);
-    const res = await GET(new Request('http://t'), {
-      params: Promise.resolve({ id: String(g.id), path: ['docs', 'cdn'] }),
-    });
+    const res = await GET(new Request('http://t'), ctx(g.uid, ['docs', 'cdn']));
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toMatch(/text\/markdown/);
     const body = await res.text();
@@ -67,10 +67,17 @@ describe('GET /api/generations/[id]/pages/[...path]', () => {
       { path: 'docs/cdn', blobPath: 'gens/x/pages/docs/cdn.md', status: 'ok' },
     ]);
     vi.mocked(getCurrentUser).mockResolvedValue(u);
-    const res = await GET(new Request('http://t'), {
-      params: Promise.resolve({ id: String(g.id), path: ['evil'] }),
-    });
+    const res = await GET(new Request('http://t'), ctx(g.uid, ['evil']));
     expect(res.status).toBe(404);
+  });
+
+  it('400 for non-uuid id', async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    vi.mocked(getCurrentUser).mockResolvedValue(u);
+    const res = await GET(new Request('http://t'), ctx('not-a-uuid', ['docs']));
+    expect(res.status).toBe(400);
   });
 
   it('404 for non-owner', async () => {
@@ -80,9 +87,7 @@ describe('GET /api/generations/[id]/pages/[...path]', () => {
     const db = getDb();
     const [other] = await db.insert(users).values({ name: 'B', email: 'b@b.test' }).returning();
     vi.mocked(getCurrentUser).mockResolvedValue(other);
-    const res = await GET(new Request('http://t'), {
-      params: Promise.resolve({ id: String(g.id), path: ['docs', 'cdn'] }),
-    });
+    const res = await GET(new Request('http://t'), ctx(g.uid, ['docs', 'cdn']));
     expect(res.status).toBe(404);
   });
 });

@@ -1,6 +1,7 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { ZodError } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { getDb } from '@/db';
-import { generations, sites } from '@/db/schema';
+import { sites } from '@/db/schema';
 import {
   apiErrorResponse,
   ApiError,
@@ -10,6 +11,8 @@ import {
 import { createGenerationSchema } from '@/lib/validators';
 import { createWebhookToken } from '@/lib/webhook-token';
 import { enqueueGenerationsForSite } from '@/lib/enqueue-generations';
+import { listGenerations } from '@/lib/services/generations';
+import { parseUid } from '@/lib/uid';
 
 export async function POST(req: Request) {
   try {
@@ -23,8 +26,8 @@ export async function POST(req: Request) {
 
     let siteId: number;
     if ('siteId' in body) {
-      await assertOwnsSiteByUid(String(body.siteId), user.id);
-      siteId = body.siteId;
+      const site = await assertOwnsSiteByUid(body.siteId, user.id);
+      siteId = site.id;
     } else {
       // Inline create site
       const tok = createWebhookToken();
@@ -66,16 +69,17 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const siteIdParam = url.searchParams.get('siteId');
 
-    const where = siteIdParam
-      ? and(eq(generations.userId, user.id), eq(generations.siteId, Number(siteIdParam)))
-      : eq(generations.userId, user.id);
+    let siteUid: string | undefined;
+    if (siteIdParam !== null) {
+      try {
+        siteUid = parseUid(siteIdParam);
+      } catch (err) {
+        if (err instanceof ZodError) throw new ApiError(400, 'validation', 'siteId must be a UUID');
+        throw err;
+      }
+    }
 
-    const rows = await getDb()
-      .select()
-      .from(generations)
-      .where(where)
-      .orderBy(desc(generations.createdAt));
-
+    const rows = await listGenerations(user.id, { siteUid });
     return Response.json({ generations: rows });
   } catch (err) {
     return apiErrorResponse(err);

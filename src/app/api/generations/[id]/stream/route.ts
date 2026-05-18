@@ -6,6 +6,7 @@ import {
   assertOwnsGenerationByUid,
   requireUserOrThrow,
 } from '@/lib/auth-guards';
+import { parseGenerationUid } from '@/lib/uid';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -67,7 +68,8 @@ export async function GET(_req: Request, ctx: Ctx) {
   try {
     const user = await requireUserOrThrow();
     const { id } = await ctx.params;
-    const gen = await assertOwnsGenerationByUid(id, user.id);
+    const uid = parseGenerationUid(id);
+    const gen = await assertOwnsGenerationByUid(uid, user.id);
 
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {

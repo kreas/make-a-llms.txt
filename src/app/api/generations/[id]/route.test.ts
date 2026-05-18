@@ -7,7 +7,7 @@ vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
 import { GET } from './route';
 import { getCurrentUser } from '@/lib/auth';
 
-const ctx = (id: number) => ({ params: Promise.resolve({ id: String(id) }) });
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
 describe('GET /api/generations/[id]', () => {
   it('returns the generation with download URLs once paths exist', async () => {
@@ -35,12 +35,21 @@ describe('GET /api/generations/[id]', () => {
       .returning();
     vi.mocked(getCurrentUser).mockResolvedValue(u);
 
-    const res = await GET(new Request('http://t'), ctx(g.id));
+    const res = await GET(new Request('http://t'), ctx(g.uid));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.generation.id).toBe(g.id);
-    expect(body.downloads.llms).toBe(`/api/generations/${g.id}/files/llms`);
+    expect(body.generation.uid).toBe(g.uid);
+    expect(body.downloads.llms).toBe(`/api/generations/${g.uid}/files/llms`);
     expect(body.downloads.llmsFull).toBeUndefined();
+  });
+
+  it('400 for non-uuid id', async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    vi.mocked(getCurrentUser).mockResolvedValue(u);
+    const res = await GET(new Request('http://t'), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
   });
 
   it('404 for non-owner', async () => {
@@ -64,7 +73,7 @@ describe('GET /api/generations/[id]', () => {
       .returning();
     vi.mocked(getCurrentUser).mockResolvedValue(u2);
 
-    const res = await GET(new Request('http://t'), ctx(g.id));
+    const res = await GET(new Request('http://t'), ctx(g.uid));
     expect(res.status).toBe(404);
   });
 });

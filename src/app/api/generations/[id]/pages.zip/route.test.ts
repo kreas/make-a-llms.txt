@@ -38,6 +38,8 @@ async function seed(pages: { path: string; blobPath: string; status: 'ok' | 'fai
   return { u, g };
 }
 
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
+
 describe('GET /api/generations/[id]/pages.zip', () => {
   beforeEach(() => {
     getBlobSpy.mockReset();
@@ -50,9 +52,7 @@ describe('GET /api/generations/[id]/pages.zip', () => {
       { path: 'b', blobPath: 'gens/x/pages/b.md', status: 'failed' },
     ]);
     vi.mocked(getCurrentUser).mockResolvedValue(u);
-    const res = await GET(new Request('http://t'), {
-      params: Promise.resolve({ id: String(g.id) }),
-    });
+    const res = await GET(new Request('http://t'), ctx(g.uid));
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toBe('application/zip');
     expect(res.headers.get('content-disposition')).toMatch(/attachment;.*\.zip/);
@@ -61,12 +61,21 @@ describe('GET /api/generations/[id]/pages.zip', () => {
     expect(buf.slice(0, 2).toString('binary')).toBe('PK'); // zip magic bytes
   });
 
+  it('400 for non-uuid id', async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    vi.mocked(getCurrentUser).mockResolvedValue(u);
+    const res = await GET(new Request('http://t'), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
+  });
+
   it('404 for non-owner', async () => {
     const { g } = await seed([{ path: 'a', blobPath: 'gens/x/pages/a.md', status: 'ok' }]);
     const db = getDb();
     const [other] = await db.insert(users).values({ name: 'B', email: 'b@b.test' }).returning();
     vi.mocked(getCurrentUser).mockResolvedValue(other);
-    const res = await GET(new Request('http://t'), { params: Promise.resolve({ id: String(g.id) }) });
+    const res = await GET(new Request('http://t'), ctx(g.uid));
     expect(res.status).toBe(404);
   });
 });

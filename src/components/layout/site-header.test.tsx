@@ -14,25 +14,27 @@ describe('SiteHeader', () => {
     expect(screen.getByText('AI Ready')).toBeInTheDocument();
   });
 
-  it('renders all 5 nav links', () => {
+  it('renders the streamlined nav links', () => {
     render(withQueryClient(<SiteHeader />));
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Add Site' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Documentation' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'API Tokens' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'API Docs' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Docs' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Add Site' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Documentation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'API Docs' })).not.toBeInTheDocument();
   });
 
-  it('renders the New Project CTA linking to /sites/new', () => {
+  it('renders the New project CTA as an icon link to /sites/new', () => {
     render(withQueryClient(<SiteHeader />));
-    const cta = screen.getByRole('link', { name: 'New Project' });
+    const cta = screen.getByRole('link', { name: /new project/i });
     expect(cta).toBeInTheDocument();
     expect(cta).toHaveAttribute('href', '/sites/new');
   });
 
-  it('applies active border class to the current route nav link', () => {
+  it('renders the user menu trigger', () => {
     render(withQueryClient(<SiteHeader />));
-    const dashLink = screen.getByRole('link', { name: 'Dashboard' });
-    expect(dashLink.className).toContain('border-primary');
+    expect(
+      screen.getByRole('button', { name: /open user menu/i }),
+    ).toBeInTheDocument();
   });
 });

@@ -13,8 +13,8 @@ export async function sendOtpEmail(email: string, code: string) {
   await resend.emails.send({
     from,
     to: email,
-    subject: 'Your sign-in code',
-    text: `Your sign-in code is ${code}. It expires in 10 minutes.`,
-    html: `<p>Your sign-in code is <strong style="font-size:24px;letter-spacing:4px">${code}</strong>.</p><p>It expires in 10 minutes.</p>`,
+    subject: 'Your AI Ready sign-in code',
+    text: `Your AI Ready sign-in code is ${code}. It expires in 10 minutes.`,
+    html: `<p>Your AI Ready sign-in code is <strong style="font-size:24px;letter-spacing:4px">${code}</strong>.</p><p>It expires in 10 minutes.</p>`,
   });
 }

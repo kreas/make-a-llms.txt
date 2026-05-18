@@ -38,6 +38,9 @@ yarn-error.log*
 .worktrees/
 .claude/worktrees/
 
+# claire local state
+.claire/
+
 # vercel
 .vercel
 
@@ -48,3 +51,9 @@ local.db*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Generated OpenAPI document (rebuilt by pnpm build:openapi)
+public/openapi.json
+
+# fumadocs-mdx generated source files (rebuilt by next dev/build)
+/.source/

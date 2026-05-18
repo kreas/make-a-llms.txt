@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFrontmatter, extractTitle } from './frontmatter';
+import { buildFrontmatter, extractTitle, parseFrontmatter } from './frontmatter';
 
 describe('extractTitle', () => {
   it('returns the first H1 text', () => {
@@ -28,7 +28,7 @@ describe('extractTitle', () => {
 });
 
 describe('buildFrontmatter', () => {
-  it('renders all four fields in canonical order', () => {
+  it('renders all four fields in canonical order, wrapped in --- delimiters', () => {
     const fm = buildFrontmatter({
       title: 'AI Strategy Services',
       url: 'https://civ.co/services/ai-strategy',
@@ -36,10 +36,12 @@ describe('buildFrontmatter', () => {
       updated: '2026-05-01',
     });
     expect(fm).toBe(
-      'title: AI Strategy Services\n' +
+      '---\n' +
+        'title: AI Strategy Services\n' +
         'url: https://civ.co/services/ai-strategy\n' +
         'summary: Workshops and roadmaps.\n' +
-        'updated: 2026-05-01\n\n',
+        'updated: 2026-05-01\n' +
+        '---\n\n',
     );
   });
 
@@ -64,12 +66,149 @@ describe('buildFrontmatter', () => {
     expect(fm).toMatch(/^summary: $/m);
   });
 
-  it('ends with a blank line separating frontmatter from the body', () => {
+  it('ends with --- and a blank line separating frontmatter from the body', () => {
     const fm = buildFrontmatter({
       url: 'https://example.test',
       updated: '2026-05-14',
       title: 'Home',
     });
-    expect(fm.endsWith('\n\n')).toBe(true);
+    expect(fm.endsWith('---\n\n')).toBe(true);
+    expect(fm.startsWith('---\n')).toBe(true);
+  });
+});
+
+describe('buildFrontmatter with page_type', () => {
+  it('emits a page_type line when provided', () => {
+    const fm = buildFrontmatter({
+      title: 'Services',
+      url: 'https://civ.co/services',
+      summary: 'Workshops.',
+      updated: '2026-05-14',
+      pageType: 'service',
+    });
+    expect(fm).toMatch(/^page_type: service$/m);
+  });
+
+  it('omits the page_type line when not provided', () => {
+    const fm = buildFrontmatter({
+      title: 'Home',
+      url: 'https://civ.co',
+      updated: '2026-05-14',
+    });
+    expect(fm).not.toMatch(/^page_type:/m);
+  });
+
+  it('places page_type between summary and updated', () => {
+    const fm = buildFrontmatter({
+      title: 'Home',
+      url: 'https://civ.co',
+      summary: 'Acme home page.',
+      pageType: 'homepage',
+      updated: '2026-05-14',
+    });
+    const summaryIdx = fm.indexOf('summary:');
+    const pageTypeIdx = fm.indexOf('page_type:');
+    const updatedIdx = fm.indexOf('updated:');
+    expect(summaryIdx).toBeLessThan(pageTypeIdx);
+    expect(pageTypeIdx).toBeLessThan(updatedIdx);
+  });
+});
+
+describe('parseFrontmatter', () => {
+  it('separates frontmatter fields from the body', () => {
+    const blob =
+      'title: Hello\n' +
+      'url: https://x.test/p\n' +
+      'summary: \n' +
+      'updated: 2026-05-14\n\n' +
+      '# Hello\n\nBody here.\n';
+    const { fields, body } = parseFrontmatter(blob);
+    expect(fields.title).toBe('Hello');
+    expect(fields.url).toBe('https://x.test/p');
+    expect(fields.summary).toBe('');
+    expect(fields.updated).toBe('2026-05-14');
+    expect(body).toBe('# Hello\n\nBody here.\n');
+  });
+
+  it('returns undefined for missing optional fields', () => {
+    const blob =
+      'url: https://x.test/p\n' +
+      'summary: \n' +
+      'updated: 2026-05-14\n\n' +
+      'body';
+    const { fields } = parseFrontmatter(blob);
+    expect(fields.title).toBeUndefined();
+    expect(fields.pageType).toBeUndefined();
+  });
+
+  it('round-trips with buildFrontmatter for all fields', () => {
+    const input = {
+      title: 'About',
+      url: 'https://x.test/about',
+      summary: 'A short description.',
+      pageType: 'about' as const,
+      updated: '2026-05-14',
+    };
+    const fm = buildFrontmatter(input);
+    const { fields, body } = parseFrontmatter(fm + 'body text');
+    expect(fields.title).toBe(input.title);
+    expect(fields.url).toBe(input.url);
+    expect(fields.summary).toBe(input.summary);
+    expect(fields.pageType).toBe(input.pageType);
+    expect(fields.updated).toBe(input.updated);
+    expect(body).toBe('body text');
+  });
+
+  it('throws when the blob has no frontmatter terminator', () => {
+    expect(() => parseFrontmatter('no frontmatter here')).toThrow(
+      /frontmatter/i,
+    );
+  });
+
+  it('throws when the frontmatter has no url field', () => {
+    const blob = 'title: Hello\nsummary: \nupdated: 2026-05-14\n\nbody';
+    expect(() => parseFrontmatter(blob)).toThrow(/url/i);
+  });
+
+  it('parses the new --- delimited format', () => {
+    const blob =
+      '---\n' +
+      'title: Hello\n' +
+      'url: https://x.test/p\n' +
+      'summary: A summary.\n' +
+      'page_type: article\n' +
+      'updated: 2026-05-14\n' +
+      '---\n\n' +
+      '# Hello\n\nBody here.\n';
+    const { fields, body } = parseFrontmatter(blob);
+    expect(fields.title).toBe('Hello');
+    expect(fields.url).toBe('https://x.test/p');
+    expect(fields.summary).toBe('A summary.');
+    expect(fields.pageType).toBe('article');
+    expect(fields.updated).toBe('2026-05-14');
+    expect(body).toBe('# Hello\n\nBody here.\n');
+  });
+
+  it('round-trips with the new --- format', () => {
+    const input = {
+      title: 'About',
+      url: 'https://x.test/about',
+      summary: 'A short description.',
+      pageType: 'about' as const,
+      updated: '2026-05-14',
+    };
+    const fm = buildFrontmatter(input);
+    const { fields, body } = parseFrontmatter(fm + 'body text');
+    expect(fields.title).toBe(input.title);
+    expect(fields.url).toBe(input.url);
+    expect(fields.summary).toBe(input.summary);
+    expect(fields.pageType).toBe(input.pageType);
+    expect(fields.updated).toBe(input.updated);
+    expect(body).toBe('body text');
+  });
+
+  it('throws on --- opener without a closing ---', () => {
+    const blob = '---\ntitle: Hello\nurl: https://x.test/p\n\nbody';
+    expect(() => parseFrontmatter(blob)).toThrow(/closing|---/i);
   });
 });

@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/sites/new', label: 'Add Site' },
   { href: '/documentation', label: 'Documentation' },
+  { href: '/settings/api-tokens', label: 'API Tokens' },
+  { href: '/docs', label: 'API Docs' },
 ] as const;
 
 export function SiteHeader() {

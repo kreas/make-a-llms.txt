@@ -1,6 +1,13 @@
-# AI Starter Pack
+# AI Ready
 
-A batteries-included Next.js starter template for building AI-powered applications. Comes pre-configured with authentication, database, file storage, AI integration, and a full component library.
+Make any site AI-ready — generate `llms.txt`, `llms-full.txt`, and per-page markdown on demand, with a versioned public API and a docs site that renders the OpenAPI spec inline.
+
+## API + Docs
+
+A versioned public API lives at `/api/v1/*`. Authenticate with a personal
+access token minted from `/settings/api-tokens` and sent as a Bearer header.
+
+Full reference and guides at `/docs`.
 
 ## Tech Stack
 

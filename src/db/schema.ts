@@ -79,6 +79,16 @@ export const generations = sqliteTable(
       .notNull()
       .default('pending'),
     pagesErrorMessage: text('pages_error_message'),
+    summariesStatus: text('summaries_status', {
+      enum: ['pending', 'running', 'succeeded', 'failed', 'skipped', 'cancelled'],
+    })
+      .notNull()
+      .default('pending'),
+    summariesCount: integer('summaries_count').notNull().default(0),
+    summariesEmptyCount: integer('summaries_empty_count').notNull().default(0),
+    summariesFailedCount: integer('summaries_failed_count').notNull().default(0),
+    summariesManifestBlobPath: text('summaries_manifest_blob_path'),
+    summariesErrorMessage: text('summaries_error_message'),
     startedAt: text('started_at'),
     completedAt: text('completed_at'),
     createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
@@ -89,6 +99,8 @@ export const generations = sqliteTable(
   }),
 );
 
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 export type Site = typeof sites.$inferSelect;
 export type NewSite = typeof sites.$inferInsert;
 export type Generation = typeof generations.$inferSelect;
@@ -138,3 +150,26 @@ export const robotsGeneratorDrafts = sqliteTable(
 
 export type RobotsGeneratorDraft = typeof robotsGeneratorDrafts.$inferSelect;
 export type NewRobotsGeneratorDraft = typeof robotsGeneratorDrafts.$inferInsert;
+
+export const apiTokens = sqliteTable(
+  'api_tokens',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    tokenPrefix: text('token_prefix').notNull(),
+    lastUsedAt: text('last_used_at'),
+    expiresAt: text('expires_at'),
+    revokedAt: text('revoked_at'),
+    createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    byUser: index('api_tokens_by_user').on(t.userId),
+  }),
+);
+
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type NewApiToken = typeof apiTokens.$inferInsert;

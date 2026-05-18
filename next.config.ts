@@ -1,5 +1,8 @@
 import { withWorkflow } from 'workflow/next';
+import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
+
+const withMDX = createMDX();
 
 const nextConfig: NextConfig = {
   // Keep llmstxt and execa unbundled — we spawn the llmstxt CLI binary at
@@ -16,4 +19,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withWorkflow(nextConfig);
+export default withWorkflow(withMDX(nextConfig));

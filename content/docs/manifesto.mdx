@@ -1,0 +1,76 @@
+---
+title: Manifesto
+description: Your website has a new audience — AI agents — and they can't see your design. Here's why that matters and what AI Ready does about it.
+---
+
+**Your website has a new audience. It can't see your design.**
+
+You spent months on that site. The typography, the scroll animations, the hero image that loads at exactly the right moment. It looks great. Your client signed off. Humans love it.
+
+AI doesn't care.
+
+When someone asks ChatGPT what your client's company does, or Perplexity pulls their pricing page into a citation, none of that design comes through. The AI sees raw HTML: navigation mixed with body copy, cookie banners jammed against product descriptions, footer boilerplate mistaken for the company mission.
+
+So it guesses. And when it guesses wrong, it doesn't leave a blank. It fills the gap with something that sounds right but isn't.
+
+## That's the problem you're shipping to clients right now.
+
+Every site you build or manage now has two audiences. The humans who browse it, and the AI systems that extract from it, summarize it, and cite it to the people asking questions.
+
+The numbers back this up. ChatGPT referral traffic grew over 200% through 2025. Visitors arriving from AI platforms convert at 4.4 times the rate of organic search. When Google's AI Overviews appear, zero-click rates run as high as 83%, and position-one CTR falls from 27% to 11%.
+
+Your clients are losing clicks to AI summaries. And when those summaries get the facts wrong, it's your client's brand that takes the hit, not the AI.
+
+## What AI agents actually need.
+
+Not the marketing copy. Not the interactive product tour. Not the sitemap full of tag archives.
+
+They need structured text. A manifest that says: here's what this site is, here are the pages that matter, here's what each one covers.
+
+**`llms.txt`** is that manifest. A plain-text file, hosted at the root domain, that gives any AI system a usable entry point. Anthropic ships one for their own docs. So do Stripe, Vercel, and Cloudflare.
+
+**`llms-full.txt`** embeds the actual content inline. One file, no crawling required.
+
+**Per-page `.md` files** strip each page to its essentials: no nav, no sidebar, no cookie popups. Just content with a summary. Markdown uses roughly one-tenth the tokens of equivalent HTML. That's the difference between the AI getting the full message and truncating it after the nav bar.
+
+## The honest part.
+
+No major AI provider has officially committed to using `llms.txt` as a ranking signal. Google says they don't support it. Crawler traffic to these files is, by some measurements, small.
+
+So why should you care?
+
+Because crawlers aren't the only consumers. Every person who pastes a URL into ChatGPT or Claude gets better results when a markdown version exists. Perplexity, which cites sources at a 13.8% rate, returns better citations from better source material. And this is where schema markup was in 2010: optional, unfamiliar, clearly heading somewhere. The agencies that moved first on structured data didn't wait for Google to make it mandatory.
+
+The cost of preparing is close to zero. The cost of explaining to a client why ChatGPT is describing their product wrong is not.
+
+## What AI Ready does.
+
+Point it at a sitemap. AI Ready crawls every page, strips the layout noise, and generates three outputs:
+
+**`llms.txt`** — a markdown manifest of the site. What it is, what pages matter, how they connect. This is the entry point AI agents use to orient themselves before pulling specific content. Think of it as the table of contents you'd write if the reader had perfect memory for about thirty seconds.
+
+**`llms-full.txt`** — the full content of every listed page, embedded inline in a single file. Instead of crawling 40 pages and parsing the HTML of each one, an AI agent gets everything in one pass. Anthropic's own version runs to 481,000 tokens.
+
+**Per-page `.md` files** — each page stripped to content only. No navigation, no sidebar, no cookie popups. When a prospect pastes your client's URL into ChatGPT, this is what the AI should see instead of raw HTML. Markdown runs about 10x leaner on tokens, which means more of the actual message fits inside the AI's context window.
+
+Beyond file generation, AI Ready tests whether the content actually lands. It feeds each page to Claude, GPT, and Gemini, asks them to describe what the site does and what a visitor would find, then compares those answers to what the site actually says. The gap between "what the site says" and "what the AI thinks it says" is where hallucinations live, and now you can see it.
+
+It also scores each page for citation readiness: does the H1 match the page's actual topic, is there a summary in the first 100 words, are headings phrased as questions an AI might try to answer, is the `dateModified` timestamp current. These are the structural signals that make the difference between an AI citing your client's page and an AI paraphrasing a competitor's.
+
+Finally, it audits `robots.txt` to show which AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, and others) are currently allowed, blocked, or unaccounted for, and tracks whether those bots are actually showing up in server logs.
+
+You hand your client the files their site needs, the test results that prove they work, and a clear picture of which AI systems can and can't reach them.
+
+## Charlie Lumpkins has opinions about this.
+
+Charlie is our cat. Officially, the mascot. Unofficially, the reason the `.cat` domain felt right.
+
+Charlie is indifferent to effort. You can buy him the fanciest bed, the most expensive scratching post, the designer food bowl. He sleeps in the cardboard box the bed came in.
+
+AI agents are the same way. They don't care about the design system, the brand guidelines, or the redesign that took six months. They want the cardboard box: plain text, clear structure, no decoration.
+
+AI Ready builds the box. Charlie approves.
+
+---
+
+*Ready to see how AI actually reads your client's site?* [Generate your llms.txt →](/signup)

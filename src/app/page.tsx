@@ -126,7 +126,7 @@ export default async function Home() {
               <Link href={primaryHref}>{primaryLabel}</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11">
-              <Link href="#how-it-works">Read the Manifesto</Link>
+              <Link href="/docs/manifesto">Read the Manifesto</Link>
             </Button>
           </div>
         </div>

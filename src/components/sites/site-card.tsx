@@ -8,6 +8,8 @@ type Props = {
   latest: Generation | null;
 };
 
+// Navigation uses site.uid so URL params match what API routes expect (UUID strings)
+
 export function SiteCard({ site, latest }: Props) {
   const status = latest?.status ?? 'pending';
   const isInFlight = status === 'pending' || status === 'running';
@@ -26,13 +28,13 @@ export function SiteCard({ site, latest }: Props) {
       </div>
       <div className="mt-auto flex gap-3 pt-3">
         <Link
-          href={`/sites/${site.id}`}
+          href={`/sites/${site.uid}`}
           className="flex h-10 flex-1 items-center justify-center rounded-md border border-hairline-strong bg-surface-card text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
         >
           View
         </Link>
         <RegenerateLink
-          siteId={site.id}
+          siteId={site.uid}
           disabled={isInFlight}
           label={isFailed ? 'Retry' : 'Run Now'}
         />
@@ -46,7 +48,7 @@ function RegenerateLink({
   disabled,
   label,
 }: {
-  siteId: number;
+  siteId: string;
   disabled: boolean;
   label: string;
 }) {

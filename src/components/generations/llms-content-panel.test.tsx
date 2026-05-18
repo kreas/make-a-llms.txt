@@ -9,6 +9,7 @@ afterEach(() => {
 
 const mkGen = (over: Partial<Generation> = {}): Generation => ({
   id: 42,
+  uid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   siteId: 1,
   userId: 1,
   status: 'succeeded',
@@ -29,7 +30,7 @@ const mkGen = (over: Partial<Generation> = {}): Generation => ({
 
 describe('LlmsContentPanel', () => {
   it('shows empty state when no generation is provided', () => {
-    render(<LlmsContentPanel generation={null} siteId={1} />);
+    render(<LlmsContentPanel generation={null} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
     expect(screen.getByText(/no successful generation yet/i)).toBeInTheDocument();
   });
 
@@ -41,9 +42,9 @@ describe('LlmsContentPanel', () => {
       ),
     );
 
-    render(<LlmsContentPanel generation={mkGen()} siteId={1} />);
+    render(<LlmsContentPanel generation={mkGen()} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
 
     expect(await screen.findByText('# llms.txt content')).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith('/api/generations/42/files/llms');
+    expect(fetch).toHaveBeenCalledWith('/api/generations/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/files/llms');
   });
 });

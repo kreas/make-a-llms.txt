@@ -37,7 +37,7 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
       !!generation &&
       (generation.pagesStatus === 'succeeded' || generation.pagesStatus === 'cancelled'),
     queryFn: async (): Promise<ManifestResponse> => {
-      const res = await fetch(`/api/generations/${generation!.id}/pages`);
+      const res = await fetch(`/api/generations/${generation!.uid}/pages`);
       if (!res.ok) throw new Error(`status ${res.status}`);
       return res.json() as Promise<ManifestResponse>;
     },
@@ -81,7 +81,7 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
       meta={<p className="text-sm text-body">{summary}</p>}
       actions={
         <a
-          href={`/api/generations/${generation.id}/pages.zip`}
+          href={`/api/generations/${generation.uid}/pages.zip`}
           className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface-card px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
         >
           <Download className="h-3.5 w-3.5" />
@@ -98,7 +98,7 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
             <PagesTree pages={pages} selectedPath={selected} onSelect={setSelected} />
           )}
         </div>
-        <PagesPreview generationId={generation.id} selectedPath={selected} />
+        <PagesPreview generationId={generation.uid} selectedPath={selected} />
       </div>
     </TabPanel>
   );

@@ -18,7 +18,7 @@ const TOKEN_PLACEHOLDER = '<YOUR_WEBHOOK_TOKEN>';
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  siteId: number;
+  siteId: string;
   siteName: string;
   tokenPrefix: string;
   freshToken: string | null;

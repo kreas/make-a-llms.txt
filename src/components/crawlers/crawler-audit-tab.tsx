@@ -78,7 +78,7 @@ function summary(rows: CrawlerAuditRow[]) {
   return { allowed, blocked, partial };
 }
 
-export function CrawlerAuditTab({ siteId }: { siteId: number }) {
+export function CrawlerAuditTab({ siteId }: { siteId: string }) {
   const qc = useQueryClient();
   const key = ['sites', siteId, 'audit', 'latest'] as const;
 

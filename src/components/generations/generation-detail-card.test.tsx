@@ -5,6 +5,7 @@ import type { Generation } from '@/db/schema';
 
 const mk = (over: Partial<Generation> = {}): Generation => ({
   id: 1,
+  uid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   siteId: 1,
   userId: 1,
   status: 'pending',

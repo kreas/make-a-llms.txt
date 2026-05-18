@@ -46,7 +46,7 @@ describe('RobotsGenerator', () => {
   it('renders a toggle row for every known bot', () => {
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
     for (const bot of KNOWN_AI_BOTS) {
@@ -58,7 +58,7 @@ describe('RobotsGenerator', () => {
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={seeded} robotsContent={null} />,
       ),
     );
     // The blocked button for GPTBot has aria-pressed=true
@@ -72,7 +72,7 @@ describe('RobotsGenerator', () => {
     const user = userEvent.setup();
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
     const row = screen.getByText('GPTBot').closest('tr')!;
@@ -88,7 +88,7 @@ describe('RobotsGenerator', () => {
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={seeded} robotsContent={null} />,
       ),
     );
     const row = screen.getByText('GPTBot').closest('tr')!;
@@ -103,7 +103,7 @@ describe('RobotsGenerator', () => {
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={seeded} robotsContent={null} />,
       ),
     );
     const row = screen.getByText('GPTBot').closest('tr')!;
@@ -130,7 +130,7 @@ describe('RobotsGenerator', () => {
     const seeded = { ...defaultResults(), GPTBot: { status: 'blocked' as const } };
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={seeded} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={seeded} robotsContent={null} />,
       ),
     );
     await user.click(screen.getByRole('button', { name: /copy/i }));
@@ -142,7 +142,7 @@ describe('RobotsGenerator', () => {
   it('renders only the generation header when all bots are default and no wildcard', () => {
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
     const snippet = screen.getByTestId('snippet').textContent ?? '';
@@ -169,7 +169,7 @@ describe('RobotsGenerator', () => {
 
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
 
@@ -185,7 +185,7 @@ describe('RobotsGenerator', () => {
     const user = userEvent.setup();
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
 
@@ -200,7 +200,7 @@ describe('RobotsGenerator', () => {
         );
         expect(putCall).toBeTruthy();
         const [putUrl, putInit] = putCall!;
-        expect(putUrl).toBe('/api/sites/1/generator-draft');
+        expect(putUrl).toBe('/api/sites/ffffffff-ffff-4fff-8fff-ffffffffffff/generator-draft');
         const body = JSON.parse((putInit as RequestInit).body as string);
         expect(body.toggles.GPTBot).toBe('allow');
       },
@@ -213,7 +213,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: ExistingBot\nDisallow: /\n'}
         />,
@@ -267,7 +267,7 @@ describe('RobotsGenerator', () => {
       render(
         withQueryClient(
           <RobotsGenerator
-            siteId={1}
+            siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
             initial={defaultResults()}
             robotsContent={'User-agent: ExistingBot\nDisallow: /\n'}
           />,
@@ -289,7 +289,7 @@ describe('RobotsGenerator', () => {
   it('shows the no-robots warning when robotsContent is null', () => {
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
     expect(screen.getByRole('alert')).toHaveTextContent(/no robots\.txt/i);
@@ -299,7 +299,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nDisallow: /\n'}
         />,
@@ -312,7 +312,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nAllow: /\n'}
         />,
@@ -325,7 +325,7 @@ describe('RobotsGenerator', () => {
     const user = userEvent.setup();
     render(
       withQueryClient(
-        <RobotsGenerator siteId={1} initial={defaultResults()} robotsContent={null} />,
+        <RobotsGenerator siteId="ffffffff-ffff-4fff-8fff-ffffffffffff" initial={defaultResults()} robotsContent={null} />,
       ),
     );
     await user.click(screen.getByRole('button', { name: /dismiss/i }));
@@ -337,7 +337,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nAllow: /\n'}
         />,
@@ -358,7 +358,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nDisallow: /\n'}
         />,
@@ -379,7 +379,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nAllow: /\n'}
         />,
@@ -405,7 +405,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nAllow: /\n'}
         />,
@@ -425,7 +425,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nDisallow: /\n'}
         />,
@@ -444,7 +444,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nAllow: /\n'}
         />,
@@ -461,7 +461,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nAllow: /\n'}
         />,
@@ -476,7 +476,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={null}
         />,
@@ -492,7 +492,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={null}
         />,
@@ -512,7 +512,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={null}
         />,
@@ -550,7 +550,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={null}
         />,
@@ -567,7 +567,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={'User-agent: *\nDisallow: /\n'}
         />,
@@ -583,7 +583,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={
             'User-agent: *\nDisallow: /\nSitemap: https://x.test/sitemap.xml\n'
@@ -609,7 +609,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={[
             '# Block everyone',
@@ -641,7 +641,7 @@ describe('RobotsGenerator', () => {
     render(
       withQueryClient(
         <RobotsGenerator
-          siteId={1}
+          siteId="ffffffff-ffff-4fff-8fff-ffffffffffff"
           initial={defaultResults()}
           robotsContent={[
             'User-agent: *',

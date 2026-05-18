@@ -10,7 +10,7 @@ export function LlmsContentPanel({
   siteId: _siteId,
 }: {
   generation: Generation | null;
-  siteId: number;
+  siteId: string;
 }) {
   const [content, setContent] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -24,7 +24,7 @@ export function LlmsContentPanel({
     }
     let cancelled = false;
     setError(null);
-    fetch(`/api/generations/${generation.id}/files/llms`)
+    fetch(`/api/generations/${generation.uid}/files/llms`)
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to load content');
         return res.text();
@@ -79,7 +79,7 @@ export function LlmsContentPanel({
             {copied ? 'Copied' : 'Copy'}
           </button>
           <a
-            href={`/api/generations/${generation.id}/files/llms`}
+            href={`/api/generations/${generation.uid}/files/llms`}
             className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface-card px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
           >
             <Download className="h-3.5 w-3.5" />

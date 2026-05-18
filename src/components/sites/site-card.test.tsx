@@ -20,6 +20,7 @@ const mkSite = (over: Partial<Site> = {}): Site => ({
 
 const mkGen = (over: Partial<Generation> = {}): Generation => ({
   id: 1,
+  uid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   siteId: 1,
   userId: 1,
   status: 'succeeded',
@@ -42,7 +43,7 @@ describe('SiteCard', () => {
   it('shows status badge and View link to /sites/[id]', () => {
     render(<SiteCard site={mkSite()} latest={mkGen({ status: 'succeeded' })} />);
     expect(screen.getByText(/done/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View' })).toHaveAttribute('href', '/sites/1');
+    expect(screen.getByRole('link', { name: 'View' })).toHaveAttribute('href', '/sites/00000000-0000-0000-0000-000000000001');
   });
 
   it('disables the action button when status is running (in-flight)', () => {

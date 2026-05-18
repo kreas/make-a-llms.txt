@@ -18,6 +18,7 @@ function wrap(ui: React.ReactNode) {
 function gen(overrides: Partial<Generation> = {}): Generation {
   return {
     id: 1,
+    uid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
     siteId: 1,
     userId: 1,
     status: 'running',
@@ -86,6 +87,6 @@ describe('PagesContentPanel', () => {
     );
     render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} />));
     const link = await screen.findByRole('link', { name: /download all/i });
-    expect(link).toHaveAttribute('href', '/api/generations/1/pages.zip');
+    expect(link).toHaveAttribute('href', '/api/generations/dddddddd-dddd-4ddd-8ddd-dddddddddddd/pages.zip');
   });
 });

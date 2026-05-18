@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { setupTestDb } from '@/test/db';
-import { getDb } from '@/db';
 import { users, sites, generations, apiTokens } from '@/db/schema';
 import { createApiToken } from '@/lib/tokens/api-token';
 

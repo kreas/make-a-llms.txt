@@ -19,7 +19,6 @@ vi.mock('@vercel/blob', () => ({
 }));
 
 import { getGenerationView, readGenerationFile, readPageManifest, readPageMarkdown } from './generations';
-import { ApiError } from '@/lib/auth-guards';
 
 async function seed() {
   await setupTestDb();

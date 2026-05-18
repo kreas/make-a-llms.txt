@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   createGenerationV1Schema,
   generationViewSchema,
-  pageManifestSchema,
   errorSchema,
 } from './schemas';
 

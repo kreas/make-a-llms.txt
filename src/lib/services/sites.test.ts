@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDb } from '@/test/db';
-import { getDb } from '@/db';
 import { users, sites } from '@/db/schema';
 import { getSiteByUid, listSitesForUser, toPublicSite } from './sites';
 

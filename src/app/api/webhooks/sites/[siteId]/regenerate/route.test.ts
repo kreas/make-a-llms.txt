@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
 import { sites, users } from '@/db/schema';

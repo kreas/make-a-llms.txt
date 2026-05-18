@@ -45,7 +45,6 @@ export function SiteDetailClient({
     const key = `fresh-token-${site.uid}`;
     const t = sessionStorage.getItem(key);
     if (t) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading sessionStorage on mount; the conditional setState is intentional and not a cascading-render risk.
       setFreshToken(t);
       sessionStorage.removeItem(key);
     }

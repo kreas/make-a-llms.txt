@@ -19,14 +19,12 @@ function jsonRequest(body: any): Request {
 }
 
 describe('POST /api/sites', () => {
-  let userId: number;
   beforeEach(async () => {
     await setupTestDb();
     const [u] = await getDb()
       .insert(users)
       .values({ name: 'A', email: 'a@a.test' })
       .returning();
-    userId = u.id;
     vi.mocked(getCurrentUser).mockResolvedValue(u);
   });
 

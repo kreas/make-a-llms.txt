@@ -31,6 +31,13 @@ describe('POST /api/api-tokens', () => {
     expect(body.token).toMatch(/^mklt_pat_/);
     expect(body.record.name).toBe('CI');
     expect(body.record.tokenPrefix.length).toBe(12);
+    // id must be a uid string (UUID), not a numeric id
+    expect(body.record.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    // no internal fields leaked
+    expect(body.record).not.toHaveProperty('tokenHash');
+    expect(body.record).not.toHaveProperty('userId');
   });
 
   it('honors expiresInDays', async () => {
@@ -52,7 +59,7 @@ describe('POST /api/api-tokens', () => {
 });
 
 describe('GET /api/api-tokens', () => {
-  it('lists current user tokens without the raw token', async () => {
+  it('lists current user tokens without the raw token, id is uid', async () => {
     await setupTestDb();
     const db = getDb();
     const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
@@ -68,5 +75,9 @@ describe('GET /api/api-tokens', () => {
     expect(body.tokens).toHaveLength(1);
     expect(body.tokens[0]).not.toHaveProperty('tokenHash');
     expect(body.tokens[0]).not.toHaveProperty('token');
+    // id must be a uid string (UUID)
+    expect(body.tokens[0].id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
   });
 });

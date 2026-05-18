@@ -3,21 +3,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import type { ApiTokenPublic } from '@/lib/types/public';
 import { CreateTokenDialog } from './create-token-dialog';
-
-type TokenRow = {
-  id: number;
-  name: string;
-  tokenPrefix: string;
-  lastUsedAt: string | null;
-  expiresAt: string | null;
-  revokedAt: string | null;
-  createdAt: string;
-};
 
 export function ApiTokensClient() {
   const [creating, setCreating] = useState(false);
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const tokensQuery = useQuery({
@@ -25,12 +16,12 @@ export function ApiTokensClient() {
     queryFn: async () => {
       const r = await fetch('/api/api-tokens');
       if (!r.ok) throw new Error('failed');
-      return (await r.json()) as { tokens: TokenRow[] };
+      return (await r.json()) as { tokens: ApiTokenPublic[] };
     },
   });
 
   const revoke = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const r = await fetch(`/api/api-tokens/${id}`, { method: 'DELETE' });
       if (!r.ok) throw new Error('failed');
     },

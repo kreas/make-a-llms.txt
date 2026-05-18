@@ -16,10 +16,10 @@ export function GenerationDetailCard({
 }) {
   const isTerminal = ['succeeded', 'failed', 'cancelled'].includes(generation.status);
   const llmsHref = generation.llmsBlobPath
-    ? `/api/generations/${generation.id}/files/llms`
+    ? `/api/generations/${generation.uid}/files/llms`
     : null;
   const llmsFullHref = generation.llmsFullBlobPath
-    ? `/api/generations/${generation.id}/files/llms-full`
+    ? `/api/generations/${generation.uid}/files/llms-full`
     : null;
 
   return (

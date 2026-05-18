@@ -122,7 +122,7 @@ export function RobotsGenerator({
   initial,
   robotsContent,
 }: {
-  siteId: number;
+  siteId: string;
   initial: AuditResults;
   robotsContent: string | null;
 }) {

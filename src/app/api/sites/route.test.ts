@@ -19,23 +19,29 @@ function jsonRequest(body: any): Request {
 }
 
 describe('POST /api/sites', () => {
-  let userId: number;
   beforeEach(async () => {
     await setupTestDb();
     const [u] = await getDb()
       .insert(users)
       .values({ name: 'A', email: 'a@a.test' })
       .returning();
-    userId = u.id;
     vi.mocked(getCurrentUser).mockResolvedValue(u);
   });
 
-  it('creates a site and returns the one-time token', async () => {
+  it('creates a site and returns uid as id, plus one-time token', async () => {
     const res = await POST(jsonRequest({ name: 'Acme', rootUrl: 'https://acme.com' }));
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.site.name).toBe('Acme');
     expect(body.site.rootUrl).toBe('https://acme.com');
+    // id should be a UUID string
+    expect(typeof body.site.id).toBe('string');
+    expect(body.site.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    // sensitive fields must be absent
+    expect(body.site.userId).toBeUndefined();
+    expect(body.site.webhookTokenHash).toBeUndefined();
     expect(body.webhookToken).toMatch(/^lmt_/);
   });
 
@@ -60,7 +66,7 @@ describe('POST /api/sites', () => {
 });
 
 describe('GET /api/sites', () => {
-  it("returns only the caller's sites", async () => {
+  it("returns only the caller's sites with uid as id", async () => {
     await setupTestDb();
     const db = getDb();
     const [u1] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
@@ -76,5 +82,13 @@ describe('GET /api/sites', () => {
     const body = await res.json();
     expect(body.sites).toHaveLength(1);
     expect(body.sites[0].name).toBe('Mine');
+    // id should be a UUID string
+    expect(typeof body.sites[0].id).toBe('string');
+    expect(body.sites[0].id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    // sensitive fields absent
+    expect(body.sites[0].userId).toBeUndefined();
+    expect(body.sites[0].webhookTokenHash).toBeUndefined();
   });
 });

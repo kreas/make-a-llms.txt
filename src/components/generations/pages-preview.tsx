@@ -9,7 +9,7 @@ export function PagesPreview({
   generationId,
   selectedPath,
 }: {
-  generationId: number;
+  generationId: string;
   selectedPath: string | null;
 }) {
   const [copied, setCopied] = useState(false);

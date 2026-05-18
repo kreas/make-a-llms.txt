@@ -38,9 +38,14 @@ describe('validators', () => {
     expect(updateSiteSchema.parse({})).toEqual({});
   });
 
-  it('createGenerationSchema accepts siteId-shape', () => {
-    const out = createGenerationSchema.parse({ siteId: 7, notifyEmail: true });
-    expect(out).toEqual({ siteId: 7, notifyEmail: true });
+  it('createGenerationSchema accepts siteId-shape with a UUID', () => {
+    const uid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const out = createGenerationSchema.parse({ siteId: uid, notifyEmail: true });
+    expect(out).toEqual({ siteId: uid, notifyEmail: true });
+  });
+
+  it('createGenerationSchema rejects numeric siteId', () => {
+    expect(() => createGenerationSchema.parse({ siteId: 7 } as any)).toThrow();
   });
 
   it('createGenerationSchema accepts inline-site-shape', () => {
@@ -54,7 +59,7 @@ describe('validators', () => {
   it('createGenerationSchema rejects mixed shape', () => {
     expect(() =>
       createGenerationSchema.parse({
-        siteId: 1,
+        siteId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         name: 'A',
         rootUrl: 'https://a.test',
       } as any),

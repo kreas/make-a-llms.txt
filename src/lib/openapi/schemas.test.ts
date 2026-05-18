@@ -2,13 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   createGenerationV1Schema,
   generationViewSchema,
-  pageManifestSchema,
   errorSchema,
 } from './schemas';
 
 describe('createGenerationV1Schema', () => {
   it('accepts the siteId shape', () => {
-    const r = createGenerationV1Schema.safeParse({ siteId: 1 });
+    const r = createGenerationV1Schema.safeParse({ siteId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' });
     expect(r.success).toBe(true);
   });
 
@@ -26,7 +25,7 @@ describe('createGenerationV1Schema', () => {
 describe('generationViewSchema', () => {
   it('round-trips a complete view', () => {
     const sample = {
-      id: 1,
+      id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
       status: 'succeeded',
       pages: { status: 'succeeded', count: 5 },
       summaries: { status: 'succeeded', count: 5, emptyCount: 0, failedCount: 0 },
@@ -37,7 +36,7 @@ describe('generationViewSchema', () => {
       },
       createdAt: '2026-05-14T10:00:00Z',
     };
-    expect(generationViewSchema.parse(sample)).toMatchObject({ id: 1 });
+    expect(generationViewSchema.parse(sample)).toMatchObject({ id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' });
   });
 });
 

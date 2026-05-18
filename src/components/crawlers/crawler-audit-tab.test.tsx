@@ -28,7 +28,7 @@ describe('CrawlerAuditTab', () => {
       if (url.endsWith('/audits/latest')) return new Response('', { status: 404 });
       return new Response('{}', { status: 200 });
     });
-    render(withQueryClient(<CrawlerAuditTab siteId={1} />));
+    render(withQueryClient(<CrawlerAuditTab siteId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" />));
     expect(await screen.findByRole('button', { name: /run audit now/i })).toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe('CrawlerAuditTab', () => {
       }
       return new Response('{}', { status: 200 });
     });
-    render(withQueryClient(<CrawlerAuditTab siteId={1} />));
+    render(withQueryClient(<CrawlerAuditTab siteId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" />));
     expect(await screen.findByText(/HTTP 500/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
@@ -87,7 +87,7 @@ describe('CrawlerAuditTab', () => {
       }
       return new Response('{}', { status: 200 });
     });
-    render(withQueryClient(<CrawlerAuditTab siteId={1} />));
+    render(withQueryClient(<CrawlerAuditTab siteId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" />));
     expect(await screen.findByText('BLOCKED')).toBeInTheDocument();
     expect(screen.getByText(/set who can crawl/i)).toBeInTheDocument();
   });
@@ -118,7 +118,7 @@ describe('CrawlerAuditTab', () => {
       }
       return new Response('{}', { status: 200 });
     });
-    render(withQueryClient(<CrawlerAuditTab siteId={1} />));
+    render(withQueryClient(<CrawlerAuditTab siteId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" />));
     const allowed = await screen.findAllByText('ALLOWED');
     expect(allowed.length).toBe(KNOWN_AI_BOTS.length);
     expect(screen.queryByText('DEFAULT')).toBeNull();
@@ -155,13 +155,13 @@ describe('CrawlerAuditTab', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     const user = userEvent.setup();
-    render(withQueryClient(<CrawlerAuditTab siteId={1} />));
+    render(withQueryClient(<CrawlerAuditTab siteId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" />));
     await screen.findByRole('button', { name: /re-audit/i });
     await user.click(screen.getByRole('button', { name: /re-audit/i }));
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(
-        '/api/sites/1/audits',
+        '/api/sites/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audits',
         expect.objectContaining({ method: 'POST' }),
       );
     });

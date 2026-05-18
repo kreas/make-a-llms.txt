@@ -6,7 +6,7 @@ import { SettingsDialog } from './settings-dialog';
 const baseProps = {
   open: true,
   onOpenChange: vi.fn(),
-  siteId: 42,
+  siteId: '33333333-3333-4333-8333-333333333333',
   siteName: 'Acme Docs',
   tokenPrefix: 'lmt_xxxx',
   freshToken: null as string | null,
@@ -36,7 +36,7 @@ describe('SettingsDialog', () => {
     expect(screen.getByText('Acme Docs')).toBeInTheDocument();
     // URL appears in the webhook URL row AND inside each rendered snippet, so
     // assert at least one occurrence.
-    const urlMatches = screen.getAllByText(/\/api\/webhooks\/sites\/42\/regenerate/);
+    const urlMatches = screen.getAllByText(/\/api\/webhooks\/sites\/33333333-3333-4333-8333-333333333333\/regenerate/);
     expect(urlMatches.length).toBeGreaterThan(0);
   });
 
@@ -78,7 +78,7 @@ describe('SettingsDialog', () => {
     render(<SettingsDialog {...baseProps} />);
     await userEvent.click(screen.getByRole('button', { name: /copy webhook url/i }));
     expect(writeText).toHaveBeenCalledTimes(1);
-    expect(writeText.mock.calls[0][0]).toMatch(/\/api\/webhooks\/sites\/42\/regenerate$/);
+    expect(writeText.mock.calls[0][0]).toMatch(/\/api\/webhooks\/sites\/33333333-3333-4333-8333-333333333333\/regenerate$/);
   });
 
   it('renders both curl and Node.js snippets', () => {

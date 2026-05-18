@@ -26,7 +26,7 @@ async function makeUserAndSite(email: string) {
   return { user: u, site: s };
 }
 
-const ctx = (id: number | string) => ({ params: Promise.resolve({ id: String(id) }) });
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
 describe('GET /api/sites/[id]/audits/latest', () => {
   beforeEach(async () => {
@@ -58,21 +58,29 @@ describe('GET /api/sites/[id]/audits/latest', () => {
       })
       .returning();
 
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.audit.id).toBe(newer.id);
+  });
+
+  it('returns 400 for non-UUID id', async () => {
+    const { user } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+
+    const res = await GET(new Request('http://t'), ctx('not-a-uuid'));
+    expect(res.status).toBe(400);
   });
 
   it('returns 404 when no audit exists', async () => {
     const { user, site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(user);
 
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(404);
   });
 
-  it('returns 404 for a non-owner even when an audit exists', async () => {
+  it('returns 404 for a non-owner (cross-tenant) even when an audit exists', async () => {
     const { site } = await makeUserAndSite('a@a.test');
     const { user: other } = await makeUserAndSite('b@b.test');
     vi.mocked(getCurrentUser).mockResolvedValue(other);
@@ -85,7 +93,7 @@ describe('GET /api/sites/[id]/audits/latest', () => {
       trigger: 'manual',
     });
 
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(404);
   });
 
@@ -93,7 +101,7 @@ describe('GET /api/sites/[id]/audits/latest', () => {
     const { site } = await makeUserAndSite('a@a.test');
     vi.mocked(getCurrentUser).mockResolvedValue(null);
 
-    const res = await GET(new Request('http://t'), ctx(site.id));
+    const res = await GET(new Request('http://t'), ctx(site.uid));
     expect(res.status).toBe(401);
   });
 });

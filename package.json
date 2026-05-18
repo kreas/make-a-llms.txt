@@ -12,6 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:backfill-uids": "tsx scripts/backfill-uids.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",

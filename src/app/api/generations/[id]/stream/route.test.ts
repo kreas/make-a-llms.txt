@@ -5,7 +5,7 @@ import { generations, sites, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
-import { buildEventStream } from './route';
+import { buildEventStream, GET } from './route';
 import { getCurrentUser } from '@/lib/auth';
 
 describe('SSE stream builder', () => {
@@ -93,5 +93,45 @@ describe('SSE stream builder', () => {
     expect(payload.pagesCount).toBe(3);
     expect(payload).toHaveProperty('pagesManifestBlobPath');
     expect(payload).toHaveProperty('pagesErrorMessage');
+  });
+});
+
+describe('GET /api/generations/[id]/stream', () => {
+  beforeEach(() => {
+    vi.mocked(getCurrentUser).mockReset();
+  });
+
+  it('400 for non-uuid id', async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    vi.mocked(getCurrentUser).mockResolvedValue(u);
+    const res = await GET(new Request('http://t'), { params: Promise.resolve({ id: 'not-a-uuid' }) });
+    expect(res.status).toBe(400);
+  });
+
+  it('404 for non-owner (cross-tenant)', async () => {
+    await setupTestDb();
+    const db = getDb();
+    const [u1] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
+    const [u2] = await db.insert(users).values({ name: 'B', email: 'b@b.test' }).returning();
+    const [s] = await db
+      .insert(sites)
+      .values({
+        userId: u1.id,
+        name: 'S',
+        rootUrl: 'https://s.test',
+        webhookTokenHash: 'a'.repeat(64),
+        webhookTokenPrefix: 'lmt_aaaa',
+      })
+      .returning();
+    const [g] = await db
+      .insert(generations)
+      .values({ siteId: s.id, userId: u1.id, trigger: 'manual' })
+      .returning();
+    vi.mocked(getCurrentUser).mockResolvedValue(u2);
+
+    const res = await GET(new Request('http://t'), { params: Promise.resolve({ id: g.uid }) });
+    expect(res.status).toBe(404);
   });
 });

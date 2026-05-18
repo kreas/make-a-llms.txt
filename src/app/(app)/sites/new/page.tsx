@@ -19,7 +19,7 @@ export default function NewSitePage() {
         body: JSON.stringify({ name: host, rootUrl: v.rootUrl, sitemapUrl: v.sitemapUrl }),
       });
       if (!res.ok) throw new Error((await res.json()).error?.message ?? 'Failed');
-      const data = (await res.json()) as { site: { id: number }; webhookToken: string };
+      const data = (await res.json()) as { site: { id: string }; webhookToken: string };
       // Kick off the first generation immediately
       await fetch('/api/generations', {
         method: 'POST',

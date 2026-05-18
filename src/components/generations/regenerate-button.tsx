@@ -7,8 +7,8 @@ export function RegenerateButton({
   siteId,
   onSubmit,
 }: {
-  siteId: number;
-  onSubmit: (v: { siteId: number; notifyEmail: boolean }) => void;
+  siteId: string;
+  onSubmit: (v: { siteId: string; notifyEmail: boolean }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);

@@ -37,23 +37,22 @@ export function SiteDetailClient({
   const latest = generations[0] ?? null;
   const latestSucceeded = generations.find((g) => g.status === 'succeeded') ?? null;
   const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
-  const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId);
+  const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId as number | null);
   const selected = generations.find((g) => g.id === selectedId) ?? null;
   const [runsCollapsed, setRunsCollapsed] = useState(false);
 
   useEffect(() => {
-    const key = `fresh-token-${site.id}`;
+    const key = `fresh-token-${site.uid}`;
     const t = sessionStorage.getItem(key);
     if (t) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading sessionStorage on mount; the conditional setState is intentional and not a cascading-render risk.
       setFreshToken(t);
       sessionStorage.removeItem(key);
     }
-  }, [site.id]);
+  }, [site.uid]);
 
   const rotate = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/sites/${site.id}/rotate-token`, { method: 'POST' });
+      const res = await fetch(`/api/sites/${site.uid}/rotate-token`, { method: 'POST' });
       if (!res.ok) throw new Error('Rotate failed');
       return res.json() as Promise<{ webhookToken: string }>;
     },
@@ -62,15 +61,16 @@ export function SiteDetailClient({
 
   const regenerate = useMutation({
     mutationFn: async () => {
+      // siteId in POST body must be the site's uid (UUID string)
       const res = await fetch('/api/generations', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ siteId: site.id, notifyEmail: false }),
+        body: JSON.stringify({ siteId: site.uid, notifyEmail: false }),
       });
       if (!res.ok) throw new Error('Regenerate failed');
-      return res.json() as Promise<{ generation: { id: number } }>;
+      return res.json() as Promise<{ generation: { uid: string } }>;
     },
-    onSuccess: ({ generation }) => router.push(`/g/${generation.id}`),
+    onSuccess: ({ generation }) => router.push(`/g/${generation.uid}`),
   });
 
   // Auto-trigger regenerate when arriving with ?action=regenerate from the dashboard's Run Now
@@ -170,13 +170,13 @@ export function SiteDetailClient({
       >
         <div className="min-w-0">
           <TabsContent value="llms">
-            <LlmsContentPanel generation={selected} siteId={site.id} />
+            <LlmsContentPanel generation={selected} siteId={site.uid} />
           </TabsContent>
           <TabsContent value="pages">
             <PagesContentPanel generation={selected} />
           </TabsContent>
           <TabsContent value="crawlers">
-            <CrawlerAuditTab siteId={site.id} />
+            <CrawlerAuditTab siteId={site.uid} />
           </TabsContent>
         </div>
         {!runsCollapsed && (
@@ -191,7 +191,7 @@ export function SiteDetailClient({
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        siteId={site.id}
+        siteId={site.uid}
         siteName={site.name}
         tokenPrefix={site.webhookTokenPrefix}
         freshToken={freshToken}

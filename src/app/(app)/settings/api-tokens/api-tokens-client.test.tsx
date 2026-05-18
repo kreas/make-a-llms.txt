@@ -19,7 +19,7 @@ describe('ApiTokensClient', () => {
       ok: true,
       json: async () => ({
         tokens: [
-          { id: 1, name: 'CI', tokenPrefix: 'mklt_pat_abc', lastUsedAt: null, revokedAt: null, expiresAt: null, createdAt: '' },
+          { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'CI', tokenPrefix: 'mklt_pat_abc', lastUsedAt: null, revokedAt: null, expiresAt: null, createdAt: '' },
         ],
       }),
     });
@@ -33,7 +33,7 @@ describe('ApiTokensClient', () => {
       ok: true,
       json: async () => ({
         tokens: [
-          { id: 1, name: 'CI', tokenPrefix: 'mklt_pat_abc', lastUsedAt: null, revokedAt: null, expiresAt: null, createdAt: '' },
+          { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'CI', tokenPrefix: 'mklt_pat_abc', lastUsedAt: null, revokedAt: null, expiresAt: null, createdAt: '' },
         ],
       }),
     });
@@ -44,7 +44,7 @@ describe('ApiTokensClient', () => {
     await userEvent.click(screen.getByRole('button', { name: /revoke/i }));
     await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
     await waitFor(() => {
-      expect((fetch as any).mock.calls[1][0]).toBe('/api/api-tokens/1');
+      expect((fetch as any).mock.calls[1][0]).toBe('/api/api-tokens/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     });
   });
 });

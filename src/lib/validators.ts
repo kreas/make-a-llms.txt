@@ -24,7 +24,7 @@ export const updateSiteSchema = z.object({
 });
 
 const generationFromSiteId = z.object({
-  siteId: z.number().int().positive(),
+  siteId: z.string().uuid(),
   notifyEmail: z.boolean().optional(),
 }).strict();
 

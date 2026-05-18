@@ -31,19 +31,48 @@ async function seed() {
     .returning();
   const { token, hash, prefix } = createApiToken();
   await db.insert(apiTokens).values({ userId: u.id, name: 'CI', tokenHash: hash, tokenPrefix: prefix });
-  return { gen: g, token };
+  return { gen: g, token, user: u };
+}
+
+function req(token: string, id: string) {
+  return new Request(`http://t/api/v1/generations/${id}/pages`, { headers: { authorization: `Bearer ${token}` } });
 }
 
 describe('GET /api/v1/generations/[id]/pages', () => {
-  it('returns manifest with per-page URLs', async () => {
+  it('returns manifest with per-page URLs containing uid', async () => {
     const { gen, token } = await seed();
-    const r = new Request(`http://t/api/v1/generations/${gen.id}/pages`, {
-      headers: { authorization: `Bearer ${token}` },
-    });
-    const res = await GET(r, { params: Promise.resolve({ id: String(gen.id) }) });
+    const res = await GET(req(token, gen.uid), { params: Promise.resolve({ id: gen.uid }) });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.pages[0].url).toMatch(/\/pages\/about$/);
+    expect(body.pages[0].url).toMatch(new RegExp(`/generations/${gen.uid}/pages/about$`));
     expect(body.pages[0].status).toBe('ok');
+  });
+
+  it('400 for non-UUID id', async () => {
+    const { token } = await seed();
+    const res = await GET(req(token, 'not-uuid'), { params: Promise.resolve({ id: 'not-uuid' }) });
+    expect(res.status).toBe(400);
+  });
+
+  it('404 for a generation not owned by the caller', async () => {
+    const { token } = await seed();
+    const db = getDb();
+    const [other] = await db.insert(users).values({ name: 'O', email: 'o@o.test' }).returning();
+    const [s] = await db
+      .insert(sites)
+      .values({
+        userId: other.id,
+        name: 'X',
+        rootUrl: 'https://x.test',
+        webhookTokenHash: 'g'.repeat(64),
+        webhookTokenPrefix: 'lmt_bbbb',
+      })
+      .returning();
+    const [g] = await db
+      .insert(generations)
+      .values({ siteId: s.id, userId: other.id, status: 'succeeded', trigger: 'manual', pagesManifestBlobPath: 'M' })
+      .returning();
+    const res = await GET(req(token, g.uid), { params: Promise.resolve({ id: g.uid }) });
+    expect(res.status).toBe(404);
   });
 });

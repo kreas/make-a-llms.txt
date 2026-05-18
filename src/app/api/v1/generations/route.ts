@@ -7,9 +7,32 @@ import {
   assertOwnsSite,
   requireApiTokenOrThrow,
 } from '@/lib/auth-guards';
-import { createGenerationV1Schema } from '@/lib/openapi/schemas';
+import {
+  createGenerationV1Schema,
+  listGenerationsV1QuerySchema,
+} from '@/lib/openapi/schemas';
 import { createWebhookToken } from '@/lib/webhook-token';
 import { enqueueGenerationsForSite } from '@/lib/enqueue-generations';
+import { listGenerations } from '@/lib/services/generations';
+
+export async function GET(req: Request) {
+  try {
+    const user = await requireApiTokenOrThrow(req);
+    const url = new URL(req.url);
+    const parsed = listGenerationsV1QuerySchema.safeParse({
+      siteId: url.searchParams.get('siteId') ?? undefined,
+      status: url.searchParams.get('status') ?? undefined,
+      limit: url.searchParams.get('limit') ?? undefined,
+    });
+    if (!parsed.success) {
+      throw new ApiError(400, 'validation', parsed.error.message);
+    }
+    const generations = await listGenerations(user.id, parsed.data);
+    return Response.json({ generations });
+  } catch (err) {
+    return apiErrorResponse(err);
+  }
+}
 
 export async function POST(req: Request) {
   try {

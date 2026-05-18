@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,6 +30,7 @@ export function CreateTokenDialog({ open, onOpenChange, onCreated }: Props) {
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -37,8 +39,16 @@ export function CreateTokenDialog({ open, onOpenChange, onCreated }: Props) {
       setCreatedToken(null);
       setError(null);
       setSubmitting(false);
+      setCopied(false);
     }
   }, [open]);
+
+  const handleCopy = async () => {
+    if (!createdToken) return;
+    await navigator.clipboard.writeText(createdToken);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleCreate = async () => {
     setSubmitting(true);
@@ -72,9 +82,24 @@ export function CreateTokenDialog({ open, onOpenChange, onCreated }: Props) {
                 Copy this now — you won&apos;t see it again.
               </DialogDescription>
             </DialogHeader>
-            <pre className="mt-4 overflow-x-auto rounded bg-canvas-soft p-3 font-mono text-sm">
-              {createdToken}
-            </pre>
+            <div className="mt-4 flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-canvas-soft p-3">
+              <code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm text-ink">
+                {createdToken}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCopy}
+                aria-label="Copy API token"
+              >
+                {copied ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
             <div className="mt-6 flex justify-end">
               <Button onClick={() => onOpenChange(false)}>Done</Button>
             </div>

@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
-import { users, sites, apiTokens } from '@/db/schema';
+import { users, sites, generations, apiTokens } from '@/db/schema';
 import { createApiToken } from '@/lib/tokens/api-token';
 
 vi.mock('workflow/api', () => ({ start: vi.fn(async () => ({ runId: 'wf-1' })) }));
 
-import { POST } from './route';
+import { POST, GET } from './route';
 
 function postReq(body: unknown, headers: Record<string, string> = {}) {
   return new Request('http://t/api/v1/generations', {
@@ -75,6 +75,74 @@ describe('POST /api/v1/generations', () => {
       .returning();
     const res = await POST(postReq({ siteId: s.id }, { authorization: `Bearer ${token}` }));
     expect(res.status).toBe(404);
+  });
+
+  it('GET 401 without bearer token', async () => {
+    await setupTestDb();
+    const res = await GET(new Request('http://t/api/v1/generations'));
+    expect(res.status).toBe(401);
+  });
+
+  it('GET returns recent generations newest-first', async () => {
+    const { user, token } = await seed();
+    const db = getDb();
+    const [s] = await db
+      .insert(sites)
+      .values({ userId: user.id, name: 'S', rootUrl: 'https://s.test', webhookTokenHash: 'z'.repeat(64), webhookTokenPrefix: 'lmt_zzzz' })
+      .returning();
+    const [g1] = await db
+      .insert(generations)
+      .values({ siteId: s.id, userId: user.id, status: 'succeeded', trigger: 'manual' })
+      .returning();
+    const [g2] = await db
+      .insert(generations)
+      .values({ siteId: s.id, userId: user.id, status: 'running', trigger: 'manual' })
+      .returning();
+    const res = await GET(
+      new Request('http://t/api/v1/generations?limit=10', {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.generations).toHaveLength(2);
+    expect(body.generations[0].id).toBeGreaterThanOrEqual(g1.id);
+    expect(body.generations.map((g: { id: number }) => g.id).sort()).toEqual([g1.id, g2.id].sort());
+  });
+
+  it('GET filters by siteId and status', async () => {
+    const { user, token } = await seed();
+    const db = getDb();
+    const [s1] = await db
+      .insert(sites)
+      .values({ userId: user.id, name: 'S1', rootUrl: 'https://s1.test', webhookTokenHash: '1'.repeat(64), webhookTokenPrefix: 'lmt_aaa1' })
+      .returning();
+    const [s2] = await db
+      .insert(sites)
+      .values({ userId: user.id, name: 'S2', rootUrl: 'https://s2.test', webhookTokenHash: '2'.repeat(64), webhookTokenPrefix: 'lmt_aaa2' })
+      .returning();
+    await db.insert(generations).values({ siteId: s1.id, userId: user.id, status: 'succeeded', trigger: 'manual' });
+    await db.insert(generations).values({ siteId: s2.id, userId: user.id, status: 'failed', trigger: 'manual' });
+    const res = await GET(
+      new Request(`http://t/api/v1/generations?siteId=${s1.id}&status=succeeded`, {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.generations).toHaveLength(1);
+    expect(body.generations[0].siteId).toBe(s1.id);
+    expect(body.generations[0].status).toBe('succeeded');
+  });
+
+  it('GET 400 on invalid status query', async () => {
+    const { token } = await seed();
+    const res = await GET(
+      new Request('http://t/api/v1/generations?status=bogus', {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(res.status).toBe(400);
   });
 
   it('normalizes rootUrl host to lowercase on inline create', async () => {

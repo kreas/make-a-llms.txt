@@ -9,7 +9,7 @@ done, and downloads each artifact.
 ## 1. Kick off a generation
 
 ```bash
-curl -X POST https://make-a-llms.txt/api/v1/generations \
+curl -X POST https://www.aiready.cat/api/v1/generations \
   -H "Authorization: Bearer mklt_pat_..." \
   -H "content-type: application/json" \
   -d '{ "name": "Acme", "rootUrl": "https://acme.test" }'
@@ -26,7 +26,7 @@ Response:
     "trigger": "manual",
     "createdAt": "...",
     "urls": {
-      "self": "https://make-a-llms.txt/api/v1/generations/42",
+      "self": "https://www.aiready.cat/api/v1/generations/42",
       "llms": ".../llms.txt",
       "llmsFull": ".../llms-full.txt",
       "pages": ".../pages"
@@ -39,7 +39,7 @@ Response:
 
 ```bash
 curl -H "Authorization: Bearer mklt_pat_..." \
-  https://make-a-llms.txt/api/v1/generations/42
+  https://www.aiready.cat/api/v1/generations/42
 ```
 
 Repeat until `status` is `"succeeded"` (or `"failed"`).
@@ -48,7 +48,7 @@ Repeat until `status` is `"succeeded"` (or `"failed"`).
 
 ```bash
 curl -H "Authorization: Bearer mklt_pat_..." \
-  https://make-a-llms.txt/api/v1/generations/42/llms.txt
+  https://www.aiready.cat/api/v1/generations/42/llms.txt
 ```
 
 For per-page markdown, hit `/pages` first to see the manifest, then

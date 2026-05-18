@@ -22,8 +22,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AI Starter Pack',
-  description: 'AI Starter Pack',
+  title: 'AI Ready',
+  description: 'Make your site AI-ready — generate llms.txt, llms-full.txt, and per-page markdown.',
 };
 
 export default function RootLayout({

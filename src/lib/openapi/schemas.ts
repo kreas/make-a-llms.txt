@@ -114,6 +114,46 @@ export const errorSchema = z
   })
   .meta({ id: 'ApiError' });
 
+export const generationListItemSchema = z
+  .object({
+    id: z.number().int(),
+    siteId: z.number().int(),
+    status: generationStatusEnum,
+    trigger: z.enum(['manual', 'webhook']),
+    pagesStatus: pagesStatusEnum,
+    pagesCount: z.number().int(),
+    createdAt: z.string().meta({ format: 'date-time' }),
+    startedAt: z.string().meta({ format: 'date-time' }).optional(),
+    completedAt: z.string().meta({ format: 'date-time' }).optional(),
+  })
+  .meta({ id: 'GenerationListItem' });
+
+export const generationListSchema = z
+  .object({
+    generations: z.array(generationListItemSchema),
+  })
+  .meta({ id: 'GenerationList' });
+
+export const generationCancelledSchema = z
+  .object({
+    generation: z.object({
+      id: z.number().int(),
+      siteId: z.number().int(),
+      status: generationStatusEnum,
+      completedAt: z.string().meta({ format: 'date-time' }).nullable().optional(),
+    }),
+  })
+  .meta({ id: 'GenerationCancelled' });
+
+export const listGenerationsV1QuerySchema = z
+  .object({
+    siteId: z.coerce.number().int().positive().optional(),
+    status: generationStatusEnum.optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
+
 export type CreateGenerationV1Input = z.infer<typeof createGenerationV1Schema>;
 export type GenerationViewDto = z.infer<typeof generationViewSchema>;
 export type PageManifestDto = z.infer<typeof pageManifestSchema>;
+export type GenerationListItemDto = z.infer<typeof generationListItemSchema>;

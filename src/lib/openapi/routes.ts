@@ -1,12 +1,31 @@
 import {
   createGenerationV1Schema,
+  generationCancelledSchema,
   generationCreatedSchema,
+  generationListSchema,
+  generationStatusEnum,
   generationViewSchema,
   pageManifestSchema,
   errorSchema,
 } from './schemas';
 
 export const v1Routes = {
+  listGenerations: {
+    method: 'get',
+    path: '/generations',
+    summary: 'List recent generations',
+    tags: ['generations'],
+    queryParams: {
+      siteId: { type: 'integer' as const, required: false },
+      status: { type: 'string' as const, required: false, enum: generationStatusEnum.options },
+      limit: { type: 'integer' as const, required: false },
+    },
+    responses: {
+      200: { description: 'OK', schema: generationListSchema },
+      400: { description: 'Validation error', schema: errorSchema },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+    },
+  },
   createGeneration: {
     method: 'post',
     path: '/generations',
@@ -18,6 +37,30 @@ export const v1Routes = {
       400: { description: 'Validation error', schema: errorSchema },
       401: { description: 'Unauthenticated', schema: errorSchema },
       404: { description: 'Site not found', schema: errorSchema },
+    },
+  },
+  cancelGeneration: {
+    method: 'post',
+    path: '/generations/{id}/cancel',
+    summary: 'Cancel a generation',
+    tags: ['generations'],
+    pathParams: { id: 'integer' as const },
+    responses: {
+      200: { description: 'OK', schema: generationCancelledSchema },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+      404: { description: 'Not found', schema: errorSchema },
+    },
+  },
+  getPagesZip: {
+    method: 'get',
+    path: '/generations/{id}/pages.zip',
+    summary: 'Download all pages as a zip',
+    tags: ['generations'],
+    pathParams: { id: 'integer' as const },
+    responses: {
+      200: { description: 'OK', contentType: 'application/zip' },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+      404: { description: 'Not ready or not found', schema: errorSchema },
     },
   },
   getGeneration: {

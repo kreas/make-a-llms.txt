@@ -41,14 +41,37 @@ export function buildOpenApiDocument(opts: { publicBaseUrl?: string }) {
       ),
     };
 
+    const parameters: unknown[] = [];
     if ('pathParams' in r && r.pathParams) {
-      op.parameters = Object.entries(r.pathParams).map(([name, type]) => ({
-        name,
-        in: 'path',
-        required: true,
-        schema: { type: type === 'integer' ? 'integer' : 'string' },
-      }));
+      for (const [name, type] of Object.entries(r.pathParams)) {
+        parameters.push({
+          name,
+          in: 'path',
+          required: true,
+          schema: { type: type === 'integer' ? 'integer' : 'string' },
+        });
+      }
     }
+    if ('queryParams' in r && r.queryParams) {
+      for (const [name, spec] of Object.entries(
+        r.queryParams as Record<
+          string,
+          { type: 'integer' | 'string'; required?: boolean; enum?: readonly string[] }
+        >,
+      )) {
+        const schema: Record<string, unknown> = {
+          type: spec.type === 'integer' ? 'integer' : 'string',
+        };
+        if (spec.enum) schema.enum = [...spec.enum];
+        parameters.push({
+          name,
+          in: 'query',
+          required: spec.required ?? false,
+          schema,
+        });
+      }
+    }
+    if (parameters.length > 0) op.parameters = parameters;
 
     if ('requestBody' in r && r.requestBody) {
       op.requestBody = {
@@ -63,7 +86,7 @@ export function buildOpenApiDocument(opts: { publicBaseUrl?: string }) {
   return createDocument({
     openapi: '3.1.0',
     info: {
-      title: 'make-a-llms.txt API',
+      title: 'AI Ready API',
       version: '1.0.0',
       description: 'Generate llms.txt, llms-full.txt, and per-page markdown.',
     },

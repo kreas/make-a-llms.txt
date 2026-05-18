@@ -1,6 +1,12 @@
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import archiver from 'archiver';
+import { and, desc, eq } from 'drizzle-orm';
 import { get } from '@vercel/blob';
 import { ApiError, assertOwnsGeneration } from '@/lib/auth-guards';
-import type { Generation } from '@/db/schema';
+import { getDb } from '@/db';
+import { generations, sites, type Generation } from '@/db/schema';
+import { cancelRun } from '@/lib/workflow/wdk';
 
 export type GenerationStatus = Generation['status'];
 export type PagesStatus = Generation['pagesStatus'];
@@ -131,4 +137,127 @@ export async function readPageMarkdown(
   if (!blob) throw new ApiError(404, 'not_found', 'Page blob missing');
   if (!blob.stream) throw new ApiError(404, 'not_found', 'Page stream unavailable');
   return blob.stream;
+}
+
+const TERMINAL_STATUSES = new Set<GenerationStatus>(['succeeded', 'failed', 'cancelled']);
+
+export async function cancelGeneration(
+  generationId: number,
+  userId: number,
+): Promise<Generation> {
+  const gen = await assertOwnsGeneration(generationId, userId);
+  if (TERMINAL_STATUSES.has(gen.status)) return gen;
+
+  if (gen.workflowRunId) {
+    try {
+      await cancelRun(gen.workflowRunId);
+    } catch (err) {
+      console.warn('[cancelGeneration] WDK cancelRun failed', err);
+    }
+  }
+
+  const ts = new Date().toISOString();
+  const [updated] = await getDb()
+    .update(generations)
+    .set({ status: 'cancelled', completedAt: ts, updatedAt: ts })
+    .where(eq(generations.id, generationId))
+    .returning();
+  return updated;
+}
+
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'site'
+  );
+}
+
+export async function streamPagesZip(
+  generationId: number,
+  userId: number,
+): Promise<{ stream: ReadableStream<Uint8Array>; filename: string }> {
+  const gen = await assertOwnsGeneration(generationId, userId);
+  if (!gen.pagesManifestBlobPath) {
+    throw new ApiError(404, 'not_found', 'No pages available');
+  }
+  const manifestBlob = await get(gen.pagesManifestBlobPath, { access: 'private' });
+  if (!manifestBlob || !manifestBlob.stream) {
+    throw new ApiError(404, 'not_found', 'Manifest missing');
+  }
+  const manifestText = await new Response(manifestBlob.stream).text();
+  let manifest: { pages: ManifestEntry[] };
+  try {
+    manifest = JSON.parse(manifestText);
+  } catch {
+    throw new ApiError(404, 'not_found', 'Manifest unreadable');
+  }
+
+  const [site] = await getDb().select().from(sites).where(eq(sites.id, gen.siteId));
+  const filename = `${slugify(site?.name ?? 'site')}-pages-${gen.id}.zip`;
+
+  const archive = archiver('zip', { zlib: { level: 6 } });
+  archive.append(manifestText, { name: 'manifest.json' });
+  for (const entry of manifest.pages) {
+    if (entry.status !== 'ok' || !entry.blobPath || !entry.path) continue;
+    const pageBlob = await get(entry.blobPath, { access: 'private' });
+    if (!pageBlob || !pageBlob.stream) continue;
+    const nodeStream = Readable.fromWeb(pageBlob.stream as unknown as NodeReadableStream);
+    archive.append(nodeStream, { name: `${entry.path}.md` });
+  }
+  void archive.finalize();
+
+  const stream = Readable.toWeb(archive) as unknown as ReadableStream<Uint8Array>;
+  return { stream, filename };
+}
+
+export type GenerationListItem = {
+  id: number;
+  siteId: number;
+  status: GenerationStatus;
+  trigger: 'manual' | 'webhook';
+  pagesStatus: PagesStatus;
+  pagesCount: number;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+};
+
+export type ListGenerationsOptions = {
+  siteId?: number;
+  status?: GenerationStatus;
+  limit?: number;
+};
+
+const DEFAULT_LIST_LIMIT = 20;
+const MAX_LIST_LIMIT = 100;
+
+export async function listGenerations(
+  userId: number,
+  opts: ListGenerationsOptions = {},
+): Promise<GenerationListItem[]> {
+  const limit = Math.min(Math.max(opts.limit ?? DEFAULT_LIST_LIMIT, 1), MAX_LIST_LIMIT);
+  const filters = [eq(generations.userId, userId)];
+  if (opts.siteId !== undefined) filters.push(eq(generations.siteId, opts.siteId));
+  if (opts.status !== undefined) filters.push(eq(generations.status, opts.status));
+
+  const rows = await getDb()
+    .select()
+    .from(generations)
+    .where(and(...filters))
+    .orderBy(desc(generations.createdAt))
+    .limit(limit);
+
+  return rows.map((g) => ({
+    id: g.id,
+    siteId: g.siteId,
+    status: g.status,
+    trigger: g.trigger,
+    pagesStatus: g.pagesStatus,
+    pagesCount: g.pagesCount,
+    createdAt: g.createdAt,
+    startedAt: g.startedAt ?? undefined,
+    completedAt: g.completedAt ?? undefined,
+  }));
 }

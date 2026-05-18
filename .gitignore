@@ -38,6 +38,9 @@ yarn-error.log*
 .worktrees/
 .claude/worktrees/
 
+# claire local state
+.claire/
+
 # vercel
 .vercel
 

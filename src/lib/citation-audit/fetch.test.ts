@@ -6,7 +6,7 @@ vi.stubGlobal('fetch', fetchMock);
 beforeEach(() => {
   fetchMock.mockReset();
   process.env.CLOUDFLARE_ACCOUNT_ID = 'acct-test';
-  process.env.CLOUDFLARE_BROWSER_RENDERING_TOKEN = 'tok-test';
+  process.env.CLOUDFLARE_API_TOKEN = 'tok-test';
 });
 
 import { fetchRenderedHtml } from './fetch';

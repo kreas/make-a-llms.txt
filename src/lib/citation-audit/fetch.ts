@@ -5,7 +5,7 @@ const USER_AGENT = 'CitationReadiness/1.0 (+https://make-a-llms.txt/bot)';
 
 export async function fetchRenderedHtml(url: string): Promise<FetchOutcome> {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const token = process.env.CLOUDFLARE_BROWSER_RENDERING_TOKEN;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
   if (!accountId || !token) {
     return { ok: false, reason: 'auth', message: 'Cloudflare Browser Rendering credentials are not configured.' };
   }

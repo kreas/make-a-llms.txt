@@ -4,12 +4,11 @@ import { CitationsScoreCard, type ScoreCardCheck } from './citations-score-card'
 
 // Recharts measures parent layout via ResizeObserver; jsdom doesn't provide one.
 beforeAll(() => {
-  // @ts-expect-error – jsdom stub
   globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
-  };
+  } as unknown as typeof ResizeObserver;
 });
 
 function check(id: string, score: number, weight: number): ScoreCardCheck {

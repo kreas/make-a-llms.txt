@@ -18,7 +18,7 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
     enabled: !!latestGenUid,
     queryFn: async (): Promise<ManifestResponse> => {
       const res = await fetch(`/api/generations/${latestGenUid}/pages`);
-      if (!res.ok) return { status: 'failed', pages: [] };
+      if (!res.ok) return { status: 'failed', count: 0, pages: [] };
       return res.json();
     },
   });

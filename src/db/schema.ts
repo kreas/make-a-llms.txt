@@ -181,3 +181,29 @@ export const apiTokens = sqliteTable(
 
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type NewApiToken = typeof apiTokens.$inferInsert;
+
+export const pageSummaryCache = sqliteTable(
+  'page_summary_cache',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    urlPath: text('url_path').notNull(),
+    url: text('url').notNull(),
+    contentHash: text('content_hash').notNull(),
+    summary: text('summary').notNull(),
+    pageType: text('page_type').notNull(),
+    createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+    updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    uniqueSitePath: unique('page_summary_cache_site_path_unique').on(
+      t.siteId,
+      t.urlPath,
+    ),
+  }),
+);
+
+export type PageSummaryCache = typeof pageSummaryCache.$inferSelect;
+export type NewPageSummaryCache = typeof pageSummaryCache.$inferInsert;

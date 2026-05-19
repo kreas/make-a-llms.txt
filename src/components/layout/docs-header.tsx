@@ -56,6 +56,7 @@ export function DocsHeader({ authenticated }: { authenticated: boolean }) {
           )}
           {authenticated ? (
             <>
+              <UserMenu />
               <Button
                 asChild
                 size="icon"
@@ -67,7 +68,6 @@ export function DocsHeader({ authenticated }: { authenticated: boolean }) {
                   <span className="sr-only">New project</span>
                 </Link>
               </Button>
-              <UserMenu />
             </>
           ) : (
             <>

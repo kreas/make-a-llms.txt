@@ -389,11 +389,13 @@ function tallyOutcomes(outcomes: (SummaryOutcome | Error)[]): {
   succeeded: number;
   empty: number;
   failed: number;
+  cached: number;
   resolved: SummaryOutcome[];
 } {
   let succeeded = 0;
   let empty = 0;
   let failed = 0;
+  let cached = 0;
   const resolved: SummaryOutcome[] = [];
   for (const o of outcomes) {
     if (o instanceof Error) {
@@ -404,8 +406,9 @@ function tallyOutcomes(outcomes: (SummaryOutcome | Error)[]): {
     if (o.status === 'ok') succeeded++;
     else if (o.status === 'empty') empty++;
     else if (o.status === 'failed') failed++;
+    if (o.status !== 'failed' && o.cached) cached++;
   }
-  return { succeeded, empty, failed, resolved };
+  return { succeeded, empty, failed, cached, resolved };
 }
 
 export async function runSummariesStepSafe(generationId: number): Promise<void> {
@@ -450,6 +453,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
     const summarizeOnePage = (page: PagesManifestPage & { blobPath: string }) =>
       summarizePage({
         generationId,
+        siteId: g.siteId,
         page: {
           url: page.url,
           path: page.path,
@@ -488,7 +492,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
       }
     }
 
-    const { succeeded, empty, failed, resolved } = tallyOutcomes(outcomes);
+    const { succeeded, empty, failed, cached, resolved } = tallyOutcomes(outcomes);
 
     const manifestPath = `gens/${generationId}/summaries-manifest.json`;
     await put(
@@ -500,6 +504,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
         okCount: succeeded,
         emptyCount: empty,
         failedCount: failed,
+        cachedCount: cached,
         results: resolved,
       }),
       {

@@ -1,5 +1,9 @@
+import { createHash } from 'node:crypto';
 import { get, put } from '@vercel/blob';
 import { generateText, Output } from 'ai';
+import { and, eq, sql } from 'drizzle-orm';
+import { getDb } from '@/db';
+import { pageSummaryCache } from '@/db/schema';
 import { buildFrontmatter, parseFrontmatter } from './frontmatter';
 import {
   buildSummaryPrompt,
@@ -23,6 +27,7 @@ export type SummaryOutcome =
       status: 'ok';
       pageType: PageType;
       summaryBytes: number;
+      cached: boolean;
       durationMs: number;
     }
   | {
@@ -30,6 +35,7 @@ export type SummaryOutcome =
       path: string;
       status: 'empty';
       pageType: PageType;
+      cached: boolean;
       durationMs: number;
     }
   | {
@@ -42,6 +48,7 @@ export type SummaryOutcome =
 
 export type SummarizePageOptions = {
   generationId: number;
+  siteId: number;
   page: PageInput;
   siteName: string;
   maxInputBytes: number;
@@ -62,10 +69,70 @@ function truncateBody(body: string, maxBytes: number): string {
   return `${head}\n\n[truncated]\n`;
 }
 
+export function hashBody(body: string): string {
+  return createHash('sha256').update(body, 'utf8').digest('hex');
+}
+
+async function loadCachedSummary(
+  siteId: number,
+  urlPath: string,
+  contentHash: string,
+): Promise<{ summary: string; pageType: PageType } | null> {
+  const rows = await getDb()
+    .select({
+      summary: pageSummaryCache.summary,
+      pageType: pageSummaryCache.pageType,
+    })
+    .from(pageSummaryCache)
+    .where(
+      and(
+        eq(pageSummaryCache.siteId, siteId),
+        eq(pageSummaryCache.urlPath, urlPath),
+        eq(pageSummaryCache.contentHash, contentHash),
+      ),
+    )
+    .limit(1);
+  if (rows.length === 0) return null;
+  return {
+    summary: rows[0].summary,
+    pageType: rows[0].pageType as PageType,
+  };
+}
+
+async function upsertCachedSummary(opts: {
+  siteId: number;
+  urlPath: string;
+  url: string;
+  contentHash: string;
+  summary: string;
+  pageType: PageType;
+}): Promise<void> {
+  await getDb()
+    .insert(pageSummaryCache)
+    .values({
+      siteId: opts.siteId,
+      urlPath: opts.urlPath,
+      url: opts.url,
+      contentHash: opts.contentHash,
+      summary: opts.summary,
+      pageType: opts.pageType,
+    })
+    .onConflictDoUpdate({
+      target: [pageSummaryCache.siteId, pageSummaryCache.urlPath],
+      set: {
+        url: opts.url,
+        contentHash: opts.contentHash,
+        summary: opts.summary,
+        pageType: opts.pageType,
+        updatedAt: sql`(current_timestamp)`,
+      },
+    });
+}
+
 export async function summarizePage(
   opts: SummarizePageOptions,
 ): Promise<SummaryOutcome> {
-  const { page, siteName, maxInputBytes } = opts;
+  const { page, siteId, siteName, maxInputBytes } = opts;
   const started = Date.now();
 
   try {
@@ -81,23 +148,34 @@ export async function summarizePage(
     }
 
     const { fields, body } = parseFrontmatter(blobText);
-    const sendBody = truncateBody(body, maxInputBytes);
+    const contentHash = hashBody(body);
 
-    const prompt = buildSummaryPrompt({
-      url: fields.url,
-      title: fields.title ?? '',
-      entityName: siteName,
-      content: sendBody,
-    });
+    const cached = await loadCachedSummary(siteId, page.path, contentHash);
 
-    const { output } = await generateText({
-      model: MODEL,
-      output: Output.object({ schema: summarySchema }),
-      prompt,
-      maxRetries: 5,
-    });
+    let summary: string;
+    let pageType: PageType;
+    if (cached) {
+      summary = cached.summary;
+      pageType = cached.pageType;
+    } else {
+      const sendBody = truncateBody(body, maxInputBytes);
+      const prompt = buildSummaryPrompt({
+        url: fields.url,
+        title: fields.title ?? '',
+        entityName: siteName,
+        content: sendBody,
+      });
+      const { output } = await generateText({
+        model: MODEL,
+        output: Output.object({ schema: summarySchema }),
+        prompt,
+        maxRetries: 5,
+      });
+      summary = output.summary;
+      pageType = output.page_type;
+    }
 
-    const trimmed = output.summary.trim();
+    const trimmed = summary.trim();
     const isEmpty = trimmed === '' || trimmed === NO_SUMMARY;
     const finalSummary = isEmpty ? '' : trimmed;
 
@@ -105,7 +183,7 @@ export async function summarizePage(
       title: fields.title ?? null,
       url: fields.url,
       summary: finalSummary,
-      pageType: output.page_type,
+      pageType,
       updated: fields.updated ?? '',
     });
 
@@ -118,12 +196,24 @@ export async function summarizePage(
       allowOverwrite: true,
     });
 
+    if (!cached) {
+      await upsertCachedSummary({
+        siteId,
+        urlPath: page.path,
+        url: fields.url,
+        contentHash,
+        summary: finalSummary,
+        pageType,
+      });
+    }
+
     if (isEmpty) {
       return {
         url: page.url,
         path: page.path,
         status: 'empty',
-        pageType: output.page_type,
+        pageType,
+        cached: Boolean(cached),
         durationMs: Date.now() - started,
       };
     }
@@ -131,8 +221,9 @@ export async function summarizePage(
       url: page.url,
       path: page.path,
       status: 'ok',
-      pageType: output.page_type,
+      pageType,
       summaryBytes: Buffer.byteLength(finalSummary, 'utf8'),
+      cached: Boolean(cached),
       durationMs: Date.now() - started,
     };
   } catch (err) {

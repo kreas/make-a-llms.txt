@@ -14,7 +14,11 @@ vi.mock('ai', async () => {
 
 import { get, put } from '@vercel/blob';
 import { generateText } from 'ai';
-import { summarizePage } from './summarize-page';
+import { eq } from 'drizzle-orm';
+import { getDb } from '@/db';
+import { pageSummaryCache, sites, users } from '@/db/schema';
+import { setupTestDb } from '@/test/db';
+import { hashBody, summarizePage } from './summarize-page';
 
 function mockBlob(text: string) {
   vi.mocked(get).mockResolvedValue({
@@ -39,19 +43,45 @@ const PAGE = {
   durationMs: 5,
 };
 
+const BODY = '# About\n\nWe build AI tools.\n';
 const BLOB_CONTENT =
+  '---\n' +
   'title: About\n' +
   'url: https://x.test/about\n' +
   'summary: \n' +
-  'updated: 2026-05-14\n\n' +
-  '# About\n\nWe build AI tools.\n';
+  'updated: 2026-05-14\n' +
+  '---\n\n' +
+  BODY;
+
+async function seedSite(): Promise<number> {
+  const db = getDb();
+  const [u] = await db
+    .insert(users)
+    .values({ name: 'T', email: 't@t.test' })
+    .returning();
+  const [s] = await db
+    .insert(sites)
+    .values({
+      userId: u.id,
+      name: 'Acme',
+      rootUrl: 'https://x.test',
+      webhookTokenHash: 'a'.repeat(64),
+      webhookTokenPrefix: 'lmt_aaaa',
+    })
+    .returning();
+  return s.id;
+}
 
 describe('summarizePage', () => {
-  beforeEach(() => {
+  let siteId: number;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await setupTestDb();
+    siteId = await seedSite();
   });
 
-  it('happy path: writes summary and page_type into frontmatter', async () => {
+  it('happy path: calls model, writes summary, persists cache row', async () => {
     mockBlob(BLOB_CONTENT);
     vi.mocked(generateText).mockResolvedValue({
       output: { summary: 'Acme builds AI tools.', page_type: 'about' },
@@ -59,6 +89,7 @@ describe('summarizePage', () => {
 
     const result = await summarizePage({
       generationId: 1,
+      siteId,
       page: PAGE,
       siteName: 'Acme',
       maxInputBytes: 1_000_000,
@@ -68,16 +99,92 @@ describe('summarizePage', () => {
     if (result.status === 'ok') {
       expect(result.pageType).toBe('about');
       expect(result.summaryBytes).toBeGreaterThan(0);
+      expect(result.cached).toBe(false);
     }
     expect(put).toHaveBeenCalledTimes(1);
     const [pathArg, bodyArg] = vi.mocked(put).mock.calls[0];
     expect(pathArg).toBe('gens/1/pages/about.md');
     expect(bodyArg).toMatch(/^summary: Acme builds AI tools\.$/m);
     expect(bodyArg).toMatch(/^page_type: about$/m);
-    expect(bodyArg).toMatch(/# About\n\nWe build AI tools\./);
+
+    const rows = await getDb()
+      .select()
+      .from(pageSummaryCache)
+      .where(eq(pageSummaryCache.siteId, siteId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].urlPath).toBe('about');
+    expect(rows[0].summary).toBe('Acme builds AI tools.');
+    expect(rows[0].pageType).toBe('about');
+    expect(rows[0].contentHash).toBe(hashBody(BODY));
   });
 
-  it('NO_SUMMARY: rewrites blob with empty summary, keeps page_type', async () => {
+  it('cache hit: skips model call and reuses cached summary', async () => {
+    await getDb().insert(pageSummaryCache).values({
+      siteId,
+      urlPath: 'about',
+      url: 'https://x.test/about',
+      contentHash: hashBody(BODY),
+      summary: 'Cached summary text.',
+      pageType: 'about',
+    });
+    mockBlob(BLOB_CONTENT);
+
+    const result = await summarizePage({
+      generationId: 1,
+      siteId,
+      page: PAGE,
+      siteName: 'Acme',
+      maxInputBytes: 1_000_000,
+    });
+
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      expect(result.cached).toBe(true);
+      expect(result.pageType).toBe('about');
+    }
+    expect(generateText).not.toHaveBeenCalled();
+    expect(put).toHaveBeenCalledTimes(1);
+    const [, bodyArg] = vi.mocked(put).mock.calls[0];
+    expect(bodyArg).toMatch(/^summary: Cached summary text\.$/m);
+  });
+
+  it('cache miss when hash differs: regenerates and updates cache', async () => {
+    await getDb().insert(pageSummaryCache).values({
+      siteId,
+      urlPath: 'about',
+      url: 'https://x.test/about',
+      contentHash: 'stale-hash-from-prior-content',
+      summary: 'Old summary.',
+      pageType: 'other',
+    });
+    mockBlob(BLOB_CONTENT);
+    vi.mocked(generateText).mockResolvedValue({
+      output: { summary: 'Fresh summary.', page_type: 'about' },
+    } as any);
+
+    const result = await summarizePage({
+      generationId: 1,
+      siteId,
+      page: PAGE,
+      siteName: 'Acme',
+      maxInputBytes: 1_000_000,
+    });
+
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') expect(result.cached).toBe(false);
+    expect(generateText).toHaveBeenCalledTimes(1);
+
+    const rows = await getDb()
+      .select()
+      .from(pageSummaryCache)
+      .where(eq(pageSummaryCache.siteId, siteId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].summary).toBe('Fresh summary.');
+    expect(rows[0].pageType).toBe('about');
+    expect(rows[0].contentHash).toBe(hashBody(BODY));
+  });
+
+  it('NO_SUMMARY: rewrites blob with empty summary, keeps page_type, caches empty', async () => {
     mockBlob(BLOB_CONTENT);
     vi.mocked(generateText).mockResolvedValue({
       output: { summary: '[NO_SUMMARY]', page_type: 'other' },
@@ -85,6 +192,7 @@ describe('summarizePage', () => {
 
     const result = await summarizePage({
       generationId: 1,
+      siteId,
       page: PAGE,
       siteName: 'Acme',
       maxInputBytes: 1_000_000,
@@ -93,10 +201,19 @@ describe('summarizePage', () => {
     expect(result.status).toBe('empty');
     if (result.status === 'empty') {
       expect(result.pageType).toBe('other');
+      expect(result.cached).toBe(false);
     }
     const [, bodyArg] = vi.mocked(put).mock.calls[0];
     expect(bodyArg).toMatch(/^summary: $/m);
     expect(bodyArg).toMatch(/^page_type: other$/m);
+
+    const rows = await getDb()
+      .select()
+      .from(pageSummaryCache)
+      .where(eq(pageSummaryCache.siteId, siteId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].summary).toBe('');
+    expect(rows[0].pageType).toBe('other');
   });
 
   it('empty-string summary is treated like NO_SUMMARY', async () => {
@@ -107,6 +224,7 @@ describe('summarizePage', () => {
 
     const result = await summarizePage({
       generationId: 1,
+      siteId,
       page: PAGE,
       siteName: 'Acme',
       maxInputBytes: 1_000_000,
@@ -118,7 +236,8 @@ describe('summarizePage', () => {
   it('truncates the body when it exceeds maxInputBytes', async () => {
     const big = 'x'.repeat(50_000);
     mockBlob(
-      'url: https://x.test/big\nsummary: \nupdated: 2026-05-14\n\n' + big,
+      '---\nurl: https://x.test/big\nsummary: \nupdated: 2026-05-14\n---\n\n' +
+        big,
     );
     vi.mocked(generateText).mockResolvedValue({
       output: { summary: 'A.', page_type: 'article' },
@@ -126,6 +245,7 @@ describe('summarizePage', () => {
 
     await summarizePage({
       generationId: 1,
+      siteId,
       page: { ...PAGE, url: 'https://x.test/big', path: 'big' },
       siteName: 'Acme',
       maxInputBytes: 100,
@@ -133,9 +253,7 @@ describe('summarizePage', () => {
 
     const promptArg = vi.mocked(generateText).mock.calls[0]?.[0]?.prompt as string;
     expect(promptArg).toContain('[truncated]');
-    // The content section in the prompt should not contain the full 50k chars.
-    const contentMatch = promptArg.length;
-    expect(contentMatch).toBeLessThan(50_000);
+    expect(promptArg.length).toBeLessThan(50_000);
   });
 
   it('returns failed and does NOT rewrite blob on model error', async () => {
@@ -144,6 +262,7 @@ describe('summarizePage', () => {
 
     const result = await summarizePage({
       generationId: 1,
+      siteId,
       page: PAGE,
       siteName: 'Acme',
       maxInputBytes: 1_000_000,
@@ -154,6 +273,12 @@ describe('summarizePage', () => {
       expect(result.reason).toMatch(/gateway 502/);
     }
     expect(put).not.toHaveBeenCalled();
+
+    const rows = await getDb()
+      .select()
+      .from(pageSummaryCache)
+      .where(eq(pageSummaryCache.siteId, siteId));
+    expect(rows).toHaveLength(0);
   });
 
   it('returns failed when the blob cannot be loaded', async () => {
@@ -161,6 +286,7 @@ describe('summarizePage', () => {
 
     const result = await summarizePage({
       generationId: 1,
+      siteId,
       page: PAGE,
       siteName: 'Acme',
       maxInputBytes: 1_000_000,

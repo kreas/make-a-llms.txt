@@ -18,6 +18,7 @@ import { PagesContentPanel } from '@/components/generations/pages-content-panel'
 import { GenerationsSidebar } from '@/components/generations/generations-sidebar';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
 import { CrawlerAuditTab } from '@/components/crawlers/crawler-audit-tab';
+import { CitationsTab } from '@/components/citations/citations-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
@@ -160,6 +161,7 @@ export function SiteDetailClient({
             <TabsTrigger value="llms">llms.txt</TabsTrigger>
             <TabsTrigger value="pages">pages.md</TabsTrigger>
             <TabsTrigger value="crawlers">AI Crawlers</TabsTrigger>
+            <TabsTrigger value="citations">Citations</TabsTrigger>
           </TabsList>
           <button
             type="button"
@@ -192,6 +194,9 @@ export function SiteDetailClient({
           </TabsContent>
           <TabsContent value="crawlers">
             <CrawlerAuditTab siteId={site.uid} />
+          </TabsContent>
+          <TabsContent value="citations">
+            <CitationsTab siteId={site.uid} latestGenUid={latestSucceeded?.uid ?? null} />
           </TabsContent>
         </div>
         {!runsCollapsed && (

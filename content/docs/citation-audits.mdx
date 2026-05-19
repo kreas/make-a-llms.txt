@@ -1,0 +1,180 @@
+---
+title: Citation Audits
+description: Score how AI-citation-ready each page on your site is.
+---
+
+# Citation Audits
+
+A Citation Audit scores a single page from **0 to 100** on how well it's set up to be cited by AI engines like ChatGPT, Claude, Perplexity, Gemini, and Google AI Overviews. The score comes from 15 independent, deterministic checks over the page's rendered HTML.
+
+## How scoring works
+
+Each check returns its own 0–100 sub-score and contributes to the final score in proportion to its `weight`. The final formula:
+
+```
+score = round( Σ (check.score × check.weight) / Σ (check.weight) )
+```
+
+The weights total **100**, so the result is on a 0–100 scale.
+
+### Tiers
+
+| Tier      | Range  |
+|-----------|--------|
+| poor      | 0–49   |
+| fair      | 50–69  |
+| good      | 70–84  |
+| excellent | 85–100 |
+
+### Rubric
+
+| Check ID                  | Weight | What this measures |
+|---------------------------|--------|--------------------|
+| `h1-present`              | 5      | Exactly one `<h1>` on the page |
+| `heading-hierarchy`       | 5      | No skipped heading levels |
+| `meta-description`        | 5      | Present, 120–160 characters |
+| `canonical`               | 3      | `<link rel="canonical">` present |
+| `schema-type`             | 10     | JSON-LD declares a specific Schema.org type |
+| `schema-fields`           | 5      | Required fields for the declared type are present |
+| `answer-position`         | 15     | Entity name and summary sentence in first 100 words |
+| `entity-first-paragraph`  | 8      | Entity name appears in the first paragraph |
+| `question-h2s`            | 7      | ≥2 H2 headings phrased as questions |
+| `lists-tables`            | 5      | At least one list or table on the page |
+| `definitions`             | 5      | An "X is Y" definition pattern in the opening |
+| `freshness`               | 8      | `dateModified` within 18 months |
+| `readability`             | 5      | Flesch–Kincaid grade level 8–10 |
+| `named-entities`          | 9      | ≥3 named entities, with at least one disambiguated |
+| `internal-links`          | 5      | ≥3 same-host internal links |
+
+### Worked example
+
+A page with:
+- `answer-position`: 40/100 (weight 15)
+- `schema-type`: 100/100 (weight 10)
+- `freshness`: 100/100 (weight 8)
+- (all 12 other checks: 100/100, weights summing to 67)
+
+```
+score = round((40×15 + 100×10 + 100×8 + 100×67) / 100)
+      = round((600 + 1000 + 800 + 6700) / 100)
+      = round(9100 / 100)
+      = 91
+```
+
+Tier: **excellent**.
+
+### Failed audits
+
+When the page can't be fetched (404, Cloudflare error, timeout), the audit row is recorded with `status: "failed"`, `score: null`, and `errorReason` populated. **Failed audits are not scored as 0** — they are scoreless events you can retry.
+
+### Determinism and rubric versioning
+
+Citation audits are deterministic: the same HTML always produces the same score. We won't silently change the rubric — weight changes will be announced as an explicit revision.
+
+## The checks
+
+### `h1-present` (weight 5)
+**Passes when** the page has exactly one `<h1>`.
+**How to fix it** when failing: add a single descriptive H1 at the top of the page. If you have more than one, demote the extras to H2.
+
+### `heading-hierarchy` (weight 5)
+**Passes when** heading levels never skip (H1 → H2 → H3, never H1 → H3).
+**How to fix it**: insert the missing level or demote the deeper headings.
+
+### `meta-description` (weight 5)
+**Passes when** `<meta name="description">` is present and 120–160 characters long.
+**How to fix it**: add or resize the meta description.
+
+### `canonical` (weight 3)
+**Passes when** `<link rel="canonical">` is present.
+**How to fix it**: add the tag pointing to the preferred URL for the page.
+
+### `schema-type` (weight 10)
+**Passes when** a JSON-LD block declares an `@type` from the recommended set (Article, BlogPosting, NewsArticle, FAQPage, Product, Service, Organization, AboutPage, WebSite). A generic `WebPage` only counts for partial credit.
+**How to fix it**: replace WebPage with a more specific type or add a typed JSON-LD block.
+
+### `schema-fields` (weight 5)
+**Passes when** all required fields for the declared type are present (for example, an Article needs `headline`, `datePublished`, and `author`).
+**How to fix it**: fill in the missing fields listed in the audit's `evidence`.
+
+### `answer-position` (weight 15)
+**Passes when** the first 100 words of the page's main article contain both the entity name (your site name) and a summary sentence.
+**How to fix it**: rewrite the opening to name the entity and state what the page is about in the first 1–2 sentences.
+
+### `entity-first-paragraph` (weight 8)
+**Passes when** the entity name appears in the very first `<p>` of the article body.
+**How to fix it**: mention the entity name in the opening paragraph.
+
+### `question-h2s` (weight 7)
+**Passes when** at least 2 H2 headings are phrased as questions (end with `?` or start with what/when/where/who/why/how/is/are/do/does/can/should).
+**How to fix it**: rewrite 2+ H2s as questions readers might ask.
+
+### `lists-tables` (weight 5)
+**Passes when** the page has at least one `<ul>`, `<ol>`, or `<table>`.
+**How to fix it**: convert dense paragraphs into a bulleted list or comparison table where appropriate.
+
+### `definitions` (weight 5)
+**Passes when** the first paragraph contains a definition pattern ("X is Y", "X means Y", "X refers to Y").
+**How to fix it**: open with a sentence that defines the topic in plain "X is Y" form.
+
+### `freshness` (weight 8)
+**Passes when** `dateModified` (from JSON-LD or `article:modified_time`) is within 18 months. 18–36 months: partial credit. Older or missing: 0.
+**How to fix it**: add or update `dateModified` and refresh the content.
+
+### `readability` (weight 5)
+**Passes when** the Flesch–Kincaid grade level of the article body is between 8 and 10.
+**How to fix it**: shorten sentences and simplify word choice (if too high) or add precision (if too low).
+
+### `named-entities` (weight 9)
+**Passes when** the page mentions at least 3 named entities AND at least one is disambiguated via a `sameAs` Wikipedia/Wikidata link in JSON-LD or a hyperlink to such a page.
+**How to fix it**: name the specific organizations/people/places involved, and link at least one to its authoritative source.
+
+### `internal-links` (weight 5)
+**Passes when** the page has at least 3 same-host internal links to other pages on your site.
+**How to fix it**: link to related pages to signal a topic cluster.
+
+## Endpoints
+
+See the auto-generated [API reference](/docs/api) for full parameters and example responses:
+
+- `GET /api/v1/sites/{siteId}/citation-audits/latest`
+- `GET /api/v1/sites/{siteId}/citation-audits?pageUrl=...`
+- `GET /api/v1/sites/{siteId}/citation-audits/{auditId}`
+- `POST /api/v1/sites/{siteId}/citation-audits`
+
+## Running an audit
+
+```bash
+curl -X POST https://make-a-llms.txt/api/v1/sites/<siteId>/citation-audits \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"pageUrl": "https://example.com/services/ai-strategy"}'
+```
+
+The request blocks for ~5–15 seconds while we fetch and analyze the page, then returns the persisted audit:
+
+```json
+{
+  "audit": {
+    "id": "cit_01H...",
+    "siteId": "site_01H...",
+    "pageUrl": "https://example.com/services/ai-strategy",
+    "status": "succeeded",
+    "score": 78,
+    "tier": "good",
+    "fetchedAt": "2026-05-19T14:23:11Z",
+    "results": { "score": 78, "tier": "good", "checks": [/* ... */], "metadata": { "parseMs": 142 } }
+  }
+}
+```
+
+### Common failure cases
+
+- **404 from your site**: returned as `status: "failed"`, `errorReason: "http"`. Verify the URL is reachable and listed in your latest generation manifest.
+- **JS-only page didn't render in time**: usually surfaces as a thin HTML body and low score. Ensure critical content is in the initial HTML, or increase your time-to-interactive.
+- **Cloudflare quota / auth**: returned as `errorReason: "cloudflare"` or `"auth"`. Contact support.
+
+### Limits
+
+- `pageUrl` must be in the site's latest successful generation manifest. Arbitrary URLs are rejected with 422.
+- Each audit takes ~5–15 seconds. There is no client-side rate limit in v1; please don't run audits in a tight loop.

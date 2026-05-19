@@ -12,7 +12,7 @@ describe('buildOpenApiDocument', () => {
     expect(doc.components?.securitySchemes?.bearerAuth).toBeDefined();
   });
 
-  it('contains all six v1 paths', () => {
+  it('contains all v1 paths', () => {
     const paths = Object.keys(doc.paths ?? {});
     expect(paths).toEqual(
       expect.arrayContaining([
@@ -22,6 +22,9 @@ describe('buildOpenApiDocument', () => {
         '/generations/{id}/llms-full.txt',
         '/generations/{id}/pages',
         '/generations/{id}/pages/{path}',
+        '/sites/{siteId}/citation-audits/latest',
+        '/sites/{siteId}/citation-audits',
+        '/sites/{siteId}/citation-audits/{auditId}',
       ]),
     );
   });

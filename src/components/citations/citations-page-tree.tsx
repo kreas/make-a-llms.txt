@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen } from 'lucide-react';
 import { CitationsTierPill } from './citations-tier-pill';
 import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
@@ -90,7 +91,7 @@ function buildTree(rows: CitationsPageRow[]): TreeNode[] {
       continue;
     }
     const parent = ensureFolder(segs.slice(0, -1));
-    const leafName = segs.length === 0 ? '/' : segs[segs.length - 1];
+    const leafName = segs.length === 0 ? 'home' : segs[segs.length - 1];
     parent.children.push({ kind: 'leaf', name: leafName, row });
   }
 
@@ -144,6 +145,7 @@ function Branch({
         )}
         style={{ paddingLeft: 8 + depth * 14 }}
       >
+        <FileText className="w-4 h-4 shrink-0 text-muted-soft" aria-hidden />
         <span className="truncate flex-1 min-w-0 text-body">{node.name}</span>
         <span className="font-mono text-xs text-body tabular-nums w-8 text-right">
           {row.score ?? '—'}
@@ -165,7 +167,16 @@ function Branch({
         className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-ink hover:bg-canvas-soft transition-colors"
         style={{ paddingLeft: 8 + depth * 14 }}
       >
-        <span className="shrink-0 text-xs">{open ? '▾' : '▸'}</span>
+        {open ? (
+          <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-soft" aria-hidden />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-soft" aria-hidden />
+        )}
+        {open ? (
+          <FolderOpen className="w-4 h-4 shrink-0 text-muted-soft" aria-hidden />
+        ) : (
+          <Folder className="w-4 h-4 shrink-0 text-muted-soft" aria-hidden />
+        )}
         <span className="font-medium truncate">{node.name}</span>
         <span className="ml-auto shrink-0 text-xs text-body">
           {node.auditedCount}/{node.total}

@@ -16,8 +16,8 @@ describe('CitationsPageTree', () => {
     // The "work" folder appears with its tally (1 audited of 3 total under work/*).
     expect(screen.getByText('work')).toBeInTheDocument();
     expect(screen.getByText('1/3')).toBeInTheDocument();
-    // Root-level leaves render their last URL segment.
-    expect(screen.getByText('/')).toBeInTheDocument();
+    // Root-level leaves render their last URL segment; homepage labeled "home".
+    expect(screen.getByText('home')).toBeInTheDocument();
     expect(screen.getByText('about')).toBeInTheDocument();
   });
 

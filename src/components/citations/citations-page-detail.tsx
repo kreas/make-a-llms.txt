@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { CitationsScoreBadge } from './citations-score-badge';
+import { CitationsScoreCard } from './citations-score-card';
 import { CitationsCheckRow } from './citations-check-row';
 import { CitationsHistoryList } from './citations-history-list';
 import { formatRelativeTime } from '@/lib/format-time';
@@ -108,11 +108,12 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
 
       {current?.status === 'succeeded' && current.results && current.score !== null && current.tier && (
         <>
-          <CitationsScoreBadge
+          <CitationsScoreCard
             score={current.score}
             tier={current.tier}
             failingCount={current.results.checks.filter((c) => !c.passed).length}
             totalCount={current.results.checks.length}
+            checks={current.results.checks}
           />
           <section>
             <h3 className="caption-uppercase text-xs text-body mb-2">Checks</h3>

@@ -86,7 +86,7 @@ export function CitationsScoreCard({ score, tier, failingCount, totalCount, chec
                 <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                 <RadialBar
                   dataKey="value"
-                  background={{ fill: 'var(--color-canvas-soft)' }}
+                  background={{ fill: 'var(--color-surface-card)' }}
                   cornerRadius={999}
                 />
               </RadialBarChart>
@@ -112,7 +112,7 @@ export function CitationsScoreCard({ score, tier, failingCount, totalCount, chec
                 {c.score} <span className="text-muted-soft">/ 100</span>
               </span>
               <div
-                className="col-span-2 h-1.5 overflow-hidden rounded-full bg-canvas-soft"
+                className="col-span-2 h-1.5 overflow-hidden rounded-full bg-surface-card"
                 role="progressbar"
                 aria-valuenow={c.score}
                 aria-valuemin={0}

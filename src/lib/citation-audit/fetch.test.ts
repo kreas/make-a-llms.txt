@@ -12,16 +12,42 @@ beforeEach(() => {
 import { fetchRenderedHtml } from './fetch';
 
 describe('fetchRenderedHtml', () => {
-  it('returns ok with html on 200', async () => {
-    fetchMock.mockResolvedValue(new Response('<html></html>', {
+  it('extracts html from the JSON envelope Cloudflare actually returns', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      result: '<!doctype html><html><head><meta name="description" content="x"></head></html>',
+    }), {
       status: 200,
-      headers: { 'content-type': 'text/html', 'x-browser-ms-used': '1234' },
+      headers: { 'content-type': 'application/json', 'x-browser-ms-used': '1234' },
     }));
     const r = await fetchRenderedHtml('https://example.com/');
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.html).toBe('<html></html>');
+      expect(r.html).toMatch(/<meta name="description"/);
       expect(r.browserMsUsed).toBe(1234);
+    }
+  });
+
+  it('falls back to raw text when the response is not JSON', async () => {
+    fetchMock.mockResolvedValue(new Response('<html></html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    }));
+    const r = await fetchRenderedHtml('https://example.com/');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.html).toBe('<html></html>');
+  });
+
+  it('returns cloudflare failure when JSON envelope reports success=false', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({
+      success: false,
+      errors: [{ message: 'render failed' }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const r = await fetchRenderedHtml('https://example.com/');
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.reason).toBe('cloudflare');
+      expect(r.message).toMatch(/render failed/);
     }
   });
 

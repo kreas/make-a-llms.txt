@@ -40,8 +40,17 @@ export async function fetchRenderedHtml(url: string): Promise<FetchOutcome> {
     if (!res.ok) {
       return { ok: false, reason: 'unknown', status: res.status, message: `HTTP ${res.status}` };
     }
-    const html = await res.text();
     const browserMsUsed = Number(res.headers.get('x-browser-ms-used') ?? 0);
+    const contentType = res.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      const body = (await res.json()) as { success?: boolean; result?: string; errors?: { message?: string }[] };
+      if (!body.success || typeof body.result !== 'string') {
+        const msg = body.errors?.[0]?.message ?? 'Cloudflare returned no HTML.';
+        return { ok: false, reason: 'cloudflare', status: res.status, message: msg };
+      }
+      return { ok: true, html: body.result, fetchedAt: new Date().toISOString(), fetchMs, browserMsUsed };
+    }
+    const html = await res.text();
     return { ok: true, html, fetchedAt: new Date().toISOString(), fetchMs, browserMsUsed };
   } catch (e) {
     const err = e as Error & { name?: string };

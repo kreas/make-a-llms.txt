@@ -196,7 +196,7 @@ export function SiteDetailClient({
             <CrawlerAuditTab siteId={site.uid} />
           </TabsContent>
           <TabsContent value="citations">
-            <CitationsTab siteId={site.uid} />
+            <CitationsTab siteId={site.uid} latestGenUid={latestSucceeded?.uid ?? null} />
           </TabsContent>
         </div>
         {!runsCollapsed && (

@@ -72,8 +72,8 @@ export function CitationsScoreCard({ score, tier, failingCount, totalCount, chec
 
   return (
     <section className="rounded-xl border border-hairline bg-surface-card p-6">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-8">
-        <div className="flex items-center gap-5 md:flex-col md:items-start md:gap-3 md:basis-[220px]">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-5">
+        <div className="flex items-center gap-5 md:flex-col md:items-start md:gap-3 md:basis-[160px]">
           <div className="relative aspect-square w-32 shrink-0">
             <ChartContainer config={chartConfig} className="h-full w-full">
               <RadialBarChart

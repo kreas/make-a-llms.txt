@@ -108,7 +108,7 @@ function buildTree(rows: CitationsPageRow[]): TreeNode[] {
 
   function sort(node: FolderNode): void {
     node.children.sort((a, b) => {
-      if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+      if (a.kind !== b.kind) return a.kind === 'leaf' ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
     for (const c of node.children) if (c.kind === 'folder') sort(c);

@@ -4,15 +4,9 @@ export const ID = 'heading-hierarchy';
 export const WEIGHT = 5;
 
 export function check(parsed: ParsedPage, _ctx: CheckContext): CheckResult {
-  // Use document-order traversal so skips are detected correctly regardless
-  // of how ParsedPage.headings groups them by level.
-  const domHeadings = Array.from(
-    parsed.document.querySelectorAll('h1,h2,h3,h4,h5,h6'),
-  ).map((h) => ({ level: parseInt(h.tagName[1], 10) }));
-
   let skips = 0;
   let prev = 0;
-  for (const h of domHeadings) {
+  for (const h of parsed.headings) {
     if (prev > 0 && h.level > prev + 1) skips++;
     prev = h.level;
   }
@@ -20,7 +14,7 @@ export function check(parsed: ParsedPage, _ctx: CheckContext): CheckResult {
   if (skips === 0) {
     return {
       id: ID, weight: WEIGHT, passed: true, score: 100,
-      evidence: [`${domHeadings.length} headings, no skipped levels.`],
+      evidence: [`${parsed.headings.length} headings, no skipped levels.`],
       recommendation: null,
     };
   }

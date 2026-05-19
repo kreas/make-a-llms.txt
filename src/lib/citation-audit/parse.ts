@@ -37,12 +37,11 @@ export function parsePage(url: string, html: string): ParsedPage {
   });
 
   const headings: ParsedPage['headings'] = [];
-  for (const level of [1, 2, 3, 4, 5, 6] as const) {
-    document.querySelectorAll(`h${level}`).forEach((h) => {
-      const text = h.textContent?.trim() ?? '';
-      if (text) headings.push({ level, text });
-    });
-  }
+  document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
+    const level = parseInt(h.tagName[1], 10) as 1 | 2 | 3 | 4 | 5 | 6;
+    const text = h.textContent?.trim() ?? '';
+    if (text) headings.push({ level, text });
+  });
 
   const pageHost = tldParse(url).domain;
   const links: ParsedPage['links'] = Array.from(document.querySelectorAll('a[href]')).map(

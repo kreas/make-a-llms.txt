@@ -13,8 +13,8 @@ type LatestRow = {
 };
 
 // ManifestPage shape from /api/generations/[id]/pages
-type ManifestPage = { url: string; status: 'ok' | 'failed' | 'skipped' };
-type ManifestResponse = { status: string; pages: ManifestPage[] };
+type ManifestPage = { url: string; path: string; status: 'ok' | 'failed' | 'skipped' };
+type ManifestResponse = { status: string; count: number; pages: ManifestPage[] };
 
 export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestGenUid: string | null }) {
   const [selected, setSelected] = useState<string | null>(null);

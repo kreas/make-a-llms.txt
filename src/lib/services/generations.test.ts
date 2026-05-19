@@ -6,7 +6,7 @@ import { users, sites, generations } from '@/db/schema';
 vi.mock('@vercel/blob', () => ({
   get: vi.fn(async (path: string) => {
     if (path === 'pages/manifest.json') {
-      return { stream: new Response(JSON.stringify({ pages: [{ path: 'a', blobPath: 'pages/a.md', status: 'ok', bytes: 10 }] })).body };
+      return { stream: new Response(JSON.stringify({ pages: [{ url: 'https://example.com/a', path: 'a', blobPath: 'pages/a.md', status: 'ok', bytes: 10 }] })).body };
     }
     if (path === 'pages/a.md') {
       return { stream: new Response('# A').body };

@@ -66,7 +66,7 @@ export async function readGenerationFile(
   return { stream: blob.stream, filename };
 }
 
-type ManifestEntry = { path: string; blobPath: string | null; status: 'ok' | 'error' | 'skipped'; bytes?: number };
+type ManifestEntry = { url: string; path: string; blobPath: string | null; status: 'ok' | 'failed' | 'skipped'; bytes?: number };
 
 export async function readPageManifest(
   generationUid: string,
@@ -74,7 +74,7 @@ export async function readPageManifest(
 ): Promise<{
   status: PagesStatus;
   count: number;
-  pages: Array<{ path: string; status: 'ok' | 'error' | 'skipped'; bytes?: number }>;
+  pages: Array<{ url: string; path: string; status: 'ok' | 'failed' | 'skipped'; bytes?: number }>;
 }> {
   const g = await assertOwnsGenerationByUid(generationUid, userId);
   if (!g.pagesManifestBlobPath) {
@@ -88,6 +88,7 @@ export async function readPageManifest(
     status: g.pagesStatus,
     count: g.pagesCount,
     pages: (parsed.pages ?? []).map((p) => ({
+      url: p.url,
       path: p.path,
       status: p.status,
       bytes: p.bytes,

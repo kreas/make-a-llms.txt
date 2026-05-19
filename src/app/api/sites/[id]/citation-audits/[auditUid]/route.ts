@@ -4,6 +4,7 @@ import { getDb } from '@/db';
 import { citationAudits } from '@/db/schema';
 import { ApiError, apiErrorResponse, assertOwnsSiteByUid, requireUserOrThrow } from '@/lib/auth-guards';
 import { parseUid } from '@/lib/uid';
+import { serializeCitationAudit } from '@/lib/citation-audit/serialize';
 
 type Ctx = { params: Promise<{ id: string; auditUid: string }> };
 
@@ -34,7 +35,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       .from(citationAudits)
       .where(and(eq(citationAudits.siteId, site.id), eq(citationAudits.uid, aUid)));
     if (!audit) throw new ApiError(404, 'not_found', 'Audit not found');
-    return Response.json({ audit });
+    return Response.json({ audit: serializeCitationAudit(audit, siteUid) });
   } catch (err) {
     return apiErrorResponse(err);
   }

@@ -4,6 +4,7 @@ import { getDb } from '@/db';
 import { citationAudits } from '@/db/schema';
 import { ApiError, apiErrorResponse, assertOwnsSiteByUid, requireUserOrThrow } from '@/lib/auth-guards';
 import { parseUid } from '@/lib/uid';
+import { serializeCitationAudit } from '@/lib/citation-audit/serialize';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       seen.add(r.pageUrl);
       latest.push(r);
     }
-    return Response.json({ audits: latest });
+    return Response.json({ audits: latest.map((a) => serializeCitationAudit(a, uid)) });
   } catch (err) {
     return apiErrorResponse(err);
   }

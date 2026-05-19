@@ -96,11 +96,11 @@ describe('GET /api/sites/[id]/citation-audits/latest', () => {
     const urls = body.audits.map((a: { pageUrl: string }) => a.pageUrl);
     expect(urls).toContain(PAGE_A);
     expect(urls).toContain(PAGE_B);
-    // The latest audit for PAGE_A is the newer one
+    // The latest audit for PAGE_A is the newer one (id is the uid string after serialization)
     const rowA = body.audits.find((a: { pageUrl: string }) => a.pageUrl === PAGE_A);
-    expect(rowA.id).toBe(newerA.id);
+    expect(rowA.id).toBe(newerA.uid);
     // PAGE_B has only one audit
     const rowB = body.audits.find((a: { pageUrl: string }) => a.pageUrl === PAGE_B);
-    expect(rowB.id).toBe(auditB.id);
+    expect(rowB.id).toBe(auditB.uid);
   });
 });

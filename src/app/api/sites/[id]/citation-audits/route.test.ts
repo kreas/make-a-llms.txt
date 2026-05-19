@@ -96,8 +96,8 @@ describe('GET /api/sites/[id]/citation-audits', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.audits).toHaveLength(2);
-    expect(body.audits[0].id).toBe(newer.id);
-    expect(body.audits[1].id).toBe(older.id);
+    expect(body.audits[0].id).toBe(newer.uid);
+    expect(body.audits[1].id).toBe(older.uid);
   });
 });
 
@@ -185,7 +185,10 @@ describe('POST /api/sites/[id]/citation-audits', () => {
     );
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.audit.siteId).toBe(site.id);
+    // After serialization: id = uid string, siteId = site uid string, results = parsed object
+    expect(body.audit.id).toBe(fakeAudit.uid);
+    expect(body.audit.siteId).toBe(site.uid);
     expect(body.audit.status).toBe('succeeded');
+    expect(body.audit.results).toEqual({});
   });
 });

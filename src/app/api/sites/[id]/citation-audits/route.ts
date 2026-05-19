@@ -7,6 +7,7 @@ import { parseUid } from '@/lib/uid';
 import { runCitationAudit } from '@/lib/citation-audit';
 import { runCitationAuditBodySchema, listCitationAuditsQuerySchema } from '@/lib/validators/citation-audits';
 import { assertPageUrlInLatestManifest } from '@/lib/citation-audit/manifest-membership';
+import { serializeCitationAudit } from '@/lib/citation-audit/serialize';
 
 export const maxDuration = 30;
 
@@ -49,7 +50,7 @@ export async function GET(req: Request, ctx: Ctx) {
       .orderBy(desc(citationAudits.fetchedAt))
       .limit(limit);
     const nextCursor = audits.length === limit ? audits[audits.length - 1].fetchedAt : null;
-    return Response.json({ audits, nextCursor });
+    return Response.json({ audits: audits.map((a) => serializeCitationAudit(a, uid)), nextCursor });
   } catch (err) {
     return apiErrorResponse(err);
   }
@@ -64,7 +65,7 @@ export async function POST(req: Request, ctx: Ctx) {
     if (!body.success) throw new ApiError(400, 'validation', body.error.message);
     await assertPageUrlInLatestManifest(site.id, body.data.pageUrl);
     const audit = await runCitationAudit({ siteId: site.id, pageUrl: body.data.pageUrl });
-    return Response.json({ audit });
+    return Response.json({ audit: serializeCitationAudit(audit, uid) });
   } catch (err) {
     return apiErrorResponse(err);
   }

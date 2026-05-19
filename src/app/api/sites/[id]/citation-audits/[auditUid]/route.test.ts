@@ -89,7 +89,8 @@ describe('GET /api/sites/[id]/citation-audits/[auditUid]', () => {
     const res = await GET(new Request('http://t'), ctx(site.uid, audit.uid));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.audit.id).toBe(audit.id);
+    // After serialization: id = uid string
+    expect(body.audit.id).toBe(audit.uid);
     expect(body.audit.pageUrl).toBe(PAGE_URL);
   });
 });

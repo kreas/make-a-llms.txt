@@ -449,7 +449,16 @@ This is part of v1 scope, not a follow-up:
 2. **OpenAPI operations** added to `src/lib/openapi/document.ts` for the four public endpoints, with request/response examples derived from real fixture audits so the docs "Try it" flow works.
 3. **New docs page** `content/docs/citation-audits.mdx`:
    - Overview: what citation readiness means + tier definitions.
-   - The 13 checks: short paragraph each — what it measures, how to fix it.
+   - **How scoring works** (its own section, public-facing, before the check list):
+     - The score is a weighted sum across 13 independent checks. Each check returns its own 0–100 sub-score and contributes to the final score in proportion to its weight. Final formula made explicit:
+       `score = round( sum(check.score × check.weight) / sum(check.weight) )` where `sum(check.weight) = 100`.
+     - The full **rubric table** is duplicated from this design doc into the MDX page, with `Check ID`, `Weight`, and a one-line "What this measures" column. Users can see at a glance which checks matter most.
+     - Tier thresholds spelled out: `0–49 poor`, `50–69 fair`, `70–84 good`, `85–100 excellent`.
+     - A worked scoring example: walk through a small subset (3–4 checks) on a real sample page showing how the per-check scores roll up to a final value. Concrete numbers, no hand-waving.
+     - Failure-mode behavior: if the audit fetch fails (404 / Cloudflare error / timeout) the audit row is `status='failed'` and has no score — it does not contribute a 0. This is documented explicitly so users don't misread "no score" as "0/100".
+     - Determinism note: same HTML in → identical score out. Re-auditing without changing the page produces the same number.
+     - Versioning note: rubric weights are pinned in code. We won't silently shift scores; any weight change is an explicit, announced rubric revision. (A `rubricVersion` column on the audit row is a candidate follow-up once we ever ship a v2 rubric — out of scope for v1, where there's exactly one version.)
+   - **The 13 checks**: dedicated subsection per check with `Check ID`, `Weight`, "What this measures", "When it passes", "How to fix it when it fails", and an example evidence + recommendation snippet pulled from a fixture audit. This is the actionable reference users will return to.
    - Endpoint reference: links into the auto-generated API reference for each route.
    - Worked example: `curl` to POST a new audit, sample success response, common failure cases (target 404, JS-only blocked render, Cloudflare quota).
 4. **Update** `content/docs/meta.json` to register the new page in the sidebar.

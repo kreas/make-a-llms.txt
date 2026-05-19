@@ -138,6 +138,35 @@ export const crawlerAudits = sqliteTable(
 export type CrawlerAudit = typeof crawlerAudits.$inferSelect;
 export type NewCrawlerAudit = typeof crawlerAudits.$inferInsert;
 
+export const citationAudits = sqliteTable(
+  'citation_audits',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    pageUrl: text('page_url').notNull(),
+    status: text('status', { enum: ['succeeded', 'failed'] }).notNull(),
+    score: integer('score'),
+    tier: text('tier', { enum: ['poor', 'fair', 'good', 'excellent'] }),
+    results: text('results'),
+    errorReason: text('error_reason'),
+    errorMessage: text('error_message'),
+    fetchMs: integer('fetch_ms'),
+    browserMsUsed: integer('browser_ms_used'),
+    fetchedAt: text('fetched_at').notNull().default(sql`(current_timestamp)`),
+    trigger: text('trigger', { enum: ['manual'] }).notNull(),
+  },
+  (t) => ({
+    byPageRecent: index('cit_audit_by_page_recent').on(t.siteId, t.pageUrl, t.fetchedAt),
+    bySiteRecent: index('cit_audit_by_site_recent').on(t.siteId, t.fetchedAt),
+  }),
+);
+
+export type CitationAudit = typeof citationAudits.$inferSelect;
+export type NewCitationAudit = typeof citationAudits.$inferInsert;
+
 export const robotsGeneratorDrafts = sqliteTable(
   'robots_generator_drafts',
   {

@@ -71,6 +71,13 @@
       "when": 1779151814115,
       "tag": "0009_fair_maggott",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1779208707653,
+      "tag": "0010_slippery_stellaris",
+      "breakpoints": true
     }
   ]
 }

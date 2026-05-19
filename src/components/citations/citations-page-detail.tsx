@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { CitationsScoreCard } from './citations-score-card';
 import { CitationsHistoryList } from './citations-history-list';
-import { Check, X } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -95,6 +95,24 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
     autoRanFor.current = pageUrl;
     runAudit.mutate();
   }, [pageUrl, history.isSuccess, audits.length, runAudit]);
+
+  const noResultYet = !current;
+  const isInitialLoading =
+    noResultYet && (history.isLoading || runAudit.isPending) && !runAudit.isError;
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <button onClick={onBack} className="text-sm text-body hover:text-ink">← Back to list</button>
+        </div>
+        <div className="rounded-xl bg-canvas-soft py-16 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-body" aria-hidden />
+          <p className="text-sm text-body">Auditing this page… (~10s)</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">

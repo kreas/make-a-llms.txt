@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { CitationsScoreCard } from './citations-score-card';
 import { CitationsHistoryList } from './citations-history-list';
-import { Check, Loader2, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -106,9 +106,14 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="text-sm text-body hover:text-ink">← Back to list</button>
         </div>
-        <div className="rounded-xl bg-canvas-soft py-16 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-6 h-6 animate-spin text-body" aria-hidden />
-          <p className="text-sm text-body">Auditing this page… (~10s)</p>
+        <div className="rounded-xl bg-canvas-soft py-16 flex flex-col items-center justify-center gap-4">
+          <pre
+            aria-hidden
+            className="font-mono text-sm leading-tight text-ink animate-pulse"
+          >{` /\\_/\\
+( o.o )
+ > ^ <`}</pre>
+          <p className="text-sm text-body">Auditing this page…</p>
         </div>
       </div>
     );

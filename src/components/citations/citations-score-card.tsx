@@ -71,7 +71,7 @@ export function CitationsScoreCard({ score, tier, failingCount, totalCount, chec
   }));
 
   return (
-    <section className="px-2 md:px-4">
+    <section className="rounded-xl bg-canvas-soft p-5 md:px-6 md:py-5">
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-5">
         <div className="flex items-center gap-5 md:flex-col md:items-start md:gap-3 md:basis-[160px]">
           <div className="relative aspect-square w-32 shrink-0">

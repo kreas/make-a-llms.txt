@@ -14,6 +14,7 @@ beforeEach(() => {
 
 test('lists pages from the manifest with no audits yet', async () => {
   render(withQueryClient(<CitationsTab siteId="site_1" latestGenUid="gen-uid-1" />));
-  await waitFor(() => expect(screen.getByText('https://x.com/a')).toBeInTheDocument());
+  // Tree shows the last path segment, not the full URL.
+  await waitFor(() => expect(screen.getByText('a')).toBeInTheDocument());
   expect(screen.getByText('Never')).toBeInTheDocument();
 });

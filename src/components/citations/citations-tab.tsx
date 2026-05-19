@@ -2,15 +2,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TabPanel } from '@/components/layout/tab-panel';
-import { CitationsPageTable } from './citations-page-table';
+import { CitationsPageTree, type CitationsPageRow } from './citations-page-tree';
 import { CitationsPageDetail } from './citations-page-detail';
-
-type LatestRow = {
-  pageUrl: string;
-  score: number | null;
-  tier: 'poor' | 'fair' | 'good' | 'excellent' | null;
-  fetchedAt: string | null;
-};
 
 // ManifestPage shape from /api/generations/[id]/pages
 type ManifestPage = { url: string; path: string; status: 'ok' | 'failed' | 'skipped' };
@@ -32,7 +25,7 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
 
   const latest = useQuery({
     queryKey: ['citation-audits', 'latest', siteId],
-    queryFn: async (): Promise<{ audits: { id: string; pageUrl: string; score: number | null; tier: LatestRow['tier']; fetchedAt: string; status: 'succeeded' | 'failed' }[] }> => {
+    queryFn: async (): Promise<{ audits: { id: string; pageUrl: string; score: number | null; tier: CitationsPageRow['tier']; fetchedAt: string; status: 'succeeded' | 'failed' }[] }> => {
       const res = await fetch(`/api/sites/${siteId}/citation-audits/latest`);
       if (!res.ok) throw new Error('Failed to load latest audits');
       return res.json();
@@ -41,7 +34,7 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
 
   const pages = (manifest.data?.pages ?? []).filter((p) => p.status === 'ok');
   const byUrl = new Map(latest.data?.audits.map((a) => [a.pageUrl, a]) ?? []);
-  const rows: LatestRow[] = pages.map((p) => {
+  const rows: CitationsPageRow[] = pages.map((p) => {
     const a = byUrl.get(p.url);
     return {
       pageUrl: p.url,
@@ -56,7 +49,7 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
       {selected ? (
         <CitationsPageDetail siteUid={siteId} pageUrl={selected} onBack={() => setSelected(null)} />
       ) : (
-        <CitationsPageTable rows={rows} onSelect={setSelected} />
+        <CitationsPageTree rows={rows} selectedUrl={selected} onSelect={setSelected} />
       )}
     </TabPanel>
   );

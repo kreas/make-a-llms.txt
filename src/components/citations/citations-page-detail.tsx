@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { CitationsScoreCard } from './citations-score-card';
@@ -83,6 +83,18 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
       setViewingId(null);
     },
   });
+
+  // Auto-run the audit on first visit to a page that has no history yet.
+  // Reset the guard whenever the user navigates to a different page.
+  const autoRanFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoRanFor.current === pageUrl) return;
+    if (!history.isSuccess) return;
+    if (runAudit.isPending) return;
+    if (audits.length > 0) return;
+    autoRanFor.current = pageUrl;
+    runAudit.mutate();
+  }, [pageUrl, history.isSuccess, audits.length, runAudit]);
 
   return (
     <div className="flex flex-col gap-6">

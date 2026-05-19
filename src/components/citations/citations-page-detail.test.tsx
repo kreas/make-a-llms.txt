@@ -47,4 +47,27 @@ describe('CitationsPageDetail', () => {
       status: 200, headers: { 'content-type': 'application/json' },
     }));
   });
+
+  test('auto-runs the audit when there is no history yet', async () => {
+    const fetchSpy = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(JSON.stringify({ audit: successAudit }), {
+          status: 200, headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ audits: [] }), {
+        status: 200, headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    render(withQueryClient(<CitationsPageDetail siteUid="site_1" pageUrl="https://x.com/new" onBack={() => {}} />));
+
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/sites/site_1/citation-audits',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+  });
 });

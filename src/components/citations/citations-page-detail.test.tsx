@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { withQueryClient } from '@/test/utils';
 import { CitationsPageDetail } from './citations-page-detail';
 

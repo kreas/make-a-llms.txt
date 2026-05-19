@@ -7,6 +7,10 @@ import {
   generationViewSchema,
   pageManifestSchema,
   errorSchema,
+  citationAuditLatestSchema,
+  citationAuditListSchema,
+  citationAuditSingleSchema,
+  runCitationAuditV1Schema,
 } from './schemas';
 
 export const v1Routes = {
@@ -121,6 +125,63 @@ export const v1Routes = {
       200: { description: 'OK', contentType: 'text/markdown' },
       401: { description: 'Unauthenticated', schema: errorSchema },
       404: { description: 'Not found', schema: errorSchema },
+    },
+  },
+  listCitationAuditsLatest: {
+    method: 'get',
+    path: '/sites/{siteId}/citation-audits/latest',
+    summary: 'Latest citation audit per page for a site',
+    tags: ['citation-audits'],
+    pathParams: { siteId: 'uuid' as const },
+    responses: {
+      200: { description: 'OK', schema: citationAuditLatestSchema },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+      404: { description: 'Site not found', schema: errorSchema },
+    },
+  },
+  listCitationAudits: {
+    method: 'get',
+    path: '/sites/{siteId}/citation-audits',
+    summary: 'Citation audit history for a page',
+    tags: ['citation-audits'],
+    pathParams: { siteId: 'uuid' as const },
+    queryParams: {
+      pageUrl: { type: 'string' as const, format: 'uri', required: true },
+      limit: { type: 'integer' as const, required: false },
+      cursor: { type: 'string' as const, required: false },
+    },
+    responses: {
+      200: { description: 'OK', schema: citationAuditListSchema },
+      400: { description: 'Validation error', schema: errorSchema },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+      404: { description: 'Site not found', schema: errorSchema },
+    },
+  },
+  getCitationAudit: {
+    method: 'get',
+    path: '/sites/{siteId}/citation-audits/{auditId}',
+    summary: 'Fetch a single citation audit',
+    tags: ['citation-audits'],
+    pathParams: { siteId: 'uuid' as const, auditId: 'uuid' as const },
+    responses: {
+      200: { description: 'OK', schema: citationAuditSingleSchema },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+      404: { description: 'Audit not found', schema: errorSchema },
+    },
+  },
+  createCitationAudit: {
+    method: 'post',
+    path: '/sites/{siteId}/citation-audits',
+    summary: 'Run a new citation audit for a page',
+    tags: ['citation-audits'],
+    pathParams: { siteId: 'uuid' as const },
+    requestBody: runCitationAuditV1Schema,
+    responses: {
+      200: { description: 'OK', schema: citationAuditSingleSchema },
+      400: { description: 'Validation error', schema: errorSchema },
+      401: { description: 'Unauthenticated', schema: errorSchema },
+      404: { description: 'Site not found', schema: errorSchema },
+      422: { description: 'pageUrl not in latest manifest', schema: errorSchema },
     },
   },
 } as const;

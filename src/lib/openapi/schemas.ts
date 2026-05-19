@@ -157,3 +157,58 @@ export type CreateGenerationV1Input = z.infer<typeof createGenerationV1Schema>;
 export type GenerationViewDto = z.infer<typeof generationViewSchema>;
 export type PageManifestDto = z.infer<typeof pageManifestSchema>;
 export type GenerationListItemDto = z.infer<typeof generationListItemSchema>;
+
+// ===== Citation audit schemas =====
+
+export const citationTierEnum = z
+  .enum(['poor', 'fair', 'good', 'excellent'])
+  .meta({ id: 'CitationTier' });
+
+export const citationCheckResultSchema = z.object({
+  id: z.string(),
+  passed: z.boolean(),
+  score: z.number().int().min(0).max(100),
+  weight: z.number().int().min(0).max(100),
+  evidence: z.array(z.string()),
+  recommendation: z.string().nullable(),
+}).meta({ id: 'CitationCheckResult' });
+
+export const citationAuditResultsSchema = z.object({
+  score: z.number().int().min(0).max(100),
+  tier: citationTierEnum,
+  checks: z.array(citationCheckResultSchema),
+  metadata: z.object({ parseMs: z.number().int().nonnegative() }),
+}).meta({ id: 'CitationAuditResults' });
+
+export const citationAuditViewSchema = z.object({
+  id: z.string().uuid(),
+  siteId: z.string().uuid(),
+  pageUrl: z.string().url(),
+  status: z.enum(['succeeded', 'failed']),
+  score: z.number().int().min(0).max(100).nullable(),
+  tier: citationTierEnum.nullable(),
+  fetchedAt: z.string(),
+  fetchMs: z.number().int().nullable(),
+  browserMsUsed: z.number().int().nullable(),
+  trigger: z.literal('manual'),
+  errorReason: z.string().nullable(),
+  errorMessage: z.string().nullable(),
+  results: citationAuditResultsSchema.nullable(),
+}).meta({ id: 'CitationAudit' });
+
+export const citationAuditListSchema = z.object({
+  audits: z.array(citationAuditViewSchema),
+  nextCursor: z.string().nullable(),
+}).meta({ id: 'CitationAuditList' });
+
+export const citationAuditLatestSchema = z.object({
+  audits: z.array(citationAuditViewSchema),
+}).meta({ id: 'CitationAuditLatest' });
+
+export const citationAuditSingleSchema = z.object({
+  audit: citationAuditViewSchema,
+}).meta({ id: 'CitationAuditSingle' });
+
+export const runCitationAuditV1Schema = z.object({
+  pageUrl: z.string().url(),
+}).strict().meta({ id: 'RunCitationAudit' });

@@ -44,6 +44,7 @@ export function SiteHeader() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <UserMenu />
           <Button
             asChild
             size="icon"
@@ -55,7 +56,6 @@ export function SiteHeader() {
               <span className="sr-only">New project</span>
             </Link>
           </Button>
-          <UserMenu />
         </div>
       </div>
     </header>

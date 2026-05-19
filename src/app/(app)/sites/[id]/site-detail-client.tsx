@@ -68,10 +68,23 @@ export function SiteDetailClient({
         body: JSON.stringify({ siteId: site.uid, notifyEmail: false }),
       });
       if (!res.ok) throw new Error('Regenerate failed');
-      return res.json() as Promise<{ generation: { uid: string } }>;
+      return res.json() as Promise<{ generation: Generation }>;
     },
-    onSuccess: ({ generation }) => router.push(`/g/${generation.uid}`),
+    onSuccess: ({ generation }) => {
+      setSelectedId(generation.id);
+      router.refresh();
+    },
   });
+
+  // Poll for status updates while any generation is in flight.
+  useEffect(() => {
+    const hasInFlight = generations.some(
+      (g) => g.status === 'pending' || g.status === 'running',
+    );
+    if (!hasInFlight) return;
+    const handle = setInterval(() => router.refresh(), 3000);
+    return () => clearInterval(handle);
+  }, [generations, router]);
 
   // Auto-trigger regenerate when arriving with ?action=regenerate from the dashboard's Run Now
   useEffect(() => {
@@ -124,19 +137,21 @@ export function SiteDetailClient({
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-hairline-strong bg-surface-card px-4 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
+              aria-label="Settings"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-hairline-strong bg-surface-card text-ink transition-colors hover:bg-canvas-soft"
             >
               <Settings className="h-4 w-4" />
-              Settings
+              <span className="sr-only">Settings</span>
             </button>
             <button
               type="button"
               onClick={() => regenerate.mutate()}
               disabled={regenerate.isPending}
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-canvas transition-colors hover:bg-primary-active disabled:opacity-50"
+              aria-label="Re-run Generation"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-primary text-canvas transition-colors hover:bg-primary-active disabled:opacity-50"
             >
               <RefreshCw className="h-4 w-4" />
-              Re-run Generation
+              <span className="sr-only">Re-run Generation</span>
             </button>
           </div>
         </header>

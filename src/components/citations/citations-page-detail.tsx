@@ -137,7 +137,7 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
             <Accordion
               type="multiple"
               defaultValue={current.results.checks.filter((c) => !c.passed).map((c) => c.id)}
-              className="border border-hairline rounded-lg divide-y divide-hairline bg-surface-card"
+              className="divide-y divide-hairline"
             >
               {[...current.results.checks]
                 .sort((a, b) => Number(a.passed) - Number(b.passed))
@@ -145,7 +145,7 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
                   const Icon = c.passed ? Check : X;
                   const iconClass = c.passed ? 'text-semantic-success' : 'text-destructive';
                   return (
-                    <AccordionItem key={c.id} value={c.id} className="border-b-0 px-3">
+                    <AccordionItem key={c.id} value={c.id} className="border-b-0">
                       <AccordionTrigger className="hover:no-underline py-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <Icon className={cn('w-4 h-4 shrink-0', iconClass)} aria-hidden />
@@ -157,7 +157,7 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
                           </span>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="pb-3 pl-7 pr-2">
+                      <AccordionContent className="pb-3 pl-7">
                         {c.evidence.length > 0 && (
                           <p className="text-sm text-body">Found: {c.evidence.join(' ')}</p>
                         )}

@@ -9,5 +9,11 @@ export async function auditPage(input: AuditInput): Promise<AuditResult> {
   const ctx = { entityName: input.entityName };
   const checks = CHECKS.map((mod) => mod.check(parsed, ctx));
   const { score, tier } = aggregate(checks);
-  return { score, tier, checks, metadata: { parseMs: Date.now() - t0 } };
+  return {
+    score,
+    tier,
+    pageTitle: parsed.title,
+    checks,
+    metadata: { parseMs: Date.now() - t0 },
+  };
 }

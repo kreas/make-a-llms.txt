@@ -8,6 +8,7 @@ const successAudit = {
   fetchedAt: new Date().toISOString(), errorReason: null, errorMessage: null,
   results: {
     score: 78, tier: 'good' as const,
+    pageTitle: 'Example Co — AI Strategy',
     checks: [
       { id: 'h1-present', passed: true, score: 100, weight: 5, evidence: ['H1 found'], recommendation: null },
       { id: 'answer-position', passed: false, score: 40, weight: 15, evidence: ['Missing entity'], recommendation: 'Add entity.' },

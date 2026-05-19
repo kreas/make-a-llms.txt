@@ -176,6 +176,7 @@ export const citationCheckResultSchema = z.object({
 export const citationAuditResultsSchema = z.object({
   score: z.number().int().min(0).max(100),
   tier: citationTierEnum,
+  pageTitle: z.string().nullable(),
   checks: z.array(citationCheckResultSchema),
   metadata: z.object({ parseMs: z.number().int().nonnegative() }),
 }).meta({ id: 'CitationAuditResults' });

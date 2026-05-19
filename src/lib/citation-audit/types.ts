@@ -19,6 +19,7 @@ export type CheckResult = {
 export type AuditResult = {
   score: number;        // 0–100 overall
   tier: Tier;
+  pageTitle: string | null;
   checks: CheckResult[];
   metadata: { parseMs: number };
 };

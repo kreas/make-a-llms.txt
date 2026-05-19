@@ -3,9 +3,16 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { CitationsScoreCard } from './citations-score-card';
-import { CitationsCheckRow } from './citations-check-row';
 import { CitationsHistoryList } from './citations-history-list';
+import { Check, X } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { formatRelativeTime } from '@/lib/format-time';
+import { cn } from '@/lib/utils';
 
 const CHECK_LABEL: Record<string, string> = {
   'h1-present': 'H1 present',
@@ -28,6 +35,7 @@ const CHECK_LABEL: Record<string, string> = {
 type AuditResults = {
   score: number;
   tier: 'poor' | 'fair' | 'good' | 'excellent';
+  pageTitle: string | null;
   checks: { id: string; passed: boolean; score: number; weight: number; evidence: string[]; recommendation: string | null }[];
 };
 
@@ -85,12 +93,21 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
         </Button>
       </div>
 
-      <div>
-        <h2 className="display-sm">{pageUrl}</h2>
+      <div className="flex flex-col gap-1">
+        <h2 className="display-sm text-ink truncate">
+          {current?.results?.pageTitle?.trim() || pageUrl}
+        </h2>
+        <a
+          href={pageUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono text-[13px] text-body hover:text-ink truncate"
+          title={pageUrl}
+        >
+          {pageUrl}
+        </a>
         {current && (
-          <p className="text-body text-sm">
-            Last audited {formatRelativeTime(current.fetchedAt)} • Audit #{current.id}
-          </p>
+          <p className="text-body text-sm">Last audited {formatRelativeTime(current.fetchedAt)}</p>
         )}
       </div>
 
@@ -117,11 +134,41 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
           />
           <section>
             <h3 className="caption-uppercase text-xs text-body mb-2">Checks</h3>
-            <ul className="flex flex-col gap-2">
-              {[...current.results.checks].sort((a, b) => Number(a.passed) - Number(b.passed)).map((c) => (
-                <CitationsCheckRow key={c.id} check={c} label={CHECK_LABEL[c.id] ?? c.id} />
-              ))}
-            </ul>
+            <Accordion
+              type="multiple"
+              defaultValue={current.results.checks.filter((c) => !c.passed).map((c) => c.id)}
+              className="border border-hairline rounded-lg divide-y divide-hairline bg-surface-card"
+            >
+              {[...current.results.checks]
+                .sort((a, b) => Number(a.passed) - Number(b.passed))
+                .map((c) => {
+                  const Icon = c.passed ? Check : X;
+                  const iconClass = c.passed ? 'text-semantic-success' : 'text-destructive';
+                  return (
+                    <AccordionItem key={c.id} value={c.id} className="border-b-0 px-3">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Icon className={cn('w-4 h-4 shrink-0', iconClass)} aria-hidden />
+                          <span className="font-medium text-ink truncate">
+                            {CHECK_LABEL[c.id] ?? c.id}
+                          </span>
+                          <span className="ml-auto text-xs text-body whitespace-nowrap pr-2">
+                            weight {c.weight} • {c.score}/100
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-3 pl-7 pr-2">
+                        {c.evidence.length > 0 && (
+                          <p className="text-sm text-body">Found: {c.evidence.join(' ')}</p>
+                        )}
+                        {c.recommendation && (
+                          <p className="text-sm text-ink mt-1">Fix: {c.recommendation}</p>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+            </Accordion>
           </section>
         </>
       )}

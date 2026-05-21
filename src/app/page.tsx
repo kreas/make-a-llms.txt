@@ -57,12 +57,12 @@ export default async function Home() {
   return (
     <div className="bg-canvas text-ink">
       {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-hairline bg-canvas">
+      <nav className="sticky top-0 z-50 border-b border-hairline bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 text-ink">
               <img
-                src="/logo.webp"
+                src="/logo-v4.png"
                 alt=""
                 width={28}
                 height={28}

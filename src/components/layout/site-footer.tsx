@@ -16,18 +16,18 @@ const LINK_CLASS =
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-black/10 bg-gradient-to-br from-[#e9ca80] to-[#f3e1b6] text-ink">
-      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-8 px-6 py-20 md:grid-cols-2">
+    <footer className="relative border-t border-black/10 bg-gradient-to-tr from-[#efc466] to-[#F64E00] text-ink">
+      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-8 px-6 pt-20 pb-20 md:py-20 md:grid-cols-2">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <img
-              src="/logo.webp"
+              src="/logo-v4.png"
               alt=""
               width={40}
               height={40}
               className="h-10 w-10 rounded-md object-contain"
             />
-            <span className="display-sm">AI Ready</span>
+            <span className="display-sm text-ink">AI Ready</span>
           </div>
           <p className="max-w-sm font-mono text-[13px] text-ink/75">
             © {new Date().getFullYear()} AI Ready. Built for the next billion builders.
@@ -53,6 +53,11 @@ export function SiteFooter() {
           </div>
         </div>
       </div>
+      <img
+        src="/footer-cat-v2.png"
+        alt=""
+        className="absolute bottom-0 left-0 h-14 w-14 object-contain pointer-events-none md:h-20 md:w-20"
+      />
     </footer>
   );
 }

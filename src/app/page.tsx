@@ -324,7 +324,7 @@ API Reference: https://devengine.ai/api
       {/* Content Band */}
       <section
         id="how-it-works"
-        className="mx-auto max-w-[1200px] px-6 pt-4 pb-4"
+        className="mx-auto max-w-[1200px] px-6 pt-12 pb-24"
       >
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
           <div>

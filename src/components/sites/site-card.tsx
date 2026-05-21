@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import type { Site, Generation } from '@/db/schema';
 import { StatusBadge } from '@/components/generations/status-badge';

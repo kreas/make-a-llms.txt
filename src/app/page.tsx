@@ -102,7 +102,7 @@ export default async function Home() {
       </nav>
 
       {/* Hero */}
-      <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 py-20 text-center">
+      <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-20 pb-4 text-center">
         <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-card px-3 py-1">
           <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
           <span className="caption-uppercase text-primary">
@@ -139,7 +139,7 @@ export default async function Home() {
       </header>
 
       {/* Bento Grid */}
-      <main className="mx-auto max-w-[1200px] px-6 pb-20">
+      <main className="mx-auto max-w-[1200px] px-6 pb-0">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           {/* Crawler Audit */}
           <section className="relative flex flex-col rounded-xl border border-hairline bg-surface-card p-6 md:col-span-5">
@@ -324,7 +324,7 @@ API Reference: https://devengine.ai/api
       {/* Content Band */}
       <section
         id="how-it-works"
-        className="mx-auto max-w-[1200px] px-6 py-20"
+        className="mx-auto max-w-[1200px] px-6 pt-4 pb-4"
       >
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
           <div>

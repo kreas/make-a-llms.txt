@@ -146,14 +146,16 @@ function Branch({
         style={{ paddingLeft: 8 + depth * 14 }}
       >
         <FileText className="w-4 h-4 shrink-0 text-muted-soft" aria-hidden />
-        <span className="truncate flex-1 min-w-0 text-body">{node.name}</span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-body">{node.name}</span>
+          <span className="text-[11px] text-muted-soft">
+            {row.fetchedAt ? `Audited ${formatRelativeTime(row.fetchedAt)}` : 'Never audited'}
+          </span>
+        </div>
         <span className="font-mono text-xs text-body tabular-nums w-8 text-right">
           {row.score ?? '—'}
         </span>
         <CitationsTierPill tier={row.tier ?? 'none'} />
-        <span className="text-xs text-body w-20 text-right">
-          {row.fetchedAt ? formatRelativeTime(row.fetchedAt) : 'Never'}
-        </span>
       </button>
     );
   }

@@ -20,6 +20,8 @@ export const createSiteSchema = z
 
 export const updateSiteSchema = z.object({
   name: z.string().min(1).max(80).optional(),
+  displayName: z.string().min(1).max(80).nullable().optional(),
+  description: z.string().max(500).nullable().optional(),
   sitemapUrl: httpUrl.nullable().optional(),
 });
 

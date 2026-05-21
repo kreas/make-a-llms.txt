@@ -1,18 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { FileText } from 'lucide-react';
 import { TabPanel } from '@/components/layout/tab-panel';
 import { CitationsPageTree, type CitationsPageRow } from './citations-page-tree';
 import { CitationsPageDetail } from './citations-page-detail';
 
-// ManifestPage shape from /api/generations/[id]/pages
 type ManifestPage = { url: string; path: string; status: 'ok' | 'failed' | 'skipped' };
 type ManifestResponse = { status: string; count: number; pages: ManifestPage[] };
 
 export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestGenUid: string | null }) {
   const [selected, setSelected] = useState<string | null>(null);
 
-  // Reuse the same endpoint as the pages.md tab: /api/generations/[uid]/pages
   const manifest = useQuery({
     queryKey: ['citation-audits', 'manifest-pages', siteId, latestGenUid],
     enabled: !!latestGenUid,
@@ -44,13 +43,36 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
     };
   });
 
+  // Default to the first page when the manifest loads.
+  useEffect(() => {
+    if (!selected && rows.length > 0) {
+      setSelected(rows[0].pageUrl);
+    }
+  }, [rows, selected]);
+
   return (
-    <TabPanel>
-      {selected ? (
-        <CitationsPageDetail siteUid={siteId} pageUrl={selected} onBack={() => setSelected(null)} />
-      ) : (
-        <CitationsPageTree rows={rows} selectedUrl={selected} onSelect={setSelected} />
-      )}
+    <TabPanel contentClassName="p-4">
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[320px_1fr]">
+        <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-auto rounded-lg border border-hairline bg-surface-card">
+          {manifest.isPending ? (
+            <div className="p-4 text-sm text-body">Loading pages…</div>
+          ) : rows.length === 0 ? (
+            <div className="p-4 text-sm text-body">No pages available.</div>
+          ) : (
+            <CitationsPageTree rows={rows} selectedUrl={selected} onSelect={setSelected} />
+          )}
+        </div>
+        <div className="min-w-0">
+          {selected ? (
+            <CitationsPageDetail siteUid={siteId} pageUrl={selected} />
+          ) : (
+            <div className="flex h-[600px] flex-col items-center justify-center rounded-lg border border-hairline bg-surface-card p-8 text-center">
+              <FileText className="h-8 w-8 text-muted-soft" />
+              <p className="mt-4 text-base text-muted-strong">Pick a page on the left to view its citation audit.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </TabPanel>
   );
 }

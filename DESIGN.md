@@ -149,6 +149,20 @@ The system uses **hairline-only depth**. No drop shadows, no elevation tiers. Ca
 
 **`button-download`** — Larger ink-canvas CTA. Background `{colors.ink}`, text `{colors.canvas}`, padding 12px × 20px, height 44px. Used for "Download for macOS" type CTAs.
 
+**Icon-only buttons** — When a button shows only an icon (settings gear, copy, close, refresh, etc.), it must still announce a label to assistive tech and reveal its purpose on hover. Use this pattern:
+
+```tsx
+<Button title="Settings" aria-label="Settings">
+  <Settings className="h-4 w-4" aria-hidden="true" />
+  <span className="sr-only">Settings</span>
+</Button>
+```
+
+- `title` gives sighted users a tooltip on hover.
+- `sr-only` text is the accessible name for screen readers; pair with `aria-hidden="true"` on the icon so it isn't announced twice.
+- `aria-label` is acceptable in place of `sr-only` text, but prefer `sr-only` when the label is identical to the tooltip so the same string drives both.
+- Never ship a `<button>` whose only content is an icon with no accessible name.
+
 ### Hero & IDE Mockups
 
 **`hero-band`** — Background `{colors.canvas}`, full-width display headline in `{typography.display-mega}` (72px / 400 / -2.16px), subhead in `{typography.body-md}`, two CTAs (`button-download` + `button-tertiary-text`), and a centered IDE-mockup card below the hero copy.

@@ -19,6 +19,9 @@ export function toPublicSite(s: Site): SitePublic {
   return {
     id: s.uid,
     name: s.name,
+    displayName: s.displayName,
+    description: s.description,
+    faviconUrl: s.faviconUrl,
     rootUrl: s.rootUrl,
     sitemapUrl: s.sitemapUrl,
     webhookTokenPrefix: s.webhookTokenPrefix,

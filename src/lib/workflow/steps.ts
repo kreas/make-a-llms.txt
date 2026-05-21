@@ -460,7 +460,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
           filename: page.filename,
           blobPath: page.blobPath,
         },
-        siteName: site.name,
+        siteName: site.displayName ?? site.name,
         maxInputBytes: SUMMARY_MAX_INPUT_BYTES,
       });
 

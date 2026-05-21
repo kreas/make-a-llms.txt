@@ -3,6 +3,9 @@ import type { Generation } from '@/db/schema';
 export type SitePublic = {
   id: string;
   name: string;
+  displayName: string | null;
+  description: string | null;
+  faviconUrl: string | null;
   rootUrl: string;
   sitemapUrl: string | null;
   webhookTokenPrefix: string;

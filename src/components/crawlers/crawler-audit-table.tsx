@@ -16,15 +16,15 @@ export type CrawlerAuditRow = {
 const STATUS_PILL: Record<EffectiveStatus, { label: string; className: string }> = {
   allowed: {
     label: 'ALLOWED',
-    className: 'bg-semantic-success/20 text-[#155e44]',
+    className: 'bg-semantic-success/15 text-semantic-success',
   },
   blocked: {
     label: 'BLOCKED',
-    className: 'bg-destructive/20 text-destructive',
+    className: 'bg-destructive/15 text-destructive',
   },
   partial: {
     label: 'PARTIAL',
-    className: 'bg-timeline-thinking/30 text-[#7a4229]',
+    className: 'bg-surface-strong text-ink',
   },
 };
 

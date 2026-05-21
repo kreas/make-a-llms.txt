@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -26,10 +25,10 @@ const CRAWLER_ROWS = [
 ] as const;
 
 const TONE_CLASSES: Record<(typeof CRAWLER_ROWS)[number]['tone'], string> = {
-  grep: 'bg-timeline-grep/30 text-[#2e5230]',
-  read: 'bg-timeline-read/30 text-[#2c405a]',
-  thinking: 'bg-timeline-thinking/30 text-[#7a4229]',
-  edit: 'bg-timeline-edit/30 text-[#4c3866]',
+  grep: 'bg-semantic-success/15 text-semantic-success',
+  read: 'bg-semantic-success/15 text-semantic-success',
+  thinking: 'bg-destructive/15 text-destructive',
+  edit: 'bg-surface-strong text-ink',
 };
 
 const FRESHNESS_CELLS = [
@@ -38,8 +37,8 @@ const FRESHNESS_CELLS = [
 ] as const;
 
 function freshnessClass(cell: (typeof FRESHNESS_CELLS)[number]) {
-  if (cell === 'p') return 'bg-primary';
-  if (cell === 'p40') return 'bg-primary/40';
+  if (cell === 'p') return 'bg-semantic-success';
+  if (cell === 'p40') return 'bg-semantic-success/40';
   const v = cell as number;
   if (v >= 95) return 'bg-ink';
   if (v >= 80) return 'bg-ink/80';
@@ -59,16 +58,15 @@ export default async function Home() {
     <div className="bg-canvas text-ink">
       {/* Top Navigation */}
       <nav className="sticky top-0 z-50 border-b border-hairline bg-canvas">
-        <div className="mx-auto flex h-[71px] w-full max-w-[1200px] items-center justify-between px-6">
+        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 text-ink">
-              <Image
+              <img
                 src="/logo.webp"
                 alt=""
                 width={28}
                 height={28}
                 className="h-7 w-7 shrink-0 rounded-md"
-                priority
               />
               <span className="display-sm">AI Ready</span>
             </Link>
@@ -104,40 +102,65 @@ export default async function Home() {
       </nav>
 
       {/* Hero */}
-      <header className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-8 px-6 py-20 md:grid-cols-2">
-        <div className="flex flex-col items-start">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-card px-3 py-1">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-            <span className="caption-uppercase text-primary">
-              v1.0 — The Sitemap-to-llms.txt Bridge
-            </span>
-          </div>
-          <h1 className="display-mega max-w-xl text-left text-ink">
-            Documentation for the Agent Era.
-          </h1>
-          <p className="mt-8 max-w-xl text-left text-body">
-            One-click bridge from any sitemap to high-fidelity LLM context. Ship{' '}
-            <code className="font-mono">llms.txt</code> and{' '}
-            <code className="font-mono">llms-full.txt</code> that AI agents
-            actually understand, index, and cite — without hallucinating.
-          </p>
-          <div className="mt-12 flex flex-wrap gap-4">
-            <Button asChild size="lg" className="h-11 bg-ink text-canvas hover:bg-ink/90">
-              <Link href={primaryHref}>{primaryLabel}</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="h-11">
-              <Link href="/docs/manifesto">Read the Manifesto</Link>
-            </Button>
-          </div>
+      <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 py-20 text-center">
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-card px-3 py-1">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+          <span className="caption-uppercase text-primary">
+            v1.0 — The Sitemap-to-llms.txt Bridge
+          </span>
         </div>
-        <div className="relative flex justify-center md:justify-end">
-          <div className="relative w-full max-w-[500px]">
-            <div className="rotate-1 rounded-2xl border border-hairline-soft bg-surface-card p-6">
-              <div className="caption-uppercase mb-4 text-muted-soft">
-                output/llms.txt
+        <h1 className="display-mega max-w-3xl text-ink">
+          Documentation for the Agent Era.
+        </h1>
+        <p className="mt-8 max-w-2xl text-body">
+          One-click bridge from any sitemap to high-fidelity LLM context. Ship{' '}
+          <code className="font-mono">llms.txt</code> and{' '}
+          <code className="font-mono">llms-full.txt</code> that AI agents
+          actually understand, index, and cite — without hallucinating.
+        </p>
+        <div className="mt-12 flex flex-wrap justify-center gap-4">
+          <Button asChild size="lg" className="h-11 bg-ink text-canvas hover:bg-ink/90">
+            <Link href={primaryHref}>{primaryLabel}</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-11">
+            <Link href="/docs/manifesto">Read the Manifesto</Link>
+          </Button>
+        </div>
+
+        {/* IDE Mockup */}
+        <div className="mt-16 w-full max-w-4xl">
+          <div className="ide-mockup-card overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-none">
+            {/* Header bar mimicking an IDE */}
+            <div className="flex items-center justify-between border-b border-hairline bg-canvas-soft px-4 py-2">
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-hairline-strong" />
+                <div className="h-2.5 w-2.5 rounded-full bg-hairline-strong" />
+                <div className="h-2.5 w-2.5 rounded-full bg-hairline-strong" />
               </div>
-              <pre className="font-mono text-[13px] leading-relaxed text-ink">
-                <code>{`# devengine.ai
+              <span className="font-mono text-[12px] text-body">
+                devengine.ai — Cursor Editor
+              </span>
+              <div className="w-12" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 min-h-[300px]">
+              {/* Sidebar Pane */}
+              <div className="hidden md:block md:col-span-1 border-r border-hairline bg-canvas-soft p-4 text-left font-mono text-[13px] leading-relaxed text-body">
+                <div className="caption-uppercase mb-4 text-muted-soft text-[11px] font-semibold tracking-wider">PROJECT</div>
+                <div className="space-y-2">
+                  <div className="text-ink">src/</div>
+                  <div className="pl-3 text-ink">components/</div>
+                  <div className="pl-6 text-muted-soft">crawler.tsx</div>
+                  <div className="pl-6 text-muted-soft">parser.tsx</div>
+                  <div className="text-ink">output/</div>
+                  <div className="pl-3 text-primary font-medium">llms.txt</div>
+                  <div className="pl-3 text-muted-soft">llms-full.txt</div>
+                </div>
+              </div>
+              {/* Main Editor Pane */}
+              <div className="p-6 text-left md:col-span-3 bg-surface-card font-mono text-[13px] leading-relaxed text-ink">
+                <div className="caption-uppercase mb-4 text-muted-soft text-[11px] font-semibold tracking-wider">output/llms.txt</div>
+                <pre className="font-mono text-[13px] leading-relaxed text-ink">
+                  <code>{`# devengine.ai
 
 > Automatic context generation
 > for LLM ingestion.
@@ -151,14 +174,7 @@ export default async function Home() {
 - /auth: JWT identity
 - /ingest: crawler logic
 - /vector: embeddings`}</code>
-              </pre>
-            </div>
-            <div className="absolute -right-3 -bottom-5 hidden rotate-3 rounded-xl border border-hairline bg-surface-card p-3 md:block">
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-5 text-primary" />
-                <span className="font-mono text-[12px] text-ink">
-                  Agent-optimized context
-                </span>
+                </pre>
               </div>
             </div>
           </div>
@@ -372,7 +388,7 @@ API Reference: https://devengine.ai/api
                 'Real-time hallucination prevention monitoring',
               ].map((item) => (
                 <li key={item} className="flex gap-3">
-                  <CheckCircle2 className="size-5 text-primary" />
+                  <CheckCircle2 className="size-5 text-semantic-success" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -397,7 +413,7 @@ API Reference: https://devengine.ai/api
                 </div>
               </div>
             </div>
-            <div className="absolute -bottom-4 -left-4 z-20 -rotate-3 rounded-xl bg-primary p-6 text-white">
+            <div className="absolute -bottom-4 -left-4 z-20 -rotate-3 rounded-xl bg-ink p-6 text-canvas border border-hairline-strong">
               <div className="display-sm font-semibold">4.2x</div>
               <div className="caption-uppercase">Better Retrieval Accuracy</div>
             </div>

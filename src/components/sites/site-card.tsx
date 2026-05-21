@@ -15,7 +15,7 @@ export function SiteCard({ site, latest }: Props) {
   const isInFlight = status === 'pending' || status === 'running';
   const isFailed = status === 'failed' || status === 'cancelled';
   return (
-    <div className="flex flex-col gap-6 rounded-lg border border-hairline bg-surface-card p-6 transition-colors hover:border-hairline-strong">
+    <div className="flex flex-col gap-6 rounded-xl border border-hairline bg-surface-card p-6 transition-colors hover:border-hairline-strong">
       <div className="flex items-start justify-between">
         <StatusBadge status={status} />
         <span className="font-mono text-[13px] text-muted-strong">
@@ -42,7 +42,7 @@ export function SiteCard({ site, latest }: Props) {
       <div className="mt-auto flex gap-3 pt-3">
         <Link
           href={`/sites/${site.uid}`}
-          className="flex h-10 flex-1 items-center justify-center rounded-md border border-hairline-strong bg-surface-card text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
+          className="flex h-10 flex-1 items-center justify-center rounded-lg border border-hairline-strong bg-surface-card text-sm font-medium text-ink transition-colors hover:bg-canvas-soft"
         >
           View
         </Link>
@@ -70,7 +70,7 @@ function RegenerateLink({
       <button
         type="button"
         disabled
-        className="flex h-10 flex-1 cursor-not-allowed items-center justify-center rounded-md bg-surface-strong text-sm font-medium text-muted-strong"
+        className="flex h-10 flex-1 cursor-not-allowed items-center justify-center rounded-lg bg-surface-strong text-sm font-medium text-muted-strong"
       >
         {label}
       </button>
@@ -79,7 +79,7 @@ function RegenerateLink({
   return (
     <Link
       href={`/sites/${siteId}?action=regenerate`}
-      className="flex h-10 flex-1 items-center justify-center rounded-md bg-primary text-sm font-medium text-canvas transition-colors hover:bg-primary-active"
+      className="flex h-10 flex-1 items-center justify-center rounded-lg bg-primary text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
     >
       {label}
     </Link>

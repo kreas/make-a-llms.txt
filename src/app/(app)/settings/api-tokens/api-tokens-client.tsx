@@ -34,7 +34,7 @@ export function ApiTokensClient() {
   const tokens = tokensQuery.data?.tokens ?? [];
 
   return (
-    <section className="rounded-lg border border-hairline bg-surface-card p-8">
+    <section className="rounded-xl border border-hairline bg-surface-card p-8">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-ink">Tokens</h2>
         <Button onClick={() => setCreating(true)}>New token</Button>

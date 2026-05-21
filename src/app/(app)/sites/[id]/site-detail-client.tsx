@@ -189,7 +189,7 @@ export function SiteDetailClient({
               type="button"
               onClick={() => setSettingsOpen(true)}
               title="Settings"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-hairline-strong bg-surface-card text-ink transition-colors hover:bg-canvas-soft"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-hairline-strong bg-surface-card text-ink transition-colors hover:bg-canvas-soft"
             >
               <Settings className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">Settings</span>
@@ -199,7 +199,7 @@ export function SiteDetailClient({
               onClick={() => regenerate.mutate()}
               disabled={regenerate.isPending}
               title="Re-run Generation"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-primary text-canvas transition-colors hover:bg-primary-active disabled:opacity-50"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-on-primary transition-colors hover:bg-primary-active disabled:opacity-50"
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">Re-run Generation</span>

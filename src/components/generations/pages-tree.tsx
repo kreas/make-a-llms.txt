@@ -74,9 +74,9 @@ function buildTree(pages: ManifestPage[]): TreeNode[] {
 function StatusDot({ status }: { status: ManifestPage['status'] }) {
   const colorClass =
     status === 'ok'
-      ? 'bg-timeline-done'
+      ? 'bg-semantic-success'
       : status === 'failed'
-        ? 'bg-timeline-edit'
+        ? 'bg-destructive'
         : 'bg-hairline-strong';
   return (
     <span

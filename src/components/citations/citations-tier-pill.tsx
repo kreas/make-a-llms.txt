@@ -5,10 +5,10 @@ import { cn } from '@/lib/utils';
 // (shadcn binds --destructive → --semantic-error).
 const PALETTE: Record<string, string> = {
   excellent: 'bg-semantic-success/15 text-semantic-success',
-  good:      'bg-timeline-done/30 text-ink',
-  fair:      'bg-timeline-thinking/30 text-ink',
+  good:      'bg-surface-strong/50 text-ink',
+  fair:      'bg-surface-strong/30 text-body',
   poor:      'bg-destructive/15 text-destructive',
-  none:      'bg-timeline-read/30 text-body',
+  none:      'bg-surface-strong/30 text-body',
 };
 
 type Tier = 'excellent' | 'good' | 'fair' | 'poor' | 'none';
@@ -18,7 +18,7 @@ export function CitationsTierPill({ tier, className }: { tier: Tier; className?:
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-md text-xs caption-uppercase',
+        'inline-flex items-center px-2 py-0.5 rounded-full text-xs caption-uppercase',
         PALETTE[tier],
         className,
       )}

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { useNotebookLayout } from 'fumadocs-ui/layouts/notebook';
@@ -22,16 +21,15 @@ export function DocsHeader({ authenticated }: { authenticated: boolean }) {
 
   return (
     <header className="sticky top-(--fd-docs-row-1) z-10 [grid-area:header] border-b border-hairline bg-canvas">
-      <div className="mx-auto flex h-[71px] w-full max-w-[1200px] items-center justify-between px-6">
+      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 text-ink">
-            <Image
+            <img
               src="/logo.webp"
               alt=""
               width={28}
               height={28}
               className="h-7 w-7 shrink-0 rounded-md"
-              priority
             />
             <span className="display-sm">AI Ready</span>
           </Link>

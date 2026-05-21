@@ -48,8 +48,8 @@ const CATEGORIES: readonly Category[] = [
 
 const TIER_FILL: Record<Tier, string> = {
   poor: 'var(--color-destructive)',
-  fair: 'var(--color-timeline-thinking)',
-  good: 'var(--color-timeline-done)',
+  fair: 'var(--color-body)',
+  good: 'var(--color-ink)',
   excellent: 'var(--color-semantic-success)',
 };
 

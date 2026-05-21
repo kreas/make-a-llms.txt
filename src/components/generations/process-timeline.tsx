@@ -23,7 +23,7 @@ export function ProcessTimeline({ status }: { status: Status }) {
       key: 'done',
       label: 'Done',
       icon: Check,
-      color: 'bg-timeline-done text-canvas',
+      color: 'bg-timeline-done text-on-primary',
       reached: status === 'succeeded',
     },
   ];
@@ -35,7 +35,7 @@ export function ProcessTimeline({ status }: { status: Status }) {
           {i > 0 && <span className="mx-1 h-px w-3 bg-hairline-strong" />}
           <span
             className={cn(
-              'caption-uppercase inline-flex items-center gap-1 rounded-full border border-hairline px-2 py-1 text-ink',
+              'caption-uppercase inline-flex items-center gap-1 rounded-full border border-hairline px-2.5 py-1 text-ink',
               s.reached ? s.color : 'bg-surface-strong text-muted-soft',
             )}
           >

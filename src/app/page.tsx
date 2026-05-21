@@ -127,57 +127,14 @@ export default async function Home() {
           </Button>
         </div>
 
-        {/* IDE Mockup */}
-        <div className="mt-16 w-full max-w-4xl">
-          <div className="ide-mockup-card overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-none">
-            {/* Header bar mimicking an IDE */}
-            <div className="flex items-center justify-between border-b border-hairline bg-canvas-soft px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="h-2.5 w-2.5 rounded-full bg-hairline-strong" />
-                <div className="h-2.5 w-2.5 rounded-full bg-hairline-strong" />
-                <div className="h-2.5 w-2.5 rounded-full bg-hairline-strong" />
-              </div>
-              <span className="font-mono text-[12px] text-body">
-                devengine.ai — Cursor Editor
-              </span>
-              <div className="w-12" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 min-h-[300px]">
-              {/* Sidebar Pane */}
-              <div className="hidden md:block md:col-span-1 border-r border-hairline bg-canvas-soft p-4 text-left font-mono text-[13px] leading-relaxed text-body">
-                <div className="caption-uppercase mb-4 text-muted-soft text-[11px] font-semibold tracking-wider">PROJECT</div>
-                <div className="space-y-2">
-                  <div className="text-ink">src/</div>
-                  <div className="pl-3 text-ink">components/</div>
-                  <div className="pl-6 text-muted-soft">crawler.tsx</div>
-                  <div className="pl-6 text-muted-soft">parser.tsx</div>
-                  <div className="text-ink">output/</div>
-                  <div className="pl-3 text-primary font-medium">llms.txt</div>
-                  <div className="pl-3 text-muted-soft">llms-full.txt</div>
-                </div>
-              </div>
-              {/* Main Editor Pane */}
-              <div className="p-6 text-left md:col-span-3 bg-surface-card font-mono text-[13px] leading-relaxed text-ink">
-                <div className="caption-uppercase mb-4 text-muted-soft text-[11px] font-semibold tracking-wider">output/llms.txt</div>
-                <pre className="font-mono text-[13px] leading-relaxed text-ink">
-                  <code>{`# devengine.ai
-
-> Automatic context generation
-> for LLM ingestion.
-
-## Docs
-- [Quickstart](/docs/start)
-- [API Reference](/docs/api)
-- [Auth](/docs/auth)
-
-## Modules
-- /auth: JWT identity
-- /ingest: crawler logic
-- /vector: embeddings`}</code>
-                </pre>
-              </div>
-            </div>
-          </div>
+        {/* Hero Image */}
+        <div className="mt-16 w-full max-w-[1200px] overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-none">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/hero-illustration.png"
+            alt="Coding Cats"
+            className="w-full h-auto object-cover"
+          />
         </div>
       </header>
 

@@ -3,25 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import {
-  Settings,
-  RefreshCw,
-  Link as LinkIcon,
-  Clock,
-  PanelRightClose,
-  PanelRightOpen,
-} from 'lucide-react';
+import { Settings, RefreshCw, Link as LinkIcon, Clock } from 'lucide-react';
 import type { Site, Generation } from '@/db/schema';
 import { ProcessTimeline } from '@/components/generations/process-timeline';
 import { LlmsContentPanel } from '@/components/generations/llms-content-panel';
 import { PagesContentPanel } from '@/components/generations/pages-content-panel';
-import { GenerationsSidebar } from '@/components/generations/generations-sidebar';
+import { GenerationsPopover } from '@/components/generations/generations-popover';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
 import { CrawlerAuditTab } from '@/components/crawlers/crawler-audit-tab';
 import { CitationsTab } from '@/components/citations/citations-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatRelativeTime } from '@/lib/format-time';
-import { cn } from '@/lib/utils';
 
 export function SiteDetailClient({
   site,
@@ -40,7 +32,6 @@ export function SiteDetailClient({
   const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
   const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId as number | null);
   const selected = generations.find((g) => g.id === selectedId) ?? null;
-  const [runsCollapsed, setRunsCollapsed] = useState(false);
 
   useEffect(() => {
     const key = `fresh-token-${site.uid}`;
@@ -59,6 +50,49 @@ export function SiteDetailClient({
     },
     onSuccess: ({ webhookToken }) => setFreshToken(webhookToken),
   });
+
+  type UpdateDetails = {
+    name?: string;
+    displayName?: string | null;
+    description?: string | null;
+  };
+
+  const updateDetails = useMutation({
+    mutationFn: async (update: UpdateDetails) => {
+      const res = await fetch(`/api/sites/${site.uid}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(update),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { error?: { message?: string } }
+          | null;
+        throw new Error(body?.error?.message ?? 'Failed to save changes');
+      }
+      return res.json();
+    },
+    onSuccess: () => router.refresh(),
+  });
+
+  const recaptureMetadata = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/sites/${site.uid}/refresh-metadata`, { method: 'POST' });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { error?: { message?: string } }
+          | null;
+        throw new Error(body?.error?.message ?? 'Recapture failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => router.refresh(),
+  });
+
+  const detailsError =
+    (updateDetails.error as Error | null)?.message ??
+    (recaptureMetadata.error as Error | null)?.message ??
+    null;
 
   const regenerate = useMutation({
     mutationFn: async () => {
@@ -105,13 +139,29 @@ export function SiteDetailClient({
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <h1 className="display-lg text-ink">{site.name}</h1>
-              {latest && (
-                <span className="caption-uppercase rounded-full border border-hairline bg-surface-strong px-2 py-1 text-ink">
-                  #{latest.id}
-                </span>
+              {site.faviconUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={site.faviconUrl}
+                  alt=""
+                  className="h-7 w-7 rounded border border-hairline bg-surface-card object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
+              <h1 className="display-lg text-ink">{site.displayName ?? site.name}</h1>
+              {generations.length > 0 && (
+                <GenerationsPopover
+                  generations={generations}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                />
               )}
             </div>
+            {site.description && (
+              <p className="max-w-2xl text-sm text-muted-strong">{site.description}</p>
+            )}
             <div className="flex items-center gap-4 text-sm text-muted-strong">
               <a
                 href={site.rootUrl}
@@ -138,85 +188,67 @@ export function SiteDetailClient({
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              aria-label="Settings"
+              title="Settings"
               className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-hairline-strong bg-surface-card text-ink transition-colors hover:bg-canvas-soft"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">Settings</span>
             </button>
             <button
               type="button"
               onClick={() => regenerate.mutate()}
               disabled={regenerate.isPending}
-              aria-label="Re-run Generation"
+              title="Re-run Generation"
               className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-primary text-canvas transition-colors hover:bg-primary-active disabled:opacity-50"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">Re-run Generation</span>
             </button>
           </div>
         </header>
-        <div className="flex items-center justify-between gap-3">
-          <TabsList>
-            <TabsTrigger value="llms">llms.txt</TabsTrigger>
-            <TabsTrigger value="pages">pages.md</TabsTrigger>
-            <TabsTrigger value="crawlers">AI Crawlers</TabsTrigger>
-            <TabsTrigger value="citations">Citations</TabsTrigger>
-          </TabsList>
-          <button
-            type="button"
-            onClick={() => setRunsCollapsed((c) => !c)}
-            aria-label={runsCollapsed ? 'Show runs' : 'Hide runs'}
-            aria-pressed={runsCollapsed}
-            className="rounded p-1.5 text-muted-strong transition-colors hover:bg-canvas-soft hover:text-ink"
-          >
-            {runsCollapsed ? (
-              <PanelRightOpen className="h-4 w-4" />
-            ) : (
-              <PanelRightClose className="h-4 w-4" />
-            )}
-          </button>
-        </div>
+        <TabsList>
+          <TabsTrigger value="llms">llms.txt</TabsTrigger>
+          <TabsTrigger value="pages">pages.md</TabsTrigger>
+          <TabsTrigger value="crawlers">AI Crawlers</TabsTrigger>
+          <TabsTrigger value="citations">Citations</TabsTrigger>
+        </TabsList>
       </div>
 
-      <div
-        className={cn(
-          'grid grid-cols-1 items-start gap-6',
-          runsCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[1fr_320px]',
-        )}
-      >
-        <div className="min-w-0">
-          <TabsContent value="llms">
-            <LlmsContentPanel generation={selected} siteId={site.uid} />
-          </TabsContent>
-          <TabsContent value="pages">
-            <PagesContentPanel generation={selected} />
-          </TabsContent>
-          <TabsContent value="crawlers">
-            <CrawlerAuditTab siteId={site.uid} />
-          </TabsContent>
-          <TabsContent value="citations">
-            <CitationsTab siteId={site.uid} latestGenUid={latestSucceeded?.uid ?? null} />
-          </TabsContent>
-        </div>
-        {!runsCollapsed && (
-          <GenerationsSidebar
-            generations={generations}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-        )}
+      <div className="min-w-0">
+        <TabsContent value="llms">
+          <LlmsContentPanel generation={selected} siteId={site.uid} />
+        </TabsContent>
+        <TabsContent value="pages">
+          <PagesContentPanel generation={selected} />
+        </TabsContent>
+        <TabsContent value="crawlers">
+          <CrawlerAuditTab siteId={site.uid} />
+        </TabsContent>
+        <TabsContent value="citations">
+          <CitationsTab siteId={site.uid} latestGenUid={latestSucceeded?.uid ?? null} />
+        </TabsContent>
       </div>
 
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         siteId={site.uid}
-        siteName={site.name}
+        siteName={site.displayName ?? site.name}
         tokenPrefix={site.webhookTokenPrefix}
         freshToken={freshToken}
         onRotate={() => rotate.mutate()}
         isRotating={rotate.isPending}
+        details={{
+          name: site.name,
+          displayName: site.displayName,
+          description: site.description,
+          faviconUrl: site.faviconUrl,
+        }}
+        onSaveDetails={(update) => updateDetails.mutate(update)}
+        isSavingDetails={updateDetails.isPending}
+        onRecaptureDetails={() => recaptureMetadata.mutate()}
+        isRecapturing={recaptureMetadata.isPending}
+        detailsError={detailsError}
       />
     </Tabs>
   );

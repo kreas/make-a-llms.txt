@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { sites } from '@/db/schema';
@@ -5,6 +6,7 @@ import { ApiError, apiErrorResponse, requireUserOrThrow } from '@/lib/auth-guard
 import { createSiteSchema } from '@/lib/validators';
 import { createWebhookToken } from '@/lib/webhook-token';
 import { toPublicSite } from '@/lib/services/sites';
+import { fetchAndPersistSiteMetadata } from '@/lib/site-metadata/persist';
 
 export async function POST(req: Request) {
   try {
@@ -31,6 +33,18 @@ export async function POST(req: Request) {
         webhookTokenPrefix: tok.prefix,
       })
       .returning();
+
+    try {
+      after(async () => {
+        try {
+          await fetchAndPersistSiteMetadata(row.id, row.rootUrl);
+        } catch {
+          // Metadata is best-effort; site.name fallback covers failures.
+        }
+      });
+    } catch {
+      // after() can throw outside a request scope (e.g. tests); skip silently.
+    }
 
     return Response.json({ site: toPublicSite(row), webhookToken: tok.token }, { status: 201 });
   } catch (err) {

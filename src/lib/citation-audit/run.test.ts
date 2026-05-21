@@ -74,6 +74,39 @@ describe('runCitationAudit', () => {
     expect(row.browserMsUsed).toBe(200);
   });
 
+  it('uses site.displayName for entity matching when set', async () => {
+    vi.mocked(fetchRenderedHtml).mockResolvedValue({
+      ok: true,
+      html: HIGH_HTML,
+      fetchedAt: '2026-05-19T00:00:00Z',
+      fetchMs: 1,
+      browserMsUsed: 1,
+    });
+    const db = getDb();
+    const [u] = await db.insert(users).values({ name: 'U2', email: 'u2@x.test' }).returning();
+    // Site name is the raw host ("example.com"); displayName is the brand the
+    // page actually uses. Without displayName the entity check would falsely
+    // flag the page for not naming "example.com".
+    const [s] = await db.insert(sites).values({
+      userId: u.id,
+      name: 'example.com',
+      displayName: 'Example Co',
+      rootUrl: 'https://example.com',
+      webhookTokenHash: 'a'.repeat(64),
+      webhookTokenPrefix: 'lmt_xyzz',
+    }).returning();
+
+    const audit = await runCitationAudit({ siteId: s.id, pageUrl: 'https://example.com/' });
+    expect(audit.status).toBe('succeeded');
+    const results = JSON.parse(audit.results!) as {
+      checks: { id: string; passed: boolean }[];
+    };
+    const entityFirst = results.checks.find((c) => c.id === 'entity-first-paragraph');
+    const answerPos = results.checks.find((c) => c.id === 'answer-position');
+    expect(entityFirst?.passed).toBe(true);
+    expect(answerPos?.passed).toBe(true);
+  });
+
   it('persists a failed row on fetch error', async () => {
     vi.mocked(fetchRenderedHtml).mockResolvedValue({
       ok: false,

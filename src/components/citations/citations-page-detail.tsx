@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { CitationsScoreCard } from './citations-score-card';
 import { CitationsHistoryList } from './citations-history-list';
-import { Check, X } from 'lucide-react';
+import { Check, X, RefreshCw } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -51,7 +51,7 @@ type Audit = {
   results: AuditResults | null;
 };
 
-export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: string; pageUrl: string; onBack: () => void }) {
+export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: string; pageUrl: string; onBack?: () => void }) {
   const qc = useQueryClient();
   const [viewingId, setViewingId] = useState<string | null>(null);
 
@@ -103,9 +103,11 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
   if (isInitialLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <button onClick={onBack} className="text-sm text-body hover:text-ink">← Back to list</button>
-        </div>
+        {onBack && (
+          <div className="flex items-center justify-between">
+            <button onClick={onBack} className="text-sm text-body hover:text-ink">← Back to list</button>
+          </div>
+        )}
         <div className="rounded-xl bg-canvas-soft py-16 flex flex-col items-center justify-center gap-4">
           <pre
             aria-hidden
@@ -121,29 +123,43 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-sm text-body hover:text-ink">← Back to list</button>
-        <Button onClick={() => runAudit.mutate()} disabled={runAudit.isPending}>
-          {runAudit.isPending ? 'Auditing… (~10s)' : 'Run new audit'}
-        </Button>
-      </div>
+      {onBack && (
+        <button onClick={onBack} className="self-start text-sm text-body hover:text-ink">← Back to list</button>
+      )}
 
-      <div className="flex flex-col gap-1">
-        <h2 className="display-sm text-ink truncate">
-          {current?.results?.pageTitle?.trim() || pageUrl}
-        </h2>
-        <a
-          href={pageUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-[13px] text-body hover:text-ink truncate"
-          title={pageUrl}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="display-sm text-ink truncate">
+            {current?.results?.pageTitle?.trim() || pageUrl}
+          </h2>
+          <a
+            href={pageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-[13px] text-body hover:text-ink truncate"
+            title={pageUrl}
+          >
+            {pageUrl}
+          </a>
+          {current && (
+            <p className="text-body text-sm">Last audited {formatRelativeTime(current.fetchedAt)}</p>
+          )}
+        </div>
+        <Button
+          type="button"
+          size="icon"
+          onClick={() => runAudit.mutate()}
+          disabled={runAudit.isPending}
+          title={runAudit.isPending ? 'Auditing… (~10s)' : 'Run new audit'}
         >
-          {pageUrl}
-        </a>
-        {current && (
-          <p className="text-body text-sm">Last audited {formatRelativeTime(current.fetchedAt)}</p>
-        )}
+          <RefreshCw
+            className={cn('h-4 w-4', runAudit.isPending && 'animate-spin')}
+            aria-hidden="true"
+          />
+          <span className="sr-only">
+            {runAudit.isPending ? 'Auditing… (~10s)' : 'Run new audit'}
+          </span>
+        </Button>
       </div>
 
       {runAudit.isError && (

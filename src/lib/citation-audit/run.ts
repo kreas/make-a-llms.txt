@@ -28,7 +28,7 @@ export async function runCitationAudit(opts: {
 
   const result = await auditPage({
     url: opts.pageUrl,
-    entityName: site.name,
+    entityName: site.displayName ?? site.name,
     html: fetched.html,
     fetchedAt: fetched.fetchedAt,
   });

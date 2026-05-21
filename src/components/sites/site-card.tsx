@@ -23,7 +23,20 @@ export function SiteCard({ site, latest }: Props) {
         </span>
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-ink">{site.name}</h3>
+        <div className="flex items-center gap-2">
+          {site.faviconUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={site.faviconUrl}
+              alt=""
+              className="h-5 w-5 rounded border border-hairline bg-canvas object-contain"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
+          <h3 className="text-lg font-semibold text-ink">{site.displayName ?? site.name}</h3>
+        </div>
         <p className="mt-1 truncate font-mono text-[13px] text-muted-strong">{site.rootUrl}</p>
       </div>
       <div className="mt-auto flex gap-3 pt-3">

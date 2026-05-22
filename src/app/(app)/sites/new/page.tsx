@@ -1,12 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Info } from 'lucide-react';
 import { SiteForm, type SiteFormValues } from '@/components/sites/site-form';
+import { Confetti } from '@/components/ui/confetti';
 
 export default function NewSitePage() {
   const router = useRouter();
+  const [showConfetti, setShowConfetti] = useState(false);
   const mutation = useMutation({
     mutationFn: async (v: SiteFormValues) => {
       // Derive a default name from the host. The server will accept either
@@ -33,28 +35,38 @@ export default function NewSitePage() {
   });
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-8">
-      <header className="text-center">
-        <h1 className="display-lg text-ink">Add New Site</h1>
-        <p className="mt-2 text-base text-muted-strong">
-          Provide the origin URL to begin generating your developer documentation index.
-        </p>
-      </header>
-      <div className="rounded-lg border border-hairline bg-surface-card p-8">
-        <SiteForm onSubmit={(v) => mutation.mutate(v)} />
-        {mutation.error && (
-          <p className="mt-4 text-sm text-destructive">{(mutation.error as Error).message}</p>
-        )}
+    <div className="w-full pb-36 md:pb-48">
+      {/* Confetti effect when sitemap is discovered */}
+      {showConfetti && (
+        <Confetti
+          stopping={mutation.isPending}
+          onComplete={() => setShowConfetti(false)}
+        />
+      )}
+
+      {/* Background color of this page */}
+      <div className="fixed inset-0 bg-[#ebe0c3] -z-20 pointer-events-none" />
+
+      {/* Page Content */}
+      <div className="mx-auto flex max-w-xl flex-col gap-8 relative z-10">
+        <header className="text-center">
+          <h1 className="display-lg text-ink">Add New Site</h1>
+        </header>
+        <div className="rounded-lg border border-hairline bg-surface-card p-8 shadow-sm">
+          <SiteForm
+            onSubmit={(v) => mutation.mutate(v)}
+            onSitemapFound={() => setShowConfetti(true)}
+          />
+          {mutation.error && (
+            <p className="mt-4 text-sm text-destructive">{(mutation.error as Error).message}</p>
+          )}
+        </div>
       </div>
-      <div className="flex items-start gap-3 rounded-md bg-canvas-soft p-4 text-sm text-muted-strong">
-        <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
-        <p>
-          We will crawl your site to generate an optimized{' '}
-          <code className="font-mono">llms.txt</code> and{' '}
-          <code className="font-mono">llms-full.txt</code> file. This process may take a few minutes
-          depending on the site&apos;s size.
-        </p>
-      </div>
+
+      {/* Full-width illustration background image at the bottom, flush with the footer */}
+      <div
+        className="absolute bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/new-site-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10"
+      />
     </div>
   );
 }

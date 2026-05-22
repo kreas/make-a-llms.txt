@@ -16,12 +16,23 @@ describe('SiteForm', () => {
     });
   });
 
+  it('automatically prepends https:// if protocol is missing', async () => {
+    const onSubmit = vi.fn();
+    render(<SiteForm onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText(/website url/i), 'civilization.agency');
+    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      rootUrl: 'https://civilization.agency',
+      sitemapUrl: undefined,
+    });
+  });
+
   it('shows error when URL is invalid', async () => {
     const onSubmit = vi.fn();
     render(<SiteForm onSubmit={onSubmit} />);
     await userEvent.type(screen.getByLabelText(/website url/i), 'bogus');
     await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
-    expect(await screen.findByText(/valid url|http/i)).toBeInTheDocument();
+    expect(await screen.findByText(/valid url/i)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -31,6 +42,21 @@ describe('SiteForm', () => {
     await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
     expect(await screen.findByText(/please enter a website url/i)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('clears active validation error immediately on typing', async () => {
+    const onSubmit = vi.fn();
+    render(<SiteForm onSubmit={onSubmit} />);
+    
+    // Trigger validation error
+    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+    expect(await screen.findByText(/please enter a website url/i)).toBeInTheDocument();
+    
+    // Type something
+    await userEvent.type(screen.getByLabelText(/website url/i), 'c');
+    
+    // Check if error is gone
+    expect(screen.queryByText(/please enter a website url/i)).not.toBeInTheDocument();
   });
 });
 

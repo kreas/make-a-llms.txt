@@ -13,7 +13,13 @@ export type SiteFormValues = {
 
 type DiscoveryStatus = 'idle' | 'discovering' | 'found' | 'not-found' | 'error';
 
-export function SiteForm({ onSubmit }: { onSubmit: (v: SiteFormValues) => void }) {
+export function SiteForm({
+  onSubmit,
+  onSitemapFound,
+}: {
+  onSubmit: (v: SiteFormValues) => void;
+  onSitemapFound?: (url: string) => void;
+}) {
   const [rootUrl, setRootUrl] = useState('');
   const [discoveredSitemapUrl, setDiscoveredSitemapUrl] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -28,22 +34,37 @@ export function SiteForm({ onSubmit }: { onSubmit: (v: SiteFormValues) => void }
   // Debounced sitemap discovery
   useEffect(() => {
     const trimmed = rootUrl.trim();
+    if (!trimmed) {
+      setDiscoveryStatus('idle');
+      setDiscoveredSitemapUrl(undefined);
+      return;
+    }
+
+    // Auto-prepend https:// for validation and discovery if no protocol is present
+    let normalized = trimmed;
+    if (!/^https?:\/\//i.test(normalized)) {
+      normalized = `https://${normalized}`;
+    }
 
     let shouldDiscover = false;
-    if (trimmed) {
-      try {
-        const u = new URL(trimmed);
-        if (/^https?:$/.test(u.protocol)) {
+    try {
+      const u = new URL(normalized);
+      if (/^https?:$/.test(u.protocol)) {
+        const host = u.hostname;
+        if (host === 'localhost' || host.includes('.')) {
           if (!sitemapValueRef.current || autoFilledRef.current) {
             shouldDiscover = true;
           }
         }
-      } catch {
-        // invalid URL — skip
       }
+    } catch {
+      // invalid URL — skip
     }
 
-    if (!shouldDiscover) return;
+    if (!shouldDiscover) {
+      setDiscoveryStatus('idle');
+      return;
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -52,7 +73,7 @@ export function SiteForm({ onSubmit }: { onSubmit: (v: SiteFormValues) => void }
         const res = await fetch('/api/sitemap/discover', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ rootUrl: trimmed }),
+          body: JSON.stringify({ rootUrl: normalized }),
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -61,6 +82,7 @@ export function SiteForm({ onSubmit }: { onSubmit: (v: SiteFormValues) => void }
           autoFilledRef.current = true;
           setDiscoveredSitemapUrl(body.sitemapUrl);
           setDiscoveryStatus('found');
+          onSitemapFound?.(body.sitemapUrl);
         } else if (res.status === 404) {
           if (autoFilledRef.current) {
             autoFilledRef.current = false;
@@ -84,23 +106,37 @@ export function SiteForm({ onSubmit }: { onSubmit: (v: SiteFormValues) => void }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = rootUrl.trim();
-    if (!trimmed) {
+    let normalized = rootUrl.trim();
+    if (!normalized) {
       setError('Please enter a website URL');
       return;
     }
+
+    // Auto-prepend https:// if no protocol is present
+    if (!/^https?:\/\//i.test(normalized)) {
+      normalized = `https://${normalized}`;
+    }
+
     try {
-      const u = new URL(trimmed);
+      const u = new URL(normalized);
       if (!/^https?:$/.test(u.protocol)) {
         setError('URL must start with http:// or https://');
+        return;
+      }
+      
+      const host = u.hostname;
+      if (host !== 'localhost' && !host.includes('.')) {
+        setError('Please enter a valid URL');
         return;
       }
     } catch {
       setError('Please enter a valid URL');
       return;
     }
+
     setError(null);
-    onSubmit({ rootUrl: trimmed, sitemapUrl: discoveredSitemapUrl });
+    setRootUrl(normalized);
+    onSubmit({ rootUrl: normalized, sitemapUrl: discoveredSitemapUrl });
   }
 
   return (
@@ -110,7 +146,10 @@ export function SiteForm({ onSubmit }: { onSubmit: (v: SiteFormValues) => void }
         <Input
           id="rootUrl"
           value={rootUrl}
-          onChange={(e) => setRootUrl(e.target.value)}
+          onChange={(e) => {
+            setRootUrl(e.target.value);
+            setError(null);
+          }}
           placeholder="https://example.com"
           type="text"
         />

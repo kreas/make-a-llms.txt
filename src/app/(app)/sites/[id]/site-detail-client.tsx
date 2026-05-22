@@ -147,7 +147,11 @@ export function SiteDetailClient({
   }, [searchParams]);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-8">
+    <div className="w-full pb-36 md:pb-48">
+      {/* Background color of this page */}
+      <div className="fixed inset-0 bg-[#f3efd9] -z-20 pointer-events-none" />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-8 relative z-10">
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -324,5 +328,11 @@ export function SiteDetailClient({
         detailsError={detailsError}
       />
     </Tabs>
+
+    {/* Full-width illustration background image at the bottom, flush with the footer */}
+    <div
+      className="absolute bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/site-detail-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10"
+    />
+  </div>
   );
 }

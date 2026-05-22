@@ -1,4 +1,4 @@
-import { JSDOM } from 'jsdom';
+import { parseHTML } from 'linkedom';
 import { Readability } from '@mozilla/readability';
 import { parse as tldParse } from 'tldts';
 import type { ParsedPage, JsonLdBlock, MetaTag } from './types';
@@ -8,8 +8,7 @@ function safeJsonParse(s: string): unknown | null {
 }
 
 export function parsePage(url: string, html: string): ParsedPage {
-  const dom = new JSDOM(html, { url });
-  const document = dom.window.document;
+  const { document } = parseHTML(html);
 
   const title = document.querySelector('title')?.textContent?.trim() ?? null;
   const canonical =
@@ -60,8 +59,8 @@ export function parsePage(url: string, html: string): ParsedPage {
 
   let article: ParsedPage['article'] = null;
   try {
-    const clone = new JSDOM(html, { url });
-    const reader = new Readability(clone.window.document);
+    const { document: cloneDoc } = parseHTML(html);
+    const reader = new Readability(cloneDoc as unknown as Document);
     const r = reader.parse();
     if (r) {
       const textContent = r.textContent ?? '';
@@ -78,8 +77,7 @@ export function parsePage(url: string, html: string): ParsedPage {
   return {
     url,
     rawHtml: html,
-    dom,
-    document,
+    document: document as unknown as Document,
     jsonLd,
     microdata: {},
     meta,

@@ -1,4 +1,4 @@
-import { JSDOM } from 'jsdom';
+import { parseHTML } from 'linkedom';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
@@ -105,8 +105,7 @@ function resolveUrl(href: string | null, base: string): string | null {
 }
 
 export function parseSignals(rootUrl: string, html: string): ExtractionSignals {
-  const dom = new JSDOM(html, { url: rootUrl });
-  const document = dom.window.document;
+  const { document } = parseHTML(html);
 
   const htmlTitle = document.querySelector('title')?.textContent?.trim() ?? null;
   const ogTitle =

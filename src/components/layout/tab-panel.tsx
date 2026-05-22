@@ -12,6 +12,8 @@ export interface TabPanelProps {
   contentClassName?: string;
   /** Additional classes on the outer wrapper. */
   className?: string;
+  /** Render without nested card borders and background. */
+  flat?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ export function TabPanel({
   children,
   contentClassName,
   className,
+  flat,
 }: TabPanelProps) {
   const hasHeader = meta !== undefined || actions !== undefined;
   return (
@@ -37,14 +40,20 @@ export function TabPanel({
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
-      <div
-        className={cn(
-          'rounded-xl border border-hairline bg-surface-card',
-          contentClassName ?? 'p-6',
-        )}
-      >
-        {children}
-      </div>
+      {flat ? (
+        <div className={contentClassName}>
+          {children}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'rounded-xl border border-hairline bg-surface-card',
+            contentClassName ?? 'p-6',
+          )}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 }

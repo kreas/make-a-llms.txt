@@ -21,7 +21,7 @@ type ManifestResponse =
 
 function Placeholder({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-[600px] flex-col items-center justify-center rounded-lg border border-hairline bg-surface-card p-8 text-center">
+    <div className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
       <FileText className="h-8 w-8 text-muted-soft" />
       <p className="mt-4 text-base text-muted-strong">{children}</p>
     </div>
@@ -78,6 +78,7 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
 
   return (
     <TabPanel
+      flat
       meta={<p className="text-sm text-body">{summary}</p>}
       actions={
         <a
@@ -88,10 +89,10 @@ export function PagesContentPanel({ generation }: { generation: Generation | nul
           Download all (.zip)
         </a>
       }
-      contentClassName="p-4"
+      contentClassName="p-0"
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
-        <div className="h-[600px] overflow-auto rounded-lg border border-hairline bg-surface-card p-2">
+      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[280px_1fr]">
+        <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-auto pb-4 md:pb-0 md:pr-6 border-b md:border-b-0 md:border-r border-hairline">
           {q.isPending ? (
             <div className="p-2 text-body">Loading manifest…</div>
           ) : (

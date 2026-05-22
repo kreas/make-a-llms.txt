@@ -109,6 +109,12 @@ function buildTree(rows: CitationsPageRow[]): TreeNode[] {
 
   function sort(node: FolderNode): void {
     node.children.sort((a, b) => {
+      // Check if one of them is the home page (root URL with 0 segments)
+      const aIsHome = a.kind === 'leaf' && segmentsFor(a.row.pageUrl).length === 0;
+      const bIsHome = b.kind === 'leaf' && segmentsFor(b.row.pageUrl).length === 0;
+      if (aIsHome && !bIsHome) return -1;
+      if (bIsHome && !aIsHome) return 1;
+
       if (a.kind !== b.kind) return a.kind === 'leaf' ? -1 : 1;
       return a.name.localeCompare(b.name);
     });

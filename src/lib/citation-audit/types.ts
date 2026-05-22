@@ -30,7 +30,6 @@ export type MetaTag = { name?: string; property?: string; content: string };
 export type ParsedPage = {
   url: string;
   rawHtml: string;
-  dom: import('jsdom').JSDOM;
   document: Document;
   jsonLd: JsonLdBlock[];
   microdata: Record<string, unknown>;

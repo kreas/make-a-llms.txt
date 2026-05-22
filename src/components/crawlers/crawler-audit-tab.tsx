@@ -108,7 +108,7 @@ export function CrawlerAuditTab({ siteId }: { siteId: string }) {
 
   if (!audit) {
     return (
-      <div className="space-y-4 rounded-xl border border-hairline bg-surface-card p-6">
+      <div className="space-y-4 p-6">
         <h3 className="text-lg font-semibold text-ink">AI Crawler Audit</h3>
         <p className="text-sm text-body">
           No audit yet. Click below to check your robots.txt against the nine
@@ -156,6 +156,7 @@ export function CrawlerAuditTab({ siteId }: { siteId: string }) {
         </div>
       ) : (
         <TabPanel
+          flat
           meta={
             <div className="flex flex-wrap items-center gap-4">
               <p className="font-mono text-[12px] text-muted-strong">

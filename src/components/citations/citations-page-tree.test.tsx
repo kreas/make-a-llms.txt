@@ -11,7 +11,7 @@ const rows: CitationsPageRow[] = [
 ];
 
 describe('CitationsPageTree', () => {
-  test('renders folders with audited/total counts and lists root-level leaves', () => {
+  test('renders folders with audited/total counts and lists root-level leaves in the correct sorted order (home page first)', () => {
     render(<CitationsPageTree rows={rows} selectedUrl={null} onSelect={() => {}} />);
     // The "work" folder appears with its tally (1 audited of 3 total under work/*).
     expect(screen.getByText('work')).toBeInTheDocument();
@@ -19,6 +19,12 @@ describe('CitationsPageTree', () => {
     // Root-level leaves render their last URL segment; homepage labeled "home".
     expect(screen.getByText('home')).toBeInTheDocument();
     expect(screen.getByText('about')).toBeInTheDocument();
+
+    // Verify ordering: home page first, then alphabetical pages, then folders
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0].textContent).toContain('home');
+    expect(buttons[1].textContent).toContain('about');
+    expect(buttons[2].textContent).toContain('work');
   });
 
   test('fires onSelect with the full pageUrl when a leaf is clicked', () => {

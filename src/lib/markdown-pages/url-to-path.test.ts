@@ -28,6 +28,15 @@ describe('mapUrlsToPaths', () => {
     expect(out[0]).toMatchObject({ status: 'skipped', reason: 'cross-origin' });
   });
 
+  it('allows www and non-www subdomain mismatch in both directions', () => {
+    const out1 = mapUrlsToPaths(['https://www.example.com/page'], 'https://example.com');
+    expect(out1[0]).toMatchObject({ status: 'ok', path: 'page', filename: 'page.md' });
+
+    const out2 = mapUrlsToPaths(['https://example.com/page'], 'https://www.example.com');
+    expect(out2[0]).toMatchObject({ status: 'ok', path: 'page', filename: 'page.md' });
+  });
+
+
   it('deduplicates identical urls', () => {
     const out = mapUrlsToPaths(
       ['https://example.com/a', 'https://example.com/a/'],

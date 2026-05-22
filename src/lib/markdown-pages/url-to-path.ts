@@ -29,8 +29,12 @@ function normalizeUrl(input: string): string | null {
   }
 }
 
+function cleanHost(host: string): string {
+  return host.replace(/^www\./i, '');
+}
+
 export function mapUrlsToPaths(urls: string[], rootUrl: string): MappedUrl[] {
-  const rootOrigin = new URL(rootUrl).origin;
+  const rootHostClean = cleanHost(new URL(rootUrl).hostname);
   const seen = new Map<string, MappedUrl>();
   const usedPaths = new Set<string>();
 
@@ -45,7 +49,7 @@ export function mapUrlsToPaths(urls: string[], rootUrl: string): MappedUrl[] {
     if (seen.has(normalized)) continue;
 
     const u = new URL(normalized);
-    if (u.origin !== rootOrigin) {
+    if (cleanHost(u.hostname) !== rootHostClean) {
       seen.set(normalized, {
         url: normalized,
         path: null,

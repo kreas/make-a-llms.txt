@@ -31,7 +31,7 @@ const STATUS_PILL: Record<EffectiveStatus, { label: string; className: string }>
 export function CrawlerAuditTable({ rows }: { rows: CrawlerAuditRow[] }) {
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="overflow-hidden rounded-xl border border-hairline bg-surface-card">
+      <div className="overflow-hidden">
         <table className="w-full">
           <thead className="border-b border-hairline bg-canvas-soft">
             <tr>

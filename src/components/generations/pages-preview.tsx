@@ -27,7 +27,7 @@ export function PagesPreview({
 
   if (!selectedPath) {
     return (
-      <div className="flex h-[600px] flex-col items-center justify-center rounded-lg border border-hairline bg-surface-card p-8 text-center">
+      <div className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
         <FileText className="h-8 w-8 text-muted-soft" />
         <p className="mt-4 text-base text-muted-strong">
           Select a page on the left to preview.
@@ -48,8 +48,8 @@ export function PagesPreview({
   }
 
   return (
-    <div className="flex h-[600px] flex-col overflow-hidden rounded-lg border border-hairline bg-surface-card">
-      <div className="flex items-center justify-between border-b border-hairline bg-canvas px-4 py-3">
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between border-b border-hairline pb-3">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-soft" />
           <span className="font-mono text-[13px] font-medium text-ink">{filename}</span>
@@ -75,8 +75,8 @@ export function PagesPreview({
       </div>
       <div
         className={cn(
-          'flex-grow overflow-auto bg-surface-card p-4',
-          !content && 'flex items-center justify-center',
+          'pt-4',
+          !content && 'flex min-h-[200px] items-center justify-center',
         )}
       >
         {q.isError ? (

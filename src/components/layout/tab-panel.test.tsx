@@ -48,4 +48,15 @@ describe('TabPanel', () => {
     expect(card?.className).toContain('p-0');
     expect(card?.className).not.toContain('p-6');
   });
+
+  it('renders flat layout without card border and bg class when flat is true', () => {
+    const { container } = render(
+      <TabPanel flat contentClassName="p-0">
+        <div>flat-content</div>
+      </TabPanel>,
+    );
+    const card = container.querySelector('.rounded-xl');
+    expect(card).toBeNull();
+    expect(screen.getByText('flat-content')).toBeInTheDocument();
+  });
 });

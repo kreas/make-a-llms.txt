@@ -20,10 +20,9 @@ import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
 
 const tabItems = [
+  { value: 'pages', label: 'Pages' },
   { value: 'llms', label: 'llms.txt' },
-  { value: 'pages', label: 'pages.md' },
   { value: 'crawlers', label: 'AI Crawlers' },
-  { value: 'citations', label: 'Citations' },
 ];
 
 export function SiteDetailClient({
@@ -33,7 +32,7 @@ export function SiteDetailClient({
   site: Site;
   generations: Generation[];
 }) {
-  const [activeTab, setActiveTab] = useState('llms');
+  const [activeTab, setActiveTab] = useState('pages');
   const screenSize = useScreenSize();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -290,17 +289,14 @@ export function SiteDetailClient({
 
           {/* Content panel area */}
           <div className="p-4 md:p-6 min-w-0">
+            <TabsContent value="pages" className="mt-0 outline-none">
+              <PagesContentPanel generation={selected} siteId={site.uid} />
+            </TabsContent>
             <TabsContent value="llms" className="mt-0 outline-none">
               <LlmsContentPanel generation={selected} siteId={site.uid} />
             </TabsContent>
-            <TabsContent value="pages" className="mt-0 outline-none">
-              <PagesContentPanel generation={selected} />
-            </TabsContent>
             <TabsContent value="crawlers" className="mt-0 outline-none">
               <CrawlerAuditTab siteId={site.uid} />
-            </TabsContent>
-            <TabsContent value="citations" className="mt-0 outline-none">
-              <CitationsTab siteId={site.uid} latestGenUid={latest?.uid ?? null} />
             </TabsContent>
           </div>
         </div>

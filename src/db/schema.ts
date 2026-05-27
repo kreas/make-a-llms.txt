@@ -245,3 +245,28 @@ export const pageSummaryCache = sqliteTable(
 
 export type PageSummaryCache = typeof pageSummaryCache.$inferSelect;
 export type NewPageSummaryCache = typeof pageSummaryCache.$inferInsert;
+
+export const pageQuestionsCache = sqliteTable(
+  'page_questions_cache',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    urlPath: text('url_path').notNull(),
+    url: text('url').notNull(),
+    contentHash: text('content_hash').notNull(),
+    questions: text('questions').notNull(), // JSON string representing array of strings
+    createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+    updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    uniqueSitePath: unique('page_questions_cache_site_path_unique').on(
+      t.siteId,
+      t.urlPath,
+    ),
+  }),
+);
+
+export type PageQuestionsCache = typeof pageQuestionsCache.$inferSelect;
+export type NewPageQuestionsCache = typeof pageQuestionsCache.$inferInsert;

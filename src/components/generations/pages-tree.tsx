@@ -64,10 +64,29 @@ function buildTree(pages: ManifestPage[]): TreeNode[] {
   }
   tally(root);
 
-  root.children.sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+  function isIndexNode(node: TreeNode): boolean {
+    if (node.kind !== 'leaf') return false;
+    const nameLower = node.name.toLowerCase();
+    return nameLower === 'index' || nameLower === 'index.md';
+  }
+
+  function sortNode(node: TreeNode) {
+    if (node.kind === 'leaf') return;
+    node.children.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === 'leaf' ? -1 : 1;
+      if (a.kind === 'leaf' && b.kind === 'leaf') {
+        const aIsIdx = isIndexNode(a);
+        const bIsIdx = isIndexNode(b);
+        if (aIsIdx && !bIsIdx) return -1;
+        if (!aIsIdx && bIsIdx) return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    for (const child of node.children) {
+      sortNode(child);
+    }
+  }
+  sortNode(root);
   return root.children;
 }
 

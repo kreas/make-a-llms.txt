@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PagesContentPanel } from './pages-content-panel';
 import type { Generation } from '@/db/schema';
@@ -44,13 +45,13 @@ function gen(overrides: Partial<Generation> = {}): Generation {
 
 describe('PagesContentPanel', () => {
   it('shows placeholder when generation is null', () => {
-    render(wrap(<PagesContentPanel generation={null} />));
+    render(wrap(<PagesContentPanel generation={null} siteId="1" />));
     expect(screen.getByText(/no generation selected/i)).toBeInTheDocument();
   });
 
   it('shows skeleton state when pagesStatus is running', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ status: 'running', pages: [] })));
-    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'running' })} />));
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'running' })} siteId="1" />));
     expect(screen.getByText(/rendering/i)).toBeInTheDocument();
   });
 
@@ -59,6 +60,7 @@ describe('PagesContentPanel', () => {
       wrap(
         <PagesContentPanel
           generation={gen({ pagesStatus: 'skipped', pagesErrorMessage: 'cap exceeded' })}
+          siteId="1"
         />,
       ),
     );
@@ -70,23 +72,28 @@ describe('PagesContentPanel', () => {
       wrap(
         <PagesContentPanel
           generation={gen({ pagesStatus: 'failed', pagesErrorMessage: 'no creds' })}
+          siteId="1"
         />,
       ),
     );
     expect(screen.getByText(/no creds/i)).toBeInTheDocument();
   });
 
-  it('renders the download link when succeeded', async () => {
+  it('renders the menubar and export trigger when succeeded', async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
           status: 'succeeded',
-          pages: [{ url: '', path: 'a', filename: 'a.md', status: 'ok', blobPath: 'x' }],
+          pages: [{ url: 'https://a.test', path: 'a', filename: 'a.md', status: 'ok', blobPath: 'x' }],
         }),
       ),
     );
-    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} />));
-    const link = await screen.findByRole('link', { name: /download all/i });
-    expect(link).toHaveAttribute('href', '/api/generations/dddddddd-dddd-4ddd-8ddd-dddddddddddd/pages.zip');
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} siteId="1" />));
+    
+    const tabTrigger = await screen.findByText('pages.md');
+    await userEvent.click(tabTrigger);
+
+    const exportTrigger = await screen.findByText(/Export/);
+    expect(exportTrigger).toBeInTheDocument();
   });
 });

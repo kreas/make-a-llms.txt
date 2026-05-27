@@ -1,9 +1,9 @@
 import Link from 'next/link';
 
 const RESOURCE_LINKS = [
-  { href: '#', label: 'Privacy' },
-  { href: '#', label: 'Terms' },
-  { href: '/documentation', label: 'Security' },
+  { href: '/docs/privacy', label: 'Privacy' },
+  { href: '/docs/terms', label: 'Terms' },
+  { href: '/docs/security', label: 'Security' },
 ] as const;
 
 const COMMUNITY_LINKS = [

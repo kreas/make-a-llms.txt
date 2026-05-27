@@ -19,57 +19,57 @@ AI Ready processes three kinds of data: account and billing data, website conten
 
 ## Data in transit
 
-All traffic between your browser, our servers, and third-party providers is encrypted using TLS. <!-- [CONFIRM: TLS version and HSTS] --> We do not transmit submitted content or credentials over unencrypted connections.
+All traffic between your browser, our servers, and third-party providers is encrypted using TLS. {/* [CONFIRM: TLS version and HSTS] */} We do not transmit submitted content or credentials over unencrypted connections.
 
 ## Data at rest
 
-Data stored by the Service is encrypted at rest. <!-- [CONFIRM: storage encryption details and provider, e.g. AES-256 via your database/object-store provider] --> Credentials are stored using salted, one-way hashing and are never stored in plaintext.
+Data stored by the Service is encrypted at rest. {/* [CONFIRM: storage encryption details and provider, e.g. AES-256 via your database/object-store provider] */} Credentials are stored using salted, one-way hashing and are never stored in plaintext.
 
 ## Infrastructure and hosting
 
-The Service runs on established cloud infrastructure with physical and network security managed by our hosting providers. <!-- [CONFIRM: name hosting/edge providers, e.g. Vercel, Cloudflare, and database/storage providers] --> Production environments are isolated from development and testing environments.
+The Service runs on established cloud infrastructure with physical and network security managed by our hosting providers. {/* [CONFIRM: name hosting/edge providers, e.g. Vercel, Cloudflare, and database/storage providers] */} Production environments are isolated from development and testing environments.
 
 ## Third-party AI providers
 
-To test how AI systems understand and cite your content, the Service sends submitted page content to third-party AI providers, which may include OpenAI, Anthropic, Google, and Perplexity. <!-- [CONFIRM: provider list] --> We send only the content required for the requested operation, over encrypted connections. Each provider processes data under its own security and privacy commitments. A current list of sub-processors is available on request. <!-- [CONFIRM: consider publishing a sub-processor list] -->
+To test how AI systems understand and cite your content, the Service sends submitted page content to third-party AI providers, which may include OpenAI, Anthropic, Google, and Perplexity. {/* [CONFIRM: provider list] */} We send only the content required for the requested operation, over encrypted connections. Each provider processes data under its own security and privacy commitments. A current list of sub-processors is available on request. {/* [CONFIRM: consider publishing a sub-processor list] */}
 
 ## Access controls
 
-Access to production systems and customer data is restricted to authorized personnel on a least-privilege basis. <!-- [CONFIRM: describe SSO, MFA, and role-based access for your team] --> Administrative access requires multi-factor authentication. We log access to sensitive systems.
+Access to production systems and customer data is restricted to authorized personnel on a least-privilege basis. {/* [CONFIRM: describe SSO, MFA, and role-based access for your team] */} Administrative access requires multi-factor authentication. We log access to sensitive systems.
 
 ## Application security
 
-We follow secure development practices, including code review, dependency management, and rate limiting on automated operations such as crawling and provider testing. <!-- [CONFIRM: add SAST/dependency scanning, secrets management, and review process specifics] --> We pin third-party SDK versions and monitor for breaking changes and known vulnerabilities.
+We follow secure development practices, including code review, dependency management, and rate limiting on automated operations such as crawling and provider testing. {/* [CONFIRM: add SAST/dependency scanning, secrets management, and review process specifics] */} We pin third-party SDK versions and monitor for breaking changes and known vulnerabilities.
 
 ## Monitoring and logging
 
-We monitor the Service for availability and suspicious activity and maintain logs to support troubleshooting and incident response. <!-- [CONFIRM: logging retention and alerting setup] -->
+We monitor the Service for availability and suspicious activity and maintain logs to support troubleshooting and incident response. {/* [CONFIRM: logging retention and alerting setup] */}
 
 ## Incident response
 
-We maintain an incident response process to detect, investigate, and respond to security events. If a security incident affects your data, we will notify affected users and relevant authorities as required by applicable law. <!-- [CONFIRM: notification timeframe commitments] -->
+We maintain an incident response process to detect, investigate, and respond to security events. If a security incident affects your data, we will notify affected users and relevant authorities as required by applicable law. {/* [CONFIRM: notification timeframe commitments] */}
 
 ## Data retention and deletion
 
-We retain data only as long as needed to provide the Service and meet legal obligations. You can request deletion of your account and associated data; see the [Privacy Policy](/privacy) for details. <!-- [CONFIRM: deletion timeframe, e.g. within 30 days of request] -->
+We retain data only as long as needed to provide the Service and meet legal obligations. You can request deletion of your account and associated data; see the [Privacy Policy](/privacy) for details. {/* [CONFIRM: deletion timeframe, e.g. within 30 days of request] */}
 
 ## Compliance
 
-<!-- [CONFIRM: state real certifications and frameworks only. Do not claim SOC 2, ISO 27001, GDPR compliance, etc. unless accurate. Remove this section if none apply yet.] -->
-We align our practices with recognized security standards and applicable data-protection laws, including the GDPR and CCPA where relevant. We do not currently hold formal certifications such as SOC 2 or ISO 27001. <!-- [CONFIRM] -->
+{/* [CONFIRM: state real certifications and frameworks only. Do not claim SOC 2, ISO 27001, GDPR compliance, etc. unless accurate. Remove this section if none apply yet.] */}
+We align our practices with recognized security standards and applicable data-protection laws, including the GDPR and CCPA where relevant. We do not currently hold formal certifications such as SOC 2 or ISO 27001. {/* [CONFIRM] */}
 
 ## Responsible disclosure
 
-We welcome reports from security researchers. If you believe you have found a vulnerability, please email security@aiready.cat <!-- [CONFIRM] --> with details and steps to reproduce. We ask that you:
+We welcome reports from security researchers. If you believe you have found a vulnerability, please email security@aiready.cat {/* [CONFIRM] */} with details and steps to reproduce. We ask that you:
 
 - Give us a reasonable opportunity to investigate and remediate before public disclosure.
 - Avoid accessing or modifying data that does not belong to you.
 - Avoid actions that could degrade the Service for others, such as denial-of-service testing.
 
-We will acknowledge valid reports and work to resolve confirmed issues promptly. We do not currently operate a paid bug bounty program. <!-- [CONFIRM] -->
+We will acknowledge valid reports and work to resolve confirmed issues promptly. We do not currently operate a paid bug bounty program. {/* [CONFIRM] */}
 
 ## Contact
 
 For security questions or to report a vulnerability:
 
-Email: security@aiready.cat <!-- [CONFIRM] -->
+Email: security@aiready.cat {/* [CONFIRM] */}

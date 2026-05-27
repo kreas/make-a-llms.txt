@@ -12,8 +12,8 @@ export const metadata = {
 
 const FAQ_ITEMS = [
   {
-    question: 'How does the Pro trial/sandbox subscription work?',
-    answer: 'Our Pro subscription is in sandbox testing mode. No real cards are charged. Clicking upgrade will redirect you to Stripe Sandbox Checkout where you can use test card details to simulate upgrades.',
+    question: 'How does the Pro subscription billing work?',
+    answer: 'We bill monthly starting from the day you upgrade. You can easily upgrade, downgrade, or cancel your subscription at any time through our Stripe-powered billing portal.',
   },
   {
     question: 'What is a sitemap-to-llms.txt bridge?',
@@ -87,7 +87,7 @@ export default async function PricingPage() {
           Plans for projects of any size.
         </h1>
         <p className="mt-6 max-w-xl text-body text-base">
-          Start generating LLM-friendly documentation manifests for free, or upgrade to Pro to unlock scheduled syncing and webhooks.
+          Start generating LLM-friendly documentation manifests for free, or upgrade to Pro to unlock scheduled syncing and larger page limits.
         </p>
       </header>
 
@@ -121,6 +121,8 @@ export default async function PricingPage() {
                   '100 citable pages / run limit',
                   'Public llms.txt & llms-full.txt hosting',
                   'Basic markdown cleaning',
+                  'API token access (v1 endpoints)',
+                  'Webhook triggers for updates',
                 ].map((feature) => (
                   <li key={feature} className="flex gap-3 text-sm text-body">
                     <Check className="size-4 text-semantic-success shrink-0 mt-0.5" />
@@ -157,7 +159,7 @@ export default async function PricingPage() {
                 For professional projects, indie hackers, and SaaS documentation.
               </p>
               <div className="my-8">
-                <span className="display-lg leading-none font-normal text-canvas">$19</span>
+                <span className="display-lg leading-none font-normal text-canvas">$9</span>
                 <span className="text-canvas/60 text-sm ml-2">/ month</span>
               </div>
 
@@ -168,6 +170,7 @@ export default async function PricingPage() {
                   'Webhook triggers for CI/CD integrations',
                   '500 citable pages / run limit',
                   'API token access (v1 endpoints)',
+                  'AI-generated summaries of citable pages',
                   'Hallucination prevention audits',
                 ].map((feature) => (
                   <li key={feature} className="flex gap-3 text-sm text-canvas/90">

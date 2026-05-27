@@ -28,8 +28,22 @@ export function getApiSource() {
  */
 export async function getMergedPageTree(): Promise<Root> {
   const apiSource = await getApiSource();
+  const children = [...source.pageTree.children];
+  const legalIndex = children.findIndex(
+    (child) =>
+      child.type === 'separator' &&
+      typeof child.name === 'string' &&
+      child.name.toLowerCase().includes('legal'),
+  );
+
+  if (legalIndex !== -1) {
+    children.splice(legalIndex, 0, ...apiSource.pageTree.children);
+  } else {
+    children.push(...apiSource.pageTree.children);
+  }
+
   return {
     ...source.pageTree,
-    children: [...source.pageTree.children, ...apiSource.pageTree.children],
+    children,
   };
 }

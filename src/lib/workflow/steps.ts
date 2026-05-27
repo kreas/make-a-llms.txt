@@ -100,7 +100,7 @@ export async function notifyStep(generationId: number): Promise<void> {
     console.log('[notifyStep] RESEND_API_KEY missing, would have emailed', u.email);
   } else {
     const resend = new Resend(apiKey);
-    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:4242';
     const link = `${baseUrl}/g/${g.id}`;
     try {
       const pagesLine =

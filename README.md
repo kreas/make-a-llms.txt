@@ -107,7 +107,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you should see the landing page with Sign In / Sign Up buttons.
+Open [http://localhost:4242](http://localhost:4242) — you should see the landing page with Sign In / Sign Up buttons.
 
 ## Scripts
 

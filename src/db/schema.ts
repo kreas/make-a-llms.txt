@@ -10,6 +10,11 @@ export const users = sqliteTable('users', {
   role: text('role', { enum: ['user', 'admin'] })
     .notNull()
     .default('user'),
+  stripeCustomerId: text('stripe_customer_id').unique(),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  stripePriceId: text('stripe_price_id'),
+  subscriptionStatus: text('subscription_status'),
+  stripeCurrentPeriodEnd: integer('stripe_current_period_end', { mode: 'timestamp' }),
   createdAt: text('created_at')
     .notNull()
     .default(sql`(current_timestamp)`),

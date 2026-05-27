@@ -7,7 +7,7 @@ type ResponseSpec =
   | { description: string };
 
 export function buildOpenApiDocument(opts: { publicBaseUrl?: string }) {
-  const base = (opts.publicBaseUrl ?? 'http://localhost:3000').replace(/\/$/, '');
+  const base = (opts.publicBaseUrl ?? 'http://localhost:4242').replace(/\/$/, '');
   const paths: Record<string, Record<string, unknown>> = {};
 
   for (const r of Object.values(v1Routes) as V1Route[]) {

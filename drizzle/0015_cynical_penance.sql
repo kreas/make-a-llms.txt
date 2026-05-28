@@ -1,0 +1,1 @@
+ALTER TABLE `page_question_answers_cache` ADD `citations` text;

@@ -192,7 +192,7 @@ export function PagesContentPanel({
                       isActive={subTab === 'questions'}
                       onClick={() => setSubTab('questions')}
                     >
-                      Questions
+                      Chatability
                     </MenubarTrigger>
                   </MenubarMenu>
                   <MenubarMenu>

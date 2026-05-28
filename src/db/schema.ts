@@ -270,3 +270,32 @@ export const pageQuestionsCache = sqliteTable(
 
 export type PageQuestionsCache = typeof pageQuestionsCache.$inferSelect;
 export type NewPageQuestionsCache = typeof pageQuestionsCache.$inferInsert;
+
+export const pageQuestionAnswersCache = sqliteTable(
+  'page_question_answers_cache',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    urlPath: text('url_path').notNull(),
+    question: text('question').notNull(),
+    model: text('model').notNull(),
+    contentHash: text('content_hash').notNull(),
+    answer: text('answer').notNull(),
+    citations: text('citations'),
+    createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+    updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    uniqueSitePathQuestionModel: unique('page_question_answers_cache_site_path_q_model_unique').on(
+      t.siteId,
+      t.urlPath,
+      t.question,
+      t.model,
+    ),
+  }),
+);
+
+export type PageQuestionAnswersCache = typeof pageQuestionAnswersCache.$inferSelect;
+export type NewPageQuestionAnswersCache = typeof pageQuestionAnswersCache.$inferInsert;

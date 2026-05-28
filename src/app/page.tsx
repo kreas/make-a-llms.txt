@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getCurrentUser } from '@/lib/auth';
+import { ScrollAnimate } from '@/components/ui/scroll-animate';
 
 const NAV_LINKS: ReadonlyArray<{
   href: string;
@@ -103,22 +104,19 @@ export default async function Home() {
 
       {/* Hero */}
       <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-20 pb-4 text-center">
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-card px-3 py-1">
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-card px-3 py-1 animate-fade-in-up">
           <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
           <span className="caption-uppercase text-primary">
             v1.0 — The Sitemap-to-llms.txt Bridge
           </span>
         </div>
-        <h1 className="display-mega max-w-3xl text-ink">
-          Documentation for the Agent Era.
+        <h1 className="text-4xl sm:text-5xl lg:text-[56px] leading-[1.1] tracking-[-0.03em] max-w-4xl text-ink animate-fade-in-up delay-75">
+          Get your website ready for AI.
         </h1>
-        <p className="mt-8 max-w-2xl text-body">
-          One-click bridge from any sitemap to high-fidelity LLM context. Ship{' '}
-          <code className="font-mono">llms.txt</code> and{' '}
-          <code className="font-mono">llms-full.txt</code> that AI agents
-          actually understand, index, and cite — without hallucinating.
+        <p className="mt-8 max-w-2xl text-body animate-fade-in-up delay-150">
+          AI agents are like cats: they ignore your fancy design and go straight for the cardboard box. One-click generate <code className="font-mono">llms.txt</code> files, clean page markdown, audit AI crawler access, and score your pages for citation readiness.
         </p>
-        <div className="mt-12 flex flex-wrap justify-center gap-4">
+        <div className="mt-12 flex flex-wrap justify-center gap-4 animate-fade-in-up delay-225">
           <Button asChild size="lg" className="h-11 bg-ink text-canvas hover:bg-ink/90">
             <Link href={primaryHref}>{primaryLabel}</Link>
           </Button>
@@ -128,13 +126,15 @@ export default async function Home() {
         </div>
 
         {/* Hero Image */}
-        <div className="mt-16 w-full max-w-[1200px] overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-none">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/hero-illustration.png"
-            alt="Coding Cats"
-            className="w-full h-auto object-cover"
-          />
+        <div className="mt-16 w-full max-w-[1200px] overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-none animate-fade-in-up delay-300">
+          <div className="animate-float">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero-illustration.png"
+              alt="Coding Cats"
+              className="w-full h-auto object-cover"
+            />
+          </div>
         </div>
       </header>
 
@@ -142,7 +142,7 @@ export default async function Home() {
       <main className="mx-auto max-w-[1200px] px-6 pb-0">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           {/* Crawler Audit */}
-          <section className="relative flex flex-col rounded-xl border border-hairline bg-surface-card p-6 md:col-span-5">
+          <ScrollAnimate as="section" className="relative flex flex-col rounded-xl border border-hairline bg-surface-card p-6 md:col-span-5 transition-all duration-300 hover:-translate-y-1 hover:border-hairline-strong hover:shadow-sm" delay={0}>
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-ink">
@@ -169,10 +169,10 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-          </section>
+          </ScrollAnimate>
 
           {/* Citation Readiness */}
-          <section className="flex flex-col items-center gap-8 rounded-xl border border-hairline bg-surface-card p-6 md:col-span-7 md:flex-row">
+          <ScrollAnimate as="section" className="flex flex-col items-center gap-8 rounded-xl border border-hairline bg-surface-card p-6 md:col-span-7 md:flex-row transition-all duration-300 hover:-translate-y-1 hover:border-hairline-strong hover:shadow-sm" delay={0.1}>
             <div className="w-full md:w-1/2">
               <h3 className="text-lg font-semibold text-ink">
                 Citation Readiness
@@ -214,10 +214,10 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-          </section>
+          </ScrollAnimate>
 
           {/* LLM Extraction Test */}
-          <section className="flex flex-col rounded-xl border border-ink bg-ink p-6 text-canvas md:col-span-7">
+          <ScrollAnimate as="section" className="flex flex-col rounded-xl border border-ink bg-ink p-6 text-canvas md:col-span-7 transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-sm" delay={0}>
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">LLM Extraction Test</h3>
@@ -262,10 +262,10 @@ export default async function Home() {
                 Schema.org injection recommended for this node.
               </span>
             </div>
-          </section>
+          </ScrollAnimate>
 
           {/* Freshness Map */}
-          <section className="rounded-xl border border-hairline bg-surface-card p-6 md:col-span-5">
+          <ScrollAnimate as="section" className="rounded-xl border border-hairline bg-surface-card p-6 md:col-span-5 transition-all duration-300 hover:-translate-y-1 hover:border-hairline-strong hover:shadow-sm" delay={0.1}>
             <h3 className="text-lg font-semibold text-ink">Freshness Map</h3>
             <p className="mb-8 text-sm text-muted-strong">
               Visualizing documentation decay.
@@ -282,10 +282,10 @@ export default async function Home() {
               <span>Stale (2yr+)</span>
               <span>Recent (24h)</span>
             </div>
-          </section>
+          </ScrollAnimate>
 
           {/* Code Output */}
-          <section className="overflow-hidden rounded-xl border border-hairline bg-canvas-soft md:col-span-12">
+          <ScrollAnimate as="section" className="overflow-hidden rounded-xl border border-hairline bg-canvas-soft md:col-span-12 transition-all duration-300 hover:-translate-y-1 hover:border-hairline-strong hover:shadow-sm" delay={0}>
             <div className="flex items-center justify-between border-b border-hairline bg-hairline-soft px-6 py-2">
               <span className="font-mono text-[12px] text-body">
                 output/llms.txt
@@ -317,7 +317,7 @@ API Reference: https://devengine.ai/api
 - /vector: Metadata-pinned embeddings`}</code>
               </pre>
             </div>
-          </section>
+          </ScrollAnimate>
         </div>
       </main>
 
@@ -327,7 +327,7 @@ API Reference: https://devengine.ai/api
         className="mx-auto max-w-[1200px] px-6 pt-12 pb-24"
       >
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
-          <div>
+          <ScrollAnimate className="flex flex-col" delay={0}>
             <h2 className="display-lg mb-8 text-ink">
               Built for the context window.
             </h2>
@@ -350,8 +350,8 @@ API Reference: https://devengine.ai/api
                 </li>
               ))}
             </ul>
-          </div>
-          <div className="relative">
+          </ScrollAnimate>
+          <ScrollAnimate className="relative" delay={0.1}>
             <div className="relative z-10 rotate-2 rounded-xl border border-hairline bg-surface-card p-4">
               <div className="rounded-lg border border-hairline bg-canvas-soft p-6">
                 <div className="caption-uppercase mb-4 text-muted-strong">
@@ -374,7 +374,7 @@ API Reference: https://devengine.ai/api
               <div className="display-sm font-semibold">4.2x</div>
               <div className="caption-uppercase">Better Retrieval Accuracy</div>
             </div>
-          </div>
+          </ScrollAnimate>
         </div>
       </section>
 

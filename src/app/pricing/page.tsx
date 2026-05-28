@@ -83,7 +83,7 @@ export default async function PricingPage() {
 
       {/* Hero Section */}
       <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-20 pb-12 text-center">
-        <h1 className="display-mega max-w-3xl text-ink">
+        <h1 className="text-4xl sm:text-5xl lg:text-[56px] leading-[1.1] tracking-[-0.03em] max-w-4xl text-ink">
           Plans for projects of any size.
         </h1>
         <p className="mt-6 max-w-xl text-body text-base">

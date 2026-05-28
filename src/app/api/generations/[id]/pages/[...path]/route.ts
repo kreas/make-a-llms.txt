@@ -82,7 +82,7 @@ export async function POST(_req: Request, ctx: Ctx) {
         system: PAGE_SYSTEM_PROMPT,
         prompt: userPrompt,
         temperature: 0.3,
-        maxTokens: 8000,
+        maxOutputTokens: 8000,
       });
 
       let finalContent = firstPass.text;
@@ -115,7 +115,7 @@ export async function POST(_req: Request, ctx: Ctx) {
           system: `${nudge}\n\n${PAGE_SYSTEM_PROMPT}`,
           prompt: `Format the following page markdown to spec:\n\n---\n${finalContent}\n---`,
           temperature: 0.3,
-          maxTokens: 8000,
+          maxOutputTokens: 8000,
         });
 
         finalContent = secondPass.text;

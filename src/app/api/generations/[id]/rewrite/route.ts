@@ -161,7 +161,7 @@ export async function POST(_req: Request, ctx: Ctx) {
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.3,
-      maxTokens: 4000,
+      maxOutputTokens: 4000,
     });
 
     let finalContent = firstPass.text;
@@ -182,7 +182,7 @@ export async function POST(_req: Request, ctx: Ctx) {
         system: `${nudge}\n\n${SYSTEM_PROMPT}`,
         prompt: `Format the following rough llms.txt to spec:\n\n---\n${finalContent}\n---`,
         temperature: 0.3,
-        maxTokens: 4000,
+        maxOutputTokens: 4000,
       });
 
       finalContent = secondPass.text;

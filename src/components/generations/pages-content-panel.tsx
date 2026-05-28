@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FileText, RefreshCw, Sparkles, Copy, ChevronDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
@@ -75,7 +75,7 @@ export function PagesContentPanel({
   });
 
   const manifest = q.data && 'pages' in q.data ? q.data : null;
-  const pages = (manifest?.pages ?? []) as ManifestPage[];
+  const pages = useMemo(() => (manifest?.pages ?? []) as ManifestPage[], [manifest?.pages]);
 
   const selectedPage = pages.find((p) => p.path === selected);
 
@@ -84,6 +84,19 @@ export function PagesContentPanel({
     enabled: !!selected && !!generation,
     queryFn: async () => {
       const res = await fetch(`/api/generations/${generation!.uid}/pages/${selected}?t=${Date.now()}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      return res.text();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const indexPageQuery = useQuery({
+    queryKey: ['pageMd', generation?.uid, 'index'],
+    enabled: !!generation && pages.some((p) => p.path === 'index'),
+    queryFn: async () => {
+      const res = await fetch(`/api/generations/${generation!.uid}/pages/index?t=${Date.now()}`, {
         cache: 'no-store',
       });
       if (!res.ok) throw new Error(`status ${res.status}`);
@@ -177,13 +190,47 @@ export function PagesContentPanel({
     setTimeout(() => setCopiedJsonLd(false), 2000);
   };
 
-  const generateJsonLd = (fields: Record<string, string>) => {
+  const generateJsonLd = (fields: Record<string, string>, body?: string) => {
     const title = fields['title'] || '';
     const description = fields['description'] || fields['summary'] || '';
     const url = fields['url'] || selectedPage?.url || '';
     const canonical = fields['canonical'] || url;
     const dateModified = fields['updated'] || '';
-    const imageUrl = fields['image'] || fields['ogImage'] || undefined;
+
+    const brandUrl = (() => {
+      try {
+        return new URL(canonical).origin;
+      } catch {
+        return '';
+      }
+    })();
+
+    let bodyImageUrl: string | undefined = undefined;
+    if (body && !fields['image'] && !fields['ogImage']) {
+      // Find first markdown image: ![alt](url)
+      const mdMatch = body.match(/!\[.*?\]\((.*?)\)/);
+      if (mdMatch && mdMatch[1]) {
+        bodyImageUrl = mdMatch[1];
+      } else {
+        // Find first HTML/JSX image: <img ... src="url"
+        const htmlMatch = body.match(/<img\s+[^>]*?src=["'](.*?)["']/i);
+        if (htmlMatch && htmlMatch[1]) {
+          bodyImageUrl = htmlMatch[1];
+        }
+      }
+    }
+
+    if (bodyImageUrl) {
+      bodyImageUrl = bodyImageUrl.trim().replace(/^['"]|['"]$/g, '');
+      if (!bodyImageUrl.startsWith('http://') && !bodyImageUrl.startsWith('https://')) {
+        if (brandUrl) {
+          const cleanPath = bodyImageUrl.startsWith('/') ? bodyImageUrl : `/${bodyImageUrl}`;
+          bodyImageUrl = `${brandUrl}${cleanPath}`;
+        }
+      }
+    }
+
+    const imageUrl = fields['image'] || fields['ogImage'] || bodyImageUrl || undefined;
 
     const getPageSchemaType = (): string => {
       const rawType = fields['page_type'] || '';
@@ -222,14 +269,6 @@ export function PagesContentPanel({
     };
     const schemaType = getPageSchemaType();
 
-    const brandUrl = (() => {
-      try {
-        return new URL(canonical).origin;
-      } catch {
-        return '';
-      }
-    })();
-
     const getBrandName = () => {
       let segments: string[] = [];
       if (title.includes('|')) {
@@ -263,7 +302,48 @@ export function PagesContentPanel({
       }
     };
     const brandName = getBrandName();
-    const logoUrl = imageUrl || (brandUrl ? `${brandUrl}/favicon.ico` : undefined);
+
+    // Resolve publisher logo
+    let logoUrl = imageUrl;
+
+    if (indexPageQuery.data) {
+      const { fields: indexFields, body: indexBody } = parseFrontmatterFieldsSafe(indexPageQuery.data);
+      let homepageLogo = indexFields['logo'] || indexFields['image'] || indexFields['ogImage'];
+      if (!homepageLogo && indexBody) {
+        const mdMatch = indexBody.match(/!\[.*?\]\((.*?)\)/);
+        if (mdMatch && mdMatch[1]) {
+          homepageLogo = mdMatch[1];
+        } else {
+          const htmlMatch = indexBody.match(/<img\s+[^>]*?src=["'](.*?)["']/i);
+          if (htmlMatch && htmlMatch[1]) {
+            homepageLogo = htmlMatch[1];
+          }
+        }
+      }
+
+      if (homepageLogo) {
+        homepageLogo = homepageLogo.trim().replace(/^['"]|['"]$/g, '');
+        if (!homepageLogo.startsWith('http://') && !homepageLogo.startsWith('https://')) {
+          if (brandUrl) {
+            const cleanPath = homepageLogo.startsWith('/') ? homepageLogo : `/${homepageLogo}`;
+            homepageLogo = `${brandUrl}${cleanPath}`;
+          }
+        }
+        logoUrl = homepageLogo;
+      }
+    }
+
+    if (!logoUrl || logoUrl.includes('favicon.ico')) {
+      if (brandUrl) {
+        if (brandUrl.includes('aiready.cat')) {
+          logoUrl = `${brandUrl}/logo-v4.png`;
+        } else {
+          logoUrl = `${brandUrl}/logo.png`;
+        }
+      } else {
+        logoUrl = undefined;
+      }
+    }
 
     const publisher = {
       '@type': 'Organization',
@@ -278,6 +358,7 @@ export function PagesContentPanel({
     };
 
     // Build the specific JSON-LD shape based on type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let jsonLd: Record<string, any> = {
       '@context': 'https://schema.org',
       '@type': schemaType,
@@ -532,8 +613,8 @@ export function PagesContentPanel({
                       </div>
                     ) : (
                       (() => {
-                        const { fields } = parseFrontmatterFieldsSafe(markdownQuery.data);
-                        const jsonLdString = generateJsonLd(fields);
+                        const { fields, body } = parseFrontmatterFieldsSafe(markdownQuery.data);
+                        const jsonLdString = generateJsonLd(fields, body);
                         return (
                           <div className="flex flex-col gap-6 w-full">
                             {/* Code Preview */}

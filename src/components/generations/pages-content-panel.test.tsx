@@ -132,4 +132,77 @@ describe('PagesContentPanel', () => {
     expect(await screen.findByText('Copy raw JSON')).toBeInTheDocument();
     expect(screen.getByText('Copy with HTML markup')).toBeInTheDocument();
   });
+
+  it('extracts cover image from body and resolves homepage brand logo', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.endsWith('/pages')) {
+        return Promise.resolve(new Response(
+          JSON.stringify({
+            status: 'succeeded',
+            pages: [
+              { url: 'https://a.test/a', path: 'a', filename: 'a.md', status: 'ok', blobPath: 'x' },
+              { url: 'https://a.test/', path: 'index', filename: 'index.md', status: 'ok', blobPath: 'y' }
+            ],
+          }),
+        ));
+      }
+      if (url.includes('/pages/a')) {
+        return Promise.resolve(new Response(
+          '---\ntitle: Blog Page\npage_type: blog\nupdated: 2026-05-28\ndescription: Desc\n---\n\nCheck this out: ![cool image](/images/cool-blog-image.png)',
+        ));
+      }
+      if (url.includes('/pages/index')) {
+        return Promise.resolve(new Response(
+          '---\ntitle: Homepage\nimage: /images/brand-banner.png\n---\n\nHome content',
+        ));
+      }
+      return Promise.reject(new Error('unknown url'));
+    });
+
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} siteId="1" />));
+
+    const aPageTrigger = await screen.findByText('a.md');
+    await userEvent.click(aPageTrigger);
+
+    const jsonLdTab = await screen.findByText('JSON-LD');
+    await userEvent.click(jsonLdTab);
+
+    // Should render the page image extracted from markdown body (resolved with canonical host)
+    expect(await screen.findByText(/https:\/\/a.test\/images\/cool-blog-image.png/)).toBeInTheDocument();
+    // Publisher logo should resolve to the homepage's cover image
+    expect(screen.getByText(/https:\/\/a.test\/images\/brand-banner.png/)).toBeInTheDocument();
+  });
+
+  it('falls back to site-specific logo when homepage is missing logo', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.endsWith('/pages')) {
+        return Promise.resolve(new Response(
+          JSON.stringify({
+            status: 'succeeded',
+            pages: [
+              { url: 'https://www.aiready.cat/a', path: 'a', filename: 'a.md', status: 'ok', blobPath: 'x' }
+            ],
+          }),
+        ));
+      }
+      if (url.includes('/pages/a')) {
+        return Promise.resolve(new Response(
+          '---\ntitle: Blog Page\npage_type: blog\nupdated: 2026-05-28\ndescription: Desc\n---\n\nNo images here.',
+        ));
+      }
+      if (url.includes('/pages/index')) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      return Promise.reject(new Error('unknown url'));
+    });
+
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} siteId="1" />));
+
+    const jsonLdTab = await screen.findByText('JSON-LD');
+    await userEvent.click(jsonLdTab);
+
+    // Publisher logo should fallback to logo-v4.png on the aiready.cat domain
+    expect(await screen.findByText(/https:\/\/www.aiready.cat\/logo-v4.png/)).toBeInTheDocument();
+  });
 });
+

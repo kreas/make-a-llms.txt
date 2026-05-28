@@ -14,9 +14,20 @@ export function proxy(request: NextRequest) {
     );
   }
 
+  if (pathname === '/blog.md') {
+    return NextResponse.rewrite(new URL('/api/blog-md', request.url));
+  }
+
+  if (pathname.startsWith('/blog/') && pathname.endsWith('.md')) {
+    const slug = pathname.slice('/blog/'.length, -'.md'.length);
+    return NextResponse.rewrite(
+      new URL(`/api/blog-md/${slug}`, request.url),
+    );
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/docs.md', '/docs/:path*'],
+  matcher: ['/docs.md', '/docs/:path*', '/blog.md', '/blog/:path*'],
 };

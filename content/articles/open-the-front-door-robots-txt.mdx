@@ -1,0 +1,104 @@
+---
+title: "Open the Front Door! The File Every AI Reads First"
+description: "Robots.txt is the file every AI crawler reads first. It decides whether ChatGPT, Claude, and Perplexity can cite you. Most sites still treat it as security-only."
+slug: "robots-txt-for-ai-search"
+date: "2026-05-24"
+updated: "2026-05-24"
+author:
+  name: "Timothy Warren"
+  url: "https://www.aiready.cat/about"
+  sameAs:
+    - "https://www.linkedin.com/in/timothywarren"
+tags:
+  - "robots.txt"
+  - "AI search"
+  - "AI crawlers"
+  - "GPTBot"
+  - "ClaudeBot"
+  - "Technical SEO"
+  - "AI discoverability"
+category: "AI Search Optimization"
+image: "/images/blog/robots-txt-for-ai-search.webp"
+ogImage: "/images/blog/robots-txt-for-ai-search-og.png"
+canonical: "https://www.aiready.cat/blog/robots-txt-for-ai-search"
+schema: "Article"
+readingTime: "5 min"
+draft: false
+featured: false
+---
+
+A robots.txt file is the first thing every legitimate crawler asks for when it arrives at your site. It loads before the homepage, before the sitemap, before any content. Whatever it says decides whether the rest of the visit happens.
+
+Most site owners still treat robots.txt as a security file, something you write to keep bots out of admin pages and staging directories. That made sense when the only crawlers worth thinking about were Googlebot and Bingbot. With AI search, the calculus has flipped. The bots reading your robots.txt now include the ones that decide whether ChatGPT, Claude, Perplexity, and Google's AI Overviews can cite you, recommend you, or even know you exist.
+
+Getting this file wrong is the single most common reason a well-built site disappears from AI answers.
+
+## Why robots.txt Now Decides Who Sees You
+
+When a user asks ChatGPT for the best knife sharpener under $50, three things happen in sequence. The model checks what it already knows from training. It runs a live web search through OpenAI's retrieval crawler. It composes an answer from whatever pages it could fetch in that moment.
+
+If your robots.txt blocks that retrieval crawler, your site is invisible at step two no matter how good your content is. The model has no way to read your page in real time, so it cannot quote you, cite you, or confirm that you exist. The same logic applies to Claude, Perplexity, and Gemini.
+
+The fix is not to allow every bot blindly. It is to know which bots do which job and decide on each one with intent. There are three groups that matter, and they do not overlap the way most people assume.
+
+## Meet the Crawlers
+
+**Live retrieval crawlers** fetch a page in real time when a user asks an AI a question. Blocking these is what makes your site invisible inside an AI chat session.
+
+- **ChatGPT-User** and **OAI-SearchBot** (OpenAI)
+- **Claude-User** and **Claude-SearchBot** (Anthropic)
+- **PerplexityBot** and **Perplexity-User** (Perplexity)
+- **DuckAssistBot** (DuckDuckGo)
+- **MistralAI-User** (Mistral)
+- **Google-NotebookLM** and **Google-Read-Aloud** (Google's AI surfaces)
+
+**Traditional search crawlers** index your pages for standard search results. Blocking these removes you from search entirely, which most site owners do not actually want.
+
+- **Googlebot** (Google Search)
+- **Bingbot** (Bing and Copilot)
+- **Applebot** (Apple Spotlight and Siri Suggestions)
+- **DuckDuckBot** (DuckDuckGo)
+- **YandexBot** (Yandex)
+- **Baiduspider** (Baidu)
+
+**Training crawlers** collect content used to train future model versions. These are the ones you can decide on without affecting current AI visibility, because training and live retrieval are now separate pipelines for most providers.
+
+- **GPTBot** (OpenAI training)
+- **ClaudeBot** (Anthropic training)
+- **Google-Extended** (Gemini training, separate from Googlebot)
+- **Applebot-Extended** (Apple Intelligence training, separate from Applebot)
+- **CCBot** (Common Crawl, the public dataset most models pull from)
+- **Meta-ExternalAgent** (Meta AI training)
+- **Amazonbot** (Amazon AI assistants)
+- **Bytespider** (ByteDance/TikTok, well documented for ignoring robots.txt regardless)
+
+Blocking a training crawler does not block the retrieval crawler from the same company. GPTBot and OAI-SearchBot are independent. ClaudeBot and Claude-SearchBot are independent. That separation is what lets you opt out of model training while staying discoverable inside the products those models power.
+
+## Where robots.txt Usually Breaks Down
+
+A few patterns come up over and over when auditing client sites.
+
+The blanket block is the most common. A line that reads `User-agent: *` followed by `Disallow: /` does exactly what it says, locking out every crawler including the ones that drive citations. Usually this happens because a developer copied a staging-environment robots.txt into production and nobody noticed.
+
+Wildcard assumptions are subtler. Many older templates use `User-agent: *` thinking it covers AI bots specifically. It does, in the literal sense, but it also covers Googlebot, and most site owners did not mean to block Google. The cleaner pattern is to set defaults with the wildcard, then add explicit rules for the specific bots you want to treat differently.
+
+The third issue is age. Sites that aggressively blocked AI crawlers in 2023 and 2024 sometimes still have those rules in place. The crawler names have changed since then. Anthropic split its bots into three. OpenAI added a separate search bot. A two-year-old block list now blocks training crawlers that no longer exist and lets through retrieval crawlers nobody knew about.
+
+A robots.txt audit takes about ten minutes and tends to recover discoverability that has been silently broken for months.
+
+## Check Your Front Door
+
+Robots.txt used to be the file that kept bots out. It is now the file that decides which AI products can see you. Treating it as a security-only configuration in 2026 is closer to a marketing mistake than a technical one.
+
+If your site has not had its robots.txt reviewed since AI search took off, the odds that something in there is quietly costing you citations are high.
+
+Want to know which crawlers your site is allowing, blocking, or accidentally locking out? AI Ready audits robots.txt for both AI and traditional crawler coverage and shows you exactly what each major model can fetch. [aiready.cat](https://www.aiready.cat)
+
+## Sources
+
+- [Overview of OpenAI Crawlers](https://developers.openai.com/api/docs/bots) — official documentation for GPTBot, OAI-SearchBot, and ChatGPT-User.
+- [Cloudflare AI Crawl Control: Bot Reference](https://developers.cloudflare.com/ai-crawl-control/reference/bots/) — current list of identified AI crawlers and their declared purposes.
+- [Anthropic's Three-Bot Framework and What It Means for Your robots.txt Strategy, ALM Corp](https://almcorp.com/blog/anthropic-claude-bots-robots-txt-strategy/) — breakdown of the ClaudeBot, Claude-SearchBot, and Claude-User split.
+- [The AI User-Agent Landscape in 2026: A Complete Reference, No Hacks](https://nohacks.co/blog/ai-user-agents-landscape-2026) — reference list of declared AI crawler user agents.
+- [We Analyzed robots.txt Across Cloudflare's Network, Technology Checker](https://technologychecker.io/blog/robots-txt-ai-crawlers-blocking-report) — data on which AI crawlers site owners are currently blocking and at what rates.
+- [Robots.txt for AI Crawlers in 2026: The Updated Block + Allow Template, Cubitrek](https://cubitrek.com/blog/robots-txt-2026-managing-ai-crawler-budgets) — practical templates for the retrieval-versus-training distinction.

@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
 import { Check, HelpCircle } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
@@ -5,9 +6,21 @@ import { Button } from '@/components/ui/button';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { PricingButton } from './pricing-button';
 
-export const metadata = {
-  title: 'Pricing — AI Ready',
+export const metadata: Metadata = {
+  title: 'Pricing',
   description: 'Choose the right plan for indexing, generating, and maintaining your llms.txt context.',
+  openGraph: {
+    title: 'Pricing — AI Ready',
+    description: 'Choose the right plan for indexing, generating, and maintaining your llms.txt context.',
+    url: 'https://www.aiready.cat/pricing',
+    siteName: 'AI Ready',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pricing — AI Ready',
+    description: 'Choose the right plan for indexing, generating, and maintaining your llms.txt context.',
+  },
 };
 
 const FAQ_ITEMS = [
@@ -59,6 +72,12 @@ export default async function PricingPage() {
                 className="text-sm text-body transition-colors duration-200 hover:text-primary"
               >
                 Docs
+              </Link>
+              <Link
+                href="/blog"
+                className="text-sm text-body transition-colors duration-200 hover:text-primary"
+              >
+                Blog
               </Link>
             </div>
           </div>

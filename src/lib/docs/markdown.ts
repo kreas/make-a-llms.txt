@@ -54,7 +54,16 @@ export async function loadMdxMarkdown(slug: string[]): Promise<string | null> {
   const meta = parseFrontmatter(raw);
   const body = stripFrontmatter(raw);
   const title = meta.title?.trim();
-  return title ? `# ${title}\n\n${body}` : body;
+
+  let frontmatter = '';
+  if (raw.startsWith('---')) {
+    const end = raw.indexOf('\n---', 3);
+    if (end !== -1) {
+      frontmatter = raw.slice(0, end + 4) + '\n\n';
+    }
+  }
+
+  return `${frontmatter}${title ? `# ${title}\n\n` : ''}${body}`;
 }
 
 type OpenApiOperation = {
@@ -202,3 +211,60 @@ function renderOperation({ method, path, op }: ResolvedOperation): string {
   }
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }
+
+const BLOG_ROOT = path.join(process.cwd(), 'content/articles');
+
+export async function loadBlogMarkdown(slug: string[]): Promise<string | null> {
+  if (slug.length === 0) {
+    return getBlogListMarkdown();
+  }
+  const relative = slug[0];
+  const filePath = path.join(BLOG_ROOT, `${relative}.mdx`);
+  if (!filePath.startsWith(BLOG_ROOT)) return null;
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, 'utf-8');
+  } catch {
+    return null;
+  }
+  const meta = parseFrontmatter(raw);
+  const body = stripFrontmatter(raw);
+  const title = meta.title?.trim();
+
+  let frontmatter = '';
+  if (raw.startsWith('---')) {
+    const end = raw.indexOf('\n---', 3);
+    if (end !== -1) {
+      frontmatter = raw.slice(0, end + 4) + '\n\n';
+    }
+  }
+
+  return `${frontmatter}${title ? `# ${title}\n\n` : ''}${body}`;
+}
+
+export async function getBlogListMarkdown(): Promise<string> {
+  const { blogSource } = await import('./source');
+  const pages = blogSource.getPages();
+  const sortedPages = [...pages].sort((a, b) => {
+    const dateA = a.data.date ? new Date(a.data.date).getTime() : 0;
+    const dateB = b.data.date ? new Date(b.data.date).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  const lines = [
+    '# Blog',
+    '',
+    'Make your site AI-ready — generate llms.txt, llms-full.txt, and per-page markdown.',
+    '',
+  ];
+
+  for (const page of sortedPages) {
+    const slug = page.slugs[0];
+    const title = page.data.title;
+    const desc = page.data.description || '';
+    lines.push(`- [${title}](/blog/${slug}.md)${desc ? ` — ${desc}` : ''}`);
+  }
+
+  return lines.join('\n') + '\n';
+}
+

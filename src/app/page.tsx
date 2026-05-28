@@ -16,6 +16,7 @@ const NAV_LINKS: ReadonlyArray<{
 }> = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/docs', label: 'Docs' },
+  { href: '/blog', label: 'Blog' },
 ];
 
 const CRAWLER_ROWS = [

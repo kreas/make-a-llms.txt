@@ -1,0 +1,81 @@
+---
+title: "Hand the Model a Brief with llms.txt and llms-full.txt"
+description: "llms.txt is a curated Markdown brief at your domain root. llms-full.txt adds the full content. Anthropic and Perplexity confirm they read both files."
+slug: "llms-txt-and-llms-full-txt"
+date: "2026-05-28"
+updated: "2026-05-28"
+author:
+  name: "Timothy Warren"
+  url: "https://www.aiready.cat/about"
+  sameAs:
+    - "https://www.linkedin.com/in/timothywarren"
+tags:
+  - "llms.txt"
+  - "llms-full.txt"
+  - "AI search"
+  - "AI discoverability"
+  - "Generative Engine Optimization"
+  - "Content strategy"
+  - "Technical SEO"
+category: "AI Search Optimization"
+image: "/images/blog/llms-txt-and-llms-full-txt.webp"
+ogImage: "/images/blog/llms-txt-and-llms-full-txt-og.png"
+canonical: "https://www.aiready.cat/blog/llms-txt-and-llms-full-txt"
+schema: "Article"
+readingTime: "5 min"
+draft: false
+featured: false
+---
+
+When an AI assistant builds a summary of your company on the fly, it does not read every page on your site. It reads what it can fetch quickly and extract cleanly. Most sites give it the homepage, a blog post that ranked well, and whatever fragments Google Cache or its training data happens to remember. The result is an answer that is plausible, partial, and often wrong on the details you most want it to get right.
+
+llms.txt is the proposed standard for fixing that. It's a single Markdown file at the root of your domain, /llms.txt, that gives an AI a curated map of what you publish and where to find the canonical version. Its expanded sibling, llms-full.txt, concatenates the actual content of those pages into one long Markdown file the model can ingest in a single fetch.
+
+Whether the major AI providers respect these files today is a more honest conversation than most blog posts will admit. We'll get to that.
+
+## What llms.txt Actually Does
+
+The file is small by design. Twenty to fifty links, each with a one-sentence description, grouped by topic. Think of it as less sitemap and more press kit. It's the version of your site you would hand a journalist who had ten minutes to get up to speed.
+
+llms-full.txt is the long form. Same structure, but with the full Markdown body of each page inlined. A model that fetches llms-full.txt gets the whole curated site in a single download, with no JavaScript to execute and no navigation chrome to ignore.
+
+The point of both files is the same. You decide what represents your site instead of letting the crawler guess. The summaries lead with what you actually do. The link names match the products you actually sell. Nothing is buried under three layers of menu.
+
+## The Honest Adoption Picture
+
+Around 10% of domains now publish an llms.txt file, according to an SE Ranking study of 300,000 sites. Most of the names you would expect are already publishing one, including Anthropic, Stripe, Cloudflare, Vercel, Mintlify, Supabase, and Cursor. Anyone whose product is documentation has shipped one.
+
+Whether AI providers are actually reading them is the more useful question.
+
+Anthropic has publicly confirmed that Claude Desktop and Claude.ai respect llms.txt in retrieval. Perplexity has confirmed it fetches the file and uses it to prioritize which pages to read. Mistral reads it where present. OpenAI's behavior is observable but not officially confirmed, with teams who publish llms.txt reporting correlated changes in ChatGPT citation patterns. Google has not signaled any support, and Gemini's behavior does not change when the file is present.
+
+A separate caveat matters. The major training and indexing crawlers, GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot, and Google-Extended, often skip /llms.txt and crawl HTML directly. Publishing the file does not guarantee that every bot will use it.
+
+The case for shipping it anyway is not technical. It is timing. The providers that do read it are the ones whose share of search behavior is growing fastest. The cost of publishing both files is low, the upside if adoption broadens is high, and the curated summaries you write for llms.txt are the same summaries you want in your meta descriptions, OG tags, and FAQ schema. The work is not wasted even where the file is ignored.
+
+## What Goes in the File
+
+A good llms.txt is short, declarative, and curated hard. The file opens with the company name and a one-sentence description that names what you do and who you do it for. Plain English. Nothing about "innovative" or "transformative." This is the line a model will quote when asked what your company is.
+
+The content underneath is grouped into a small number of sections, ordered by what matters most to a reader trying to understand your business. Stripe and Cloudflare group their files by product area. Anthropic uses a slim top-level index that points to a much larger llms-full.txt with the full docs inlined. Vercel maps its multi-product structure for AI tools that need to understand how Next.js, the AI SDK, and Blob storage relate. Pick the shape that matches how your customers think about your business.
+
+Every link in those sections gets a one-sentence description that leads with what is on the page rather than what you wish a reader would feel. "Pricing tiers, plan limits, and overage rates for Workers" is a working description. "Everything you need to know about our flexible plans" is not.
+
+The most common mistake is treating llms.txt as a sitemap dump. A 500-link file is worse than a 30-link file, because the model spends its context budget on noise instead of signal. Curate hard. The version of your site you would brief a new hire on is roughly the version that belongs in the file.
+
+## Write the Brief
+
+Most companies will still be relying on AI to guess at their positioning in 2027. The ones that ship llms.txt and llms-full.txt now are the ones that hand the model a clean version of what they want said. When Claude, Perplexity, or any of the others reach for context, the curated brief is what they find.
+
+The work is small. A focused half-day for the file, another half-day to write the page summaries that go inside it. The compounding starts the moment a model fetches it for the first time.
+
+Want a curated llms.txt and llms-full.txt generated from your site, with summaries written in the style models actually quote? AI Ready ships both files and refreshes them as your content changes. [aiready.cat](https://www.aiready.cat)
+
+## Sources
+
+- [What is llms.txt? Breaking down the skepticism, Mintlify](https://www.mintlify.com/blog/what-is-llms-txt) — explainer from the team that automated llms.txt generation across their hosted docs.
+- [Real llms.txt examples from leading tech companies, Mintlify](https://www.mintlify.com/blog/real-llms-txt-examples) — comparison of how Anthropic, Stripe, Cloudflare, and Vercel structure their files.
+- [State of llms.txt 2026: Adoption, Standards, and Practice, Presenc AI](https://presenc.ai/research/state-of-llms-txt-2026) — provider-by-provider breakdown of which AI tools confirm support.
+- [llms.txt Explained: The Honest Guide to the Spec, Adoption, and How to Ship One, Codersera](https://codersera.com/blog/llms-txt-complete-guide-2026/) — practical adoption notes and shipping checklist.
+- [What Is llms.txt, and Should You Care About It? Ahrefs](https://ahrefs.com/blog/what-is-llms-txt/) — skeptic-friendly take on the spec's value.
+- [LLMs.txt in 2026: The Full Guide, Limy.ai](https://limy.ai/blog/llms.txt-in-2026-the-full-guide) — detailed walkthrough of file structure and patterns.

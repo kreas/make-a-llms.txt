@@ -22,8 +22,34 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AI Ready',
+  metadataBase: new URL('https://www.aiready.cat'),
+  title: {
+    default: 'AI Ready',
+    template: '%s — AI Ready',
+  },
   description: 'Make your site AI-ready — generate llms.txt, llms-full.txt, and per-page markdown.',
+  openGraph: {
+    title: 'AI Ready',
+    description: 'Make your site AI-ready — generate llms.txt, llms-full.txt, and per-page markdown.',
+    url: 'https://www.aiready.cat',
+    siteName: 'AI Ready',
+    locale: 'en_US',
+    type: 'website',
+    images: [
+      {
+        url: '/logo-v4.png',
+        width: 512,
+        height: 512,
+        alt: 'AI Ready',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI Ready',
+    description: 'Make your site AI-ready — generate llms.txt, llms-full.txt, and per-page markdown.',
+    images: ['/logo-v4.png'],
+  },
 };
 
 export default function RootLayout({

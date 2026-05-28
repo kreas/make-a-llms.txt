@@ -1,12 +1,17 @@
 import { loader } from 'fumadocs-core/source';
 import { openapiSource } from 'fumadocs-openapi/server';
 import type { Root } from 'fumadocs-core/page-tree';
-import { docs } from '../../../.source/server';
+import { docs, blog } from '../../../.source/server';
 import { openapi } from './openapi';
 
 export const source = loader({
   baseUrl: '/docs',
   source: docs.toFumadocsSource(),
+});
+
+export const blogSource = loader({
+  baseUrl: '/blog',
+  source: blog.toFumadocsSource(),
 });
 
 let _apiSourcePromise: ReturnType<typeof buildApiSource> | null = null;

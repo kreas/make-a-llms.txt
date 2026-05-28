@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 const RESOURCE_LINKS = [
+  { href: '/blog', label: 'Blog' },
   { href: '/docs/privacy', label: 'Privacy' },
   { href: '/docs/terms', label: 'Terms' },
   { href: '/docs/security', label: 'Security' },

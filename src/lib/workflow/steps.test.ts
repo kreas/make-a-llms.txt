@@ -5,6 +5,9 @@ import { getDb } from '@/db';
 import { sites, generations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
+const fetchMock = vi.fn();
+vi.stubGlobal('fetch', fetchMock);
+
 vi.mock('execa', () => ({ execa: vi.fn() }));
 vi.mock('@vercel/blob', () => ({
   put: vi.fn(async (pathname: string) => ({
@@ -34,7 +37,7 @@ vi.mock('@/lib/markdown-pages/sitemap-urls', () => ({
 }));
 
 import { execa } from 'execa';
-import { get } from '@vercel/blob';
+import { get, put } from '@vercel/blob';
 import { generateText } from 'ai';
 import { fetchPageMarkdown } from '@/lib/markdown-pages/cloudflare';
 import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
@@ -62,6 +65,9 @@ describe('workflow steps', () => {
   let generationId: number;
 
   beforeEach(async () => {
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async () => new Response('<html><head><title>Mocked HTML Title</title><meta name="description" content="Mocked HTML Desc"><link rel="canonical" href="https://x.test/canonical-a"></head><body></body></html>'));
+
     await setupTestDb();
     const db = getDb();
     const [u] = await db.insert(users).values({ name: 'A', email: 'a@a.test' }).returning();
@@ -194,6 +200,13 @@ describe('workflow steps', () => {
     expect(g.pagesStatus).toBe('succeeded');
     expect(g.pagesCount).toBe(2);
     expect(g.pagesManifestBlobPath).toBe(`gens/${generationId}/pages-manifest.json`);
+
+    // Verify that the HTML metadata is extracted and included in the frontmatter
+    expect(put).toHaveBeenCalledWith(
+      expect.stringContaining('gens/1/pages/'),
+      expect.stringContaining('description: Mocked HTML Desc'),
+      expect.any(Object)
+    );
   });
 
   it('runPagesStepSafe still succeeds when some CF calls fail', async () => {
@@ -250,6 +263,9 @@ describe('runSummariesStepSafe', () => {
   let generationId: number;
 
   beforeEach(async () => {
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async () => new Response('<html><head><title>Mocked HTML Title</title><meta name="description" content="Mocked HTML Desc"><link rel="canonical" href="https://x.test/canonical-a"></head><body></body></html>'));
+
     await setupTestDb();
     const db = getDb();
     const [u] = await db.insert(users).values({ name: 'A', email: 's@s.test' }).returning();

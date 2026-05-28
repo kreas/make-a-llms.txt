@@ -13,6 +13,7 @@ import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
 import { runCrawlerAudit } from '@/lib/crawler-audit';
 import { buildFrontmatter, extractTitle } from './frontmatter';
+import { parseHTML } from 'linkedom';
 import { summarizePage, type SummaryOutcome } from './summarize-page';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
@@ -227,12 +228,59 @@ export async function runPagesStepSafe(
       eligible,
       async (entry): Promise<PageResult> => {
         try {
+          let ogTitle: string | null = null;
+          let ogDescription: string | null = null;
+          let ogImage: string | null = null;
+          let htmlTitle: string | null = null;
+          let metaDescription: string | null = null;
+          let htmlCanonical: string | null = null;
+
+          try {
+            const htmlRes = await fetch(entry.url, {
+              headers: {
+                'User-Agent': 'MakeALlmsTxt/1.0 (+https://make-a-llms.txt/bot; site-metadata)',
+              },
+            });
+            if (htmlRes.ok) {
+              const html = await htmlRes.text();
+              const { document } = parseHTML(html);
+              ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ?? null;
+              ogDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content')?.trim() ?? null;
+              ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content')?.trim() ?? null;
+              htmlTitle = document.querySelector('title')?.textContent?.trim() ?? null;
+              metaDescription = document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ?? null;
+              htmlCanonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href')?.trim() ?? null;
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch HTML for ${entry.url} during metadata extraction`, err);
+          }
+
+          const resolveUrl = (href: string | null, base: string) => {
+            if (!href) return null;
+            try {
+              return new URL(href, base).toString();
+            } catch {
+              return href;
+            }
+          };
+
+          const finalOgImage = resolveUrl(ogImage, entry.url);
+          const finalCanonical = resolveUrl(htmlCanonical, entry.url) || entry.url;
+
           const { markdown, durationMs } = await fetchPageMarkdown(entry.url);
+          
+          const title = ogTitle || htmlTitle || extractTitle(markdown) || null;
+          const description = ogDescription || metaDescription || null;
+
           const body =
             buildFrontmatter({
               url: entry.url,
               updated: generatedAt.slice(0, 10),
-              title: extractTitle(markdown),
+              title,
+              description,
+              image: finalOgImage,
+              ogImage: finalOgImage,
+              canonical: finalCanonical,
             }) + markdown;
           const bytes = Buffer.byteLength(body, 'utf8');
           const blobPath = `gens/${generationId}/pages/${entry.path}.md`;

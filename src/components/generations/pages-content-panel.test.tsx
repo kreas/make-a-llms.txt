@@ -96,4 +96,40 @@ describe('PagesContentPanel', () => {
     const exportTrigger = await screen.findByText(/Export/);
     expect(exportTrigger).toBeInTheDocument();
   });
+
+  it('renders and allows copying JSON-LD schema', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.endsWith('/pages')) {
+        return Promise.resolve(new Response(
+          JSON.stringify({
+            status: 'succeeded',
+            pages: [{ url: 'https://a.test/a', path: 'a', filename: 'a.md', status: 'ok', blobPath: 'x' }],
+          }),
+        ));
+      }
+      if (url.includes('/pages/a')) {
+        return Promise.resolve(new Response(
+          '---\ntitle: Schema Title\npage_type: blog\nupdated: 2026-05-28\ndescription: Some desc\n---\n\nBody',
+        ));
+      }
+      return Promise.reject(new Error('unknown url'));
+    });
+
+    render(wrap(<PagesContentPanel generation={gen({ pagesStatus: 'succeeded' })} siteId="1" />));
+
+    const jsonLdTab = await screen.findByText('JSON-LD');
+    await userEvent.click(jsonLdTab);
+
+    expect((await screen.findAllByText(/type/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/BlogPosting/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/headline/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Schema Title/)).length).toBeGreaterThan(0);
+
+    const copyBtn = screen.getByRole('button', { name: /copy schema/i });
+    expect(copyBtn).toBeInTheDocument();
+    await userEvent.click(copyBtn);
+
+    expect(await screen.findByText('Copy raw JSON')).toBeInTheDocument();
+    expect(screen.getByText('Copy with HTML markup')).toBeInTheDocument();
+  });
 });

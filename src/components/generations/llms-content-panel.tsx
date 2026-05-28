@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Copy, Download, Check } from 'lucide-react';
+import { FileText, Copy, Download, Check, Sparkles } from 'lucide-react';
 import type { Generation } from '@/db/schema';
 import { TabPanel } from '@/components/layout/tab-panel';
 
@@ -14,6 +14,7 @@ export function LlmsContentPanel({
 }) {
   const [content, setContent] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +48,27 @@ export function LlmsContentPanel({
     setTimeout(() => setCopied(false), 1500);
   }
 
+  async function handleRewrite() {
+    if (!generation || !content) return;
+    setRewriting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/generations/${generation.uid}/rewrite`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || 'Failed to rewrite llms.txt');
+      }
+      const data = await res.json();
+      setContent(data.content);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRewriting(false);
+    }
+  }
+
   if (!generation) {
     return (
       <div className="flex h-[600px] flex-col items-center justify-center p-8 text-center">
@@ -70,6 +92,15 @@ export function LlmsContentPanel({
       }
       actions={
         <>
+          <button
+            type="button"
+            onClick={handleRewrite}
+            disabled={rewriting || !content}
+            className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface-card px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {rewriting ? 'Rewriting…' : 'Smart Format'}
+          </button>
           <button
             type="button"
             onClick={handleCopy}

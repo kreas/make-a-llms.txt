@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { LlmsContentPanel } from './llms-content-panel';
 import type { Generation } from '@/db/schema';
@@ -47,4 +48,32 @@ describe('LlmsContentPanel', () => {
     expect(await screen.findByText('# llms.txt content')).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith('/api/generations/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/files/llms');
   });
+
+  it('calls POST endpoint when Rewrite with AI is clicked and updates content', async () => {
+    const mockFetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.endsWith('/files/llms')) {
+        return Promise.resolve(new Response('rough text', { status: 200 }));
+      }
+      if (url.endsWith('/rewrite') && init?.method === 'POST') {
+        return Promise.resolve(new Response(JSON.stringify({ content: 'cleaned text' }), { status: 200 }));
+      }
+      return Promise.reject(new Error('Unknown endpoint'));
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(<LlmsContentPanel generation={mkGen()} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
+
+    // Wait for original content to load
+    expect(await screen.findByText('rough text')).toBeInTheDocument();
+
+    const rewriteBtn = screen.getByRole('button', { name: /smart format/i });
+    await userEvent.click(rewriteBtn);
+
+    // Wait for the content to update
+    expect(await screen.findByText('cleaned text')).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledWith('/api/generations/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/rewrite', {
+      method: 'POST',
+    });
+  });
 });
+

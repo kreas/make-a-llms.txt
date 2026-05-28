@@ -11,6 +11,10 @@ export function buildFrontmatter(opts: {
   title?: string | null;
   summary?: string | null;
   pageType?: PageType | null;
+  description?: string | null;
+  image?: string | null;
+  ogImage?: string | null;
+  canonical?: string | null;
 }): string {
   const lines: string[] = [];
   if (opts.title) lines.push(`title: ${opts.title}`);
@@ -18,6 +22,10 @@ export function buildFrontmatter(opts: {
   lines.push(`summary: ${opts.summary ?? ''}`);
   if (opts.pageType) lines.push(`page_type: ${opts.pageType}`);
   lines.push(`updated: ${opts.updated}`);
+  if (opts.description) lines.push(`description: ${opts.description}`);
+  if (opts.image) lines.push(`image: ${opts.image}`);
+  if (opts.ogImage) lines.push(`ogImage: ${opts.ogImage}`);
+  if (opts.canonical) lines.push(`canonical: ${opts.canonical}`);
   return `---\n${lines.join('\n')}\n---\n\n`;
 }
 
@@ -28,6 +36,10 @@ export type ParsedFrontmatter = {
     summary?: string;
     pageType?: PageType;
     updated?: string;
+    description?: string;
+    image?: string;
+    ogImage?: string;
+    canonical?: string;
   };
   body: string;
 };
@@ -63,6 +75,10 @@ export function parseFrontmatter(blob: string): ParsedFrontmatter {
     summary?: string;
     pageType?: PageType;
     updated?: string;
+    description?: string;
+    image?: string;
+    ogImage?: string;
+    canonical?: string;
   } = {};
   for (const line of head.split('\n')) {
     const colon = line.indexOf(':');
@@ -86,6 +102,18 @@ export function parseFrontmatter(blob: string): ParsedFrontmatter {
         break;
       case 'updated':
         fields.updated = value;
+        break;
+      case 'description':
+        fields.description = value;
+        break;
+      case 'image':
+        fields.image = value;
+        break;
+      case 'ogImage':
+        fields.ogImage = value;
+        break;
+      case 'canonical':
+        fields.canonical = value;
         break;
     }
   }

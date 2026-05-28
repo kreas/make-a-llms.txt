@@ -207,6 +207,32 @@ describe('parseFrontmatter', () => {
     expect(body).toBe('body text');
   });
 
+  it('round-trips all metadata fields including description, image, ogImage, and canonical', () => {
+    const input = {
+      title: 'AI Strategy Services',
+      url: 'https://civ.co/services/ai-strategy',
+      summary: 'Workshops and roadmaps.',
+      pageType: 'service' as const,
+      updated: '2026-05-01',
+      description: 'Mastering AEO, GEO, and AIO in the Age of AI Search',
+      image: '/images/blog/beyond-blue-links.webp',
+      ogImage: '/images/blog/beyond-blue-links-og.png',
+      canonical: 'https://www.aiready.cat/blog/beyond-blue-links-aeo-geo-aio',
+    };
+    const fm = buildFrontmatter(input);
+    const { fields, body } = parseFrontmatter(fm + 'body content');
+    expect(fields.title).toBe(input.title);
+    expect(fields.url).toBe(input.url);
+    expect(fields.summary).toBe(input.summary);
+    expect(fields.pageType).toBe(input.pageType);
+    expect(fields.updated).toBe(input.updated);
+    expect(fields.description).toBe(input.description);
+    expect(fields.image).toBe(input.image);
+    expect(fields.ogImage).toBe(input.ogImage);
+    expect(fields.canonical).toBe(input.canonical);
+    expect(body).toBe('body content');
+  });
+
   it('throws on --- opener without a closing ---', () => {
     const blob = '---\ntitle: Hello\nurl: https://x.test/p\n\nbody';
     expect(() => parseFrontmatter(blob)).toThrow(/closing|---/i);

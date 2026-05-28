@@ -4,10 +4,12 @@ export function PagesPreview({
   content,
   isLoading,
   isError,
+  actions,
 }: {
   content: string | null;
   isLoading: boolean;
   isError: boolean;
+  actions?: React.ReactNode;
 }) {
   if (isError) {
     return (
@@ -34,8 +36,13 @@ export function PagesPreview({
   }
 
   return (
-    <div className="pt-4">
-      <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-body bg-canvas-soft border border-hairline p-4 rounded-lg overflow-auto">
+    <div className="bg-canvas-soft border border-hairline rounded-lg overflow-hidden">
+      {actions && (
+        <div className="flex justify-end items-center px-4 py-2 border-b border-hairline bg-surface-card/40 gap-2">
+          {actions}
+        </div>
+      )}
+      <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-body p-4 overflow-auto">
         {content}
       </pre>
     </div>

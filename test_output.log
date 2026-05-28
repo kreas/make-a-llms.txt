@@ -1,0 +1,373 @@
+
+> ai-starter@0.1.0 test /Users/timmy/Workspace/make-a-llms.txt
+> vitest run src/components/generations/pages-content-panel.test.tsx
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.5 [39m[90m/Users/timmy/Workspace/make-a-llms.txt[39m
+
+ [31m❯[39m src/components/generations/pages-content-panel.test.tsx [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 1194[2mms[22m[39m
+     [32m✓[39m shows placeholder when generation is null[32m 25[2mms[22m[39m
+     [32m✓[39m shows skeleton state when pagesStatus is running[32m 4[2mms[22m[39m
+     [32m✓[39m shows skip reason when pagesStatus is skipped[32m 3[2mms[22m[39m
+     [32m✓[39m shows failure message when pagesStatus is failed[32m 2[2mms[22m[39m
+     [32m✓[39m renders the menubar and export trigger when succeeded[32m 104[2mms[22m[39m
+[31m     [31m×[31m renders and allows copying JSON-LD schema[39m[33m 1054[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/components/generations/pages-content-panel.test.tsx[2m > [22mPagesContentPanel[2m > [22mrenders and allows copying JSON-LD schema
+[31m[1mTestingLibraryElementError[22m[39m: Found multiple elements with the text: /type/
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"text-primary-base font-semibold"[39m
+[36m>[39m
+  [0m"@type":[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"text-primary-base font-semibold"[39m
+[36m>[39m
+  [0m"@type":[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"text-primary-base font-semibold"[39m
+[36m>[39m
+  [0m"@type":[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"text-primary-base font-semibold"[39m
+[36m>[39m
+  [0m"@type":[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"text-primary-base font-semibold"[39m
+[36m>[39m
+  [0m"@type":[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"font-mono text-[13px] text-[#f54e00] font-semibold select-none"[39m
+[36m>[39m
+  [0m@type[0m
+  [0m:[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"font-mono text-[13px] text-[#f54e00] font-semibold select-none"[39m
+[36m>[39m
+  [0m@type[0m
+  [0m:[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"font-mono text-[13px] text-[#f54e00] font-semibold select-none"[39m
+[36m>[39m
+  [0m@type[0m
+  [0m:[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"font-mono text-[13px] text-[#f54e00] font-semibold select-none"[39m
+[36m>[39m
+  [0m@type[0m
+  [0m:[0m
+[36m</span>[39m
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"font-mono text-[13px] text-[#f54e00] font-semibold select-none"[39m
+[36m>[39m
+  [0m@type[0m
+  [0m:[0m
+[36m</span>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"space-y-3"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center justify-between gap-3"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-w-0 flex-1"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-body"[39m
+          [36m>[39m
+            [0m1 of 1 pages rendered[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"p-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid grid-cols-1 items-start gap-6 md:grid-cols-[280px_1fr]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"sticky top-4 max-h-[calc(100vh-2rem)] overflow-auto pb-4 md:pb-0 md:pr-6 border-b md:border-b-0 md:border-r border-hairline"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"overflow-auto"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"flex w-full items-center gap-2 px-2 py-1 text-left text-sm transition-colors bg-canvas-soft text-ink "[39m
+                [33mstyle[39m=[32m"padding-left: 8px;"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-label[39m=[32m"ok"[39m
+                  [33mclass[39m=[32m"inline-block h-2 w-2 shrink-0 rounded-full bg-semantic-success"[39m
+                [36m/>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"truncate"[39m
+                [36m>[39m
+                  [0ma.md[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"min-w-0"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex flex-col gap-6"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center justify-between bg-[#f3efdb] p-1 pl-4 rounded-lg border border-hairline w-full gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex items-center gap-2 min-w-0"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-file-text h-4 w-4 text-muted-soft flex-shrink-0"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M10 9H8"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M16 13H8"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M16 17H8"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"font-mono text-[13px] font-medium text-ink truncate"[39m
+                  [36m>[39m
+                    [0ma.md[0m
+                  [36m</span>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex h-9 items-center gap-1 rounded-lg border-hairline w-fit border-0 bg-transparent p-0 shadow-none flex-shrink-0"[39m
+                  [33mdata-orientation[39m=[32m"horizontal"[39m
+                  [33mdata-slot[39m=[32m"menubar"[39m
+                  [33mrole[39m=[32m"menubar"[39m
+                  [33mstyle[39m=[32m"outline: none;"[39m
+                  [33mtabindex[39m=[32m"0"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33maria-expanded[39m=[32m"false"[39m
+                    [33maria-haspopup[39m=[32m"menu"[39m
+                    [33mclass[39m=[32m"flex cursor-default items-center rounded-md px-3 py-1 text-sm font-medium outline-none select-none transition-all text-muted-strong hover:text-ink hover:bg-canvas-soft/50 focus-visible:bg-canvas-soft/50 focus-visible:text-ink focus-visible:outline-none data-[active=true]:bg-surface-card data-[active=true]:text-ink data-[active=true]:border-hairline-strong/30 border border-transparent data-[state=open]:bg-canvas-soft/50 data-[state=open]:text-ink"[39m
+                    [33mdata-orientation[39m=[32m"horizontal"[39m
+                    [33mdata-radix-collection-item[39m=[32m""[39m
+                    [33mdata-slot[39m=[32m"menubar-trigger"[39m
+                    [33mdata-state[39m=[32m"closed"[39m
+                    [33mid[39m=[32m"radix-_r_l_"[39m
+                    [33mrole[39m=[32m"menuitem"[39m
+                    [33mtabindex[39m=[32m"-1"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mCitation Audit[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33maria-expanded[39m=[32m"false"[39m
+                    [33maria-haspopup[39m=[32m"menu"[39m
+                    [33mclass[39m=[32m"flex cursor-default items-center rounded-md px-3 py-1 text-sm font-medium outline-none select-none transition-all text-muted-strong hover:text-ink hover:bg-canvas-soft/50 focus-visible:bg-canvas-soft/50 focus-visible:text-ink focus-visible:outline-none data-[active=true]:bg-surface-card data-[active=true]:text-ink data-[active=true]:border-hairline-strong/30 border border-transparent data-[state=open]:bg-canvas-soft/50 data-[state=open]:text-ink"[39m
+                    [33mdata-orientation[39m=[32m"horizontal"[39m
+                    [33mdata-radix-collection-item[39m=[32m""[39m
+                    [33mdata-slot[39m=[32m"menubar-trigger"[39m
+                    [33mdata-state[39m=[32m"closed"[39m
+                    [33mid[39m=[32m"radix-_r_p_"[...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"space-y-3"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center justify-between gap-3"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-w-0 flex-1"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-body"[39m
+          [36m>[39m
+            [0m1 of 1 pages rendered[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"p-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid grid-cols-1 items-start gap-6 md:grid-cols-[280px_1fr]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"sticky top-4 max-h-[calc(100vh-2rem)] overflow-auto pb-4 md:pb-0 md:pr-6 border-b md:border-b-0 md:border-r border-hairline"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"overflow-auto"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"flex w-full items-center gap-2 px-2 py-1 text-left text-sm transition-colors bg-canvas-soft text-ink "[39m
+                [33mstyle[39m=[32m"padding-left: 8px;"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-label[39m=[32m"ok"[39m
+                  [33mclass[39m=[32m"inline-block h-2 w-2 shrink-0 rounded-full bg-semantic-success"[39m
+                [36m/>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"truncate"[39m
+                [36m>[39m
+                  [0ma.md[0m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"min-w-0"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex flex-col gap-6"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center justify-between bg-[#f3efdb] p-1 pl-4 rounded-lg border border-hairline w-full gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex items-center gap-2 min-w-0"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-file-text h-4 w-4 text-muted-soft flex-shrink-0"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M10 9H8"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M16 13H8"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M16 17H8"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"font-mono text-[13px] font-medium text-ink truncate"[39m
+                  [36m>[39m
+                    [0ma.md[0m
+                  [36m</span>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex h-9 items-center gap-1 rounded-lg border-hairline w-fit border-0 bg-transparent p-0 shadow-none flex-shrink-0"[39m
+                  [33mdata-orientation[39m=[32m"horizontal"[39m
+                  [33mdata-slot[39m=[32m"menubar"[39m
+                  [33mrole[39m=[32m"menubar"[39m
+                  [33mstyle[39m=[32m"outline: none;"[39m
+                  [33mtabindex[39m=[32m"0"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33maria-expanded[39m=[32m"false"[39m
+                    [33maria-haspopup[39m=[32m"menu"[39m
+                    [33mclass[39m=[32m"flex cursor-default items-center rounded-md px-3 py-1 text-sm font-medium outline-none select-none transition-all text-muted-strong hover:text-ink hover:bg-canvas-soft/50 focus-visible:bg-canvas-soft/50 focus-visible:text-ink focus-visible:outline-none data-[active=true]:bg-surface-card data-[active=true]:text-ink data-[active=true]:border-hairline-strong/30 border border-transparent data-[state=open]:bg-canvas-soft/50 data-[state=open]:text-ink"[39m
+                    [33mdata-orientation[39m=[32m"horizontal"[39m
+                    [33mdata-radix-collection-item[39m=[32m""[39m
+                    [33mdata-slot[39m=[32m"menubar-trigger"[39m
+                    [33mdata-state[39m=[32m"closed"[39m
+                    [33mid[39m=[32m"radix-_r_l_"[39m
+                    [33mrole[39m=[32m"menuitem"[39m
+                    [33mtabindex[39m=[32m"-1"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mCitation Audit[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33maria-expanded[39m=[32m"false"[39m
+                    [33maria-haspopup[39m=[32m"menu"[39m
+                    [33mclass[39m=[32m"flex cursor-default items-center rounded-md px-3 py-1 text-sm font-medium outline-none select-none transition-all text-muted-strong hover:text-ink hover:bg-canvas-soft/50 focus-visible:bg-canvas-soft/50 focus-visible:text-ink focus-visible:outline-none data-[active=true]:bg-surface-card data-[active=true]:text-ink data-[active=true]:border-hairline-strong/30 border border-transparent data-[state=open]:bg-canvas-soft/50 data-[state=open]:text-ink"[39m
+                    [33mdata-orientation[39m=[32m"horizontal"[39m
+                    [33mdata-radix-collection-item[39m=[32m""[39m
+                    [33mdata-slot[39m=[32m"menubar-trigger"[39m
+                    [33mdata-state[39m=[32m"closed"[39m
+                    [33mid[39m=[32m"radix-_r_p_"[...
+[90m [2m❯[22m waitForWrapper node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/wait-for.js:[2m163:27[22m[39m
+[90m [2m❯[22m node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m86:33[22m[39m
+[36m [2m❯[22m src/components/generations/pages-content-panel.test.tsx:[2m123:25[22m[39m
+    [90m121|[39m     [35mawait[39m userEvent[33m.[39m[34mclick[39m(jsonLdTab)[33m;[39m
+    [90m122|[39m
+    [90m123|[39m     [34mexpect[39m([35mawait[39m screen[33m.[39m[34mfindByText[39m([36m/type/[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   |[39m                         [31m^[39m
+    [90m124|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([36m/BlogPosting/[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m125|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([36m/headline/[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[90m (6)[39m
+[2m   Start at [22m 14:03:10
+[2m   Duration [22m 2.35s[2m (transform 144ms, setup 324ms, import 386ms, tests 1.19s, environment 356ms)[22m
+
+ ELIFECYCLE  Test failed. See above for more details.

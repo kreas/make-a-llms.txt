@@ -9,6 +9,7 @@ import { PagesTree, type ManifestPage } from './pages-tree';
 import { PagesPreview } from './pages-preview';
 import { CitationsPageDetail } from '../citations/citations-page-detail';
 import { SchemaValidator } from './schema-validator';
+import { UnfurlPreview } from './unfurl-preview';
 import { PageQuestions } from '../citations/page-questions';
 import {
   Menubar,
@@ -436,6 +437,14 @@ export function PagesContentPanel({
                   </MenubarMenu>
                   <MenubarMenu>
                     <MenubarTrigger
+                      isActive={subTab === 'unfurl'}
+                      onClick={() => setSubTab('unfurl')}
+                    >
+                      Unfurl Preview
+                    </MenubarTrigger>
+                  </MenubarMenu>
+                  <MenubarMenu>
+                    <MenubarTrigger
                       isActive={subTab === 'questions'}
                       onClick={() => setSubTab('questions')}
                     >
@@ -566,6 +575,24 @@ export function PagesContentPanel({
                             <SchemaValidator jsonLdString={jsonLdString} />
                           </div>
                         );
+                      })()
+                    )}
+                  </div>
+                )}
+                {subTab === 'unfurl' && (
+                  <div className="flex flex-col gap-4 animate-fade-in-up">
+                    {markdownQuery.isLoading ? (
+                      <div className="flex min-h-[200px] items-center justify-center pt-4">
+                        <p className="font-mono text-[13px] text-muted-soft animate-pulse">Loading…</p>
+                      </div>
+                    ) : markdownQuery.isError || !markdownQuery.data ? (
+                      <div className="flex min-h-[200px] items-center justify-center pt-4">
+                        <p className="text-sm text-destructive">Couldn&apos;t load page metadata.</p>
+                      </div>
+                    ) : (
+                      (() => {
+                        const { fields } = parseFrontmatterFieldsSafe(markdownQuery.data);
+                        return <UnfurlPreview fields={fields} selectedPage={selectedPage} />;
                       })()
                     )}
                   </div>

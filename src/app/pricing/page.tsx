@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Check, HelpCircle } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
+import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { PricingButton } from './pricing-button';
 
@@ -45,60 +46,7 @@ export default async function PricingPage() {
 
   return (
     <div className="bg-canvas text-ink min-h-screen flex flex-col justify-between">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-hairline bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 text-ink">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                src="/logo-v4.png"
-                alt=""
-                width={28}
-                height={28}
-                className="h-7 w-7 shrink-0 rounded-md"
-              />
-              <span className="display-sm">AI Ready</span>
-            </Link>
-            <div className="hidden gap-8 md:flex">
-              <Link
-                href="/pricing"
-                className="text-sm font-medium text-primary transition-colors duration-200"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="/docs"
-                className="text-sm text-body transition-colors duration-200 hover:text-primary"
-              >
-                Docs
-              </Link>
-              <Link
-                href="/blog"
-                className="text-sm text-body transition-colors duration-200 hover:text-primary"
-              >
-                Blog
-              </Link>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {user ? (
-              <Button asChild>
-                <Link href="/dashboard">Open dashboard</Link>
-              </Button>
-            ) : (
-              <>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/signin">Sign In</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <SiteHeader authenticated={!!user} />
 
       {/* Hero Section */}
       <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-20 pb-12 text-center">

@@ -41,10 +41,16 @@ export async function getMergedPageTree(): Promise<Root> {
       child.name.toLowerCase().includes('legal'),
   );
 
+  const apiTokenNode = {
+    type: 'page' as const,
+    name: 'API Tokens',
+    url: '/settings/api-tokens',
+  };
+
   if (legalIndex !== -1) {
-    children.splice(legalIndex, 0, ...apiSource.pageTree.children);
+    children.splice(legalIndex, 0, ...apiSource.pageTree.children, apiTokenNode);
   } else {
-    children.push(...apiSource.pageTree.children);
+    children.push(...apiSource.pageTree.children, apiTokenNode);
   }
 
   return {

@@ -1,23 +1,38 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useNotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import { UserMenu } from '@/components/auth/user-menu';
 import { Button } from '@/components/ui/button';
-
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/settings/api-tokens', label: 'API Tokens' },
-  { href: '/docs', label: 'Docs' },
-] as const;
+import { cn } from '@/lib/utils';
 
 export function DocsHeader({ authenticated }: { authenticated: boolean }) {
+  const pathname = usePathname();
   const { slots } = useNotebookLayout();
   const SearchTriggerFull =
     slots.searchTrigger && typeof slots.searchTrigger !== 'boolean'
       ? slots.searchTrigger.full
       : null;
+
+  const navItems = authenticated
+    ? [
+        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/pricing', label: 'Pricing' },
+        { href: '/blog', label: 'Blog' },
+        { href: '/docs', label: 'Docs' },
+      ]
+    : [
+        { href: '/pricing', label: 'Pricing' },
+        { href: '/blog', label: 'Blog' },
+        { href: '/docs', label: 'Docs' },
+      ];
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname === href || pathname.startsWith(href + '/');
+  };
 
   return (
     <header className="sticky top-(--fd-docs-row-1) z-10 [grid-area:header] border-b border-hairline bg-background/80 backdrop-blur-md">
@@ -34,11 +49,16 @@ export function DocsHeader({ authenticated }: { authenticated: boolean }) {
             <span className="display-sm">AI Ready</span>
           </Link>
           <nav className="hidden gap-8 md:flex">
-            {NAV_ITEMS.map(({ href, label }) => (
+            {navItems.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="text-sm text-body transition-colors duration-200 hover:text-primary"
+                className={cn(
+                  'text-sm transition-colors duration-200',
+                  isActive(href)
+                    ? 'font-medium text-primary'
+                    : 'text-body hover:text-primary'
+                )}
               >
                 {label}
               </Link>

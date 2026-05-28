@@ -74,6 +74,7 @@ vi.mock('@/lib/auth', () => ({
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(),
+  usePathname: () => '/blog/beyond-blue-links-aeo-geo-aio',
 }));
 
 describe('blog loader and pages', () => {

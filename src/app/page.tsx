@@ -6,18 +6,10 @@ import {
   Terminal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getCurrentUser } from '@/lib/auth';
 import { ScrollAnimate } from '@/components/ui/scroll-animate';
-
-const NAV_LINKS: ReadonlyArray<{
-  href: string;
-  label: string;
-}> = [
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/docs', label: 'Docs' },
-  { href: '/blog', label: 'Blog' },
-];
 
 const CRAWLER_ROWS = [
   { agent: 'GPTBot/1.0', status: 'ALLOWED', tone: 'grep' },
@@ -58,50 +50,7 @@ export default async function Home() {
 
   return (
     <div className="bg-canvas text-ink">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-hairline bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 text-ink">
-              <img
-                src="/logo-v4.png"
-                alt=""
-                width={28}
-                height={28}
-                className="h-7 w-7 shrink-0 rounded-md"
-              />
-              <span className="display-sm">AI Ready</span>
-            </Link>
-            <div className="hidden gap-8 md:flex">
-              {NAV_LINKS.map(({ href, label }) => (
-                <Link
-                  key={label}
-                  href={href}
-                  className="text-sm text-body transition-colors duration-200 hover:text-primary"
-                >
-                  {label}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {user ? (
-              <Button asChild>
-                <Link href="/dashboard">Open dashboard</Link>
-              </Button>
-            ) : (
-              <>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/signin">Sign In</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <SiteHeader authenticated={!!user} />
 
       {/* Hero */}
       <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-20 pb-4 text-center">

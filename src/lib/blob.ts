@@ -7,14 +7,16 @@ import {
 } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 
-const accountId = process.env.R2_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID;
-const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-const bucket = process.env.R2_BUCKET_NAME || 'make-a-llms-txt';
-
 // Lazily initialize client to avoid crashes if variables are missing during startup or test runs
 let s3Client: S3Client | null = null;
+let activeBucket: string | null = null;
+
 function getS3Client() {
+  const accountId = process.env.R2_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const bucket = process.env.R2_BUCKET_NAME || 'make-a-llms-txt';
+
   if (!s3Client) {
     if (!accountId || !accessKeyId || !secretAccessKey) {
       throw new Error(
@@ -29,8 +31,9 @@ function getS3Client() {
         secretAccessKey,
       },
     });
+    activeBucket = bucket;
   }
-  return s3Client;
+  return { client: s3Client, bucket: activeBucket || bucket };
 }
 
 function cleanKey(urlOrPath: string): string {
@@ -51,7 +54,7 @@ export async function put(
   body: string | Buffer | Uint8Array | ReadableStream,
   options?: { contentType?: string }
 ) {
-  const client = getS3Client();
+  const { client, bucket } = getS3Client();
   const key = cleanKey(pathname);
 
   let finalBody: any = body;
@@ -76,7 +79,7 @@ export async function put(
 }
 
 export async function get(urlOrPath: string, _options?: any) {
-  const client = getS3Client();
+  const { client, bucket } = getS3Client();
   const key = cleanKey(urlOrPath);
 
   try {
@@ -115,7 +118,7 @@ export async function get(urlOrPath: string, _options?: any) {
 }
 
 export async function del(urlOrPath: string | string[]) {
-  const client = getS3Client();
+  const { client, bucket } = getS3Client();
   const keys = Array.isArray(urlOrPath) ? urlOrPath.map(cleanKey) : [cleanKey(urlOrPath)];
 
   for (const key of keys) {
@@ -129,7 +132,7 @@ export async function del(urlOrPath: string | string[]) {
 }
 
 export async function list(options?: { prefix?: string }) {
-  const client = getS3Client();
+  const { client, bucket } = getS3Client();
   const prefix = options?.prefix ? cleanKey(options.prefix) : undefined;
 
   const response = await client.send(

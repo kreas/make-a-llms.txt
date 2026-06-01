@@ -114,8 +114,13 @@ async function generatePageMarkdownOnTheFly(
     const USER_AGENT = 'MakeALlmsTxt/1.0 (+https://make-a-llms.txt/bot; site-metadata)';
     const htmlRes = await fetch(url, {
       headers: {
-        'User-Agent': USER_AGENT,
+        'user-agent': USER_AGENT,
+        accept: 'text/html,*/*',
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
       },
+      redirect: 'follow',
+      cache: 'no-store',
     });
     if (htmlRes.ok) {
       const html = await htmlRes.text();

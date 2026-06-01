@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Settings, RefreshCw, Link as LinkIcon, Clock } from 'lucide-react';
+import { Settings, Link as LinkIcon, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Site, Generation } from '@/db/schema';
 import { ProcessTimeline } from '@/components/generations/process-timeline';
@@ -28,9 +28,11 @@ const tabItems = [
 export function SiteDetailClient({
   site,
   generations,
+  allRunsCount = 0,
 }: {
   site: Site;
-  generations: Generation[];
+  generations: (Generation & { projectRunNumber?: number })[];
+  allRunsCount?: number;
 }) {
   const [activeTab, setActiveTab] = useState('pages');
   const screenSize = useScreenSize();
@@ -171,6 +173,7 @@ export function SiteDetailClient({
                 generations={generations}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
+                allRunsCount={allRunsCount}
               />
             )}
           </div>
@@ -197,27 +200,23 @@ export function SiteDetailClient({
               </>
             )}
           </div>
-          {latest && <ProcessTimeline status={latest.status} />}
+          {latest && (
+            <ProcessTimeline
+              status={latest.status}
+              onRegenerate={() => regenerate.mutate()}
+              isRegenerating={regenerate.isPending}
+            />
+          )}
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
             title="Settings"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-hairline-strong bg-surface-card text-ink transition-colors hover:bg-canvas-soft"
+            className="inline-flex h-10 w-10 items-center justify-center text-muted-strong hover:text-ink transition-colors cursor-pointer"
           >
-            <Settings className="h-4 w-4" aria-hidden="true" />
+            <Settings className="h-4.5 w-4.5" aria-hidden="true" />
             <span className="sr-only">Settings</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => regenerate.mutate()}
-            disabled={regenerate.isPending}
-            title="Re-run Generation"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-on-primary transition-colors hover:bg-primary-active disabled:opacity-50"
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            <span className="sr-only">Re-run Generation</span>
           </button>
         </div>
       </header>
@@ -288,7 +287,7 @@ export function SiteDetailClient({
           </TabsList>
 
           {/* Content panel area */}
-          <div className="p-4 md:p-6 min-w-0">
+          <div className="p-4 md:p-6 min-w-0 min-h-[600px]">
             <TabsContent value="pages" className="mt-0 outline-none">
               <PagesContentPanel generation={selected} siteId={site.uid} />
             </TabsContent>
@@ -325,9 +324,9 @@ export function SiteDetailClient({
       />
     </Tabs>
 
-    {/* Full-width illustration background image at the bottom, flush with the footer */}
+    {/* Full-width illustration background image at the bottom, fixed to viewport to prevent jumping */}
     <div
-      className="absolute bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/site-detail-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10"
+      className="fixed bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/site-detail-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10"
     />
   </div>
   );

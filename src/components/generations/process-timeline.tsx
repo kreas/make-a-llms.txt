@@ -1,9 +1,17 @@
-import { Search, BookOpen, Check } from 'lucide-react';
+import { Search, BookOpen, Check, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Status = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
-export function ProcessTimeline({ status }: { status: Status }) {
+export function ProcessTimeline({
+  status,
+  onRegenerate,
+  isRegenerating = false,
+}: {
+  status: Status;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
+}) {
   const stages = [
     {
       key: 'setup',
@@ -42,6 +50,18 @@ export function ProcessTimeline({ status }: { status: Status }) {
             <s.icon className="h-3 w-3" />
             {s.label}
           </span>
+          {s.key === 'done' && s.reached && onRegenerate && (
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={isRegenerating}
+              title="Re-run Generation"
+              className="ml-4 inline-flex items-center justify-center text-muted-strong hover:text-ink disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", isRegenerating && "animate-spin")} />
+              <span className="sr-only">Re-run Generation</span>
+            </button>
+          )}
         </span>
       ))}
     </div>

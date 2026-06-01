@@ -185,6 +185,10 @@ export async function summarizePage(
       summary: finalSummary,
       pageType,
       updated: fields.updated ?? '',
+      description: fields.description ?? null,
+      image: fields.image ?? null,
+      ogImage: fields.ogImage ?? null,
+      canonical: fields.canonical ?? null,
     });
 
     // Rewrite with the full original body, not the truncated `sendBody` — we

@@ -9,9 +9,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('SiteHeader', () => {
-  it('renders the wordmark', () => {
+  it('renders the brand logo home link', () => {
     render(withQueryClient(<SiteHeader />));
-    expect(screen.getByText('AI Ready')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
   });
 
   describe('when authenticated (default)', () => {

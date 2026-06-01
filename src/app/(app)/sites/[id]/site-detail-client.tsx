@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { Settings, Link as LinkIcon, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LazyMotion, m } from 'framer-motion';
 import type { Site, Generation } from '@/db/schema';
+
+const loadFeatures = () => import('framer-motion').then((mod) => mod.domMax);
 import { ProcessTimeline } from '@/components/generations/process-timeline';
 import { LlmsContentPanel } from '@/components/generations/llms-content-panel';
 import { PagesContentPanel } from '@/components/generations/pages-content-panel';
@@ -41,11 +43,18 @@ export function SiteDetailClient({
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const latest = generations[0] ?? null;
-  const latestSucceeded = generations.find((g) => g.status === 'succeeded') ?? null;
+  // SSE live state merges real-time updates over the server-rendered props.
+  const [liveGeneration, setLiveGeneration] = useState<Generation | null>(null);
+  const mergedGenerations = useMemo(() => {
+    if (!liveGeneration) return generations;
+    return generations.map((g) => (g.id === liveGeneration.id ? { ...g, ...liveGeneration } : g));
+  }, [generations, liveGeneration]);
+
+  const latest = mergedGenerations[0] ?? null;
+  const latestSucceeded = mergedGenerations.find((g) => g.status === 'succeeded') ?? null;
   const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
   const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId as number | null);
-  const selected = generations.find((g) => g.id === selectedId) ?? null;
+  const selected = mergedGenerations.find((g) => g.id === selectedId) ?? null;
 
   useEffect(() => {
     const key = `fresh-token-${site.uid}`;
@@ -125,14 +134,26 @@ export function SiteDetailClient({
     },
   });
 
-  // Poll for status updates while any generation is in flight.
+  // Subscribe to SSE for the in-flight generation instead of polling.
   useEffect(() => {
-    const hasInFlight = generations.some(
+    const inFlight = generations.find(
       (g) => g.status === 'pending' || g.status === 'running',
     );
-    if (!hasInFlight) return;
-    const handle = setInterval(() => router.refresh(), 3000);
-    return () => clearInterval(handle);
+    if (!inFlight) {
+      setLiveGeneration(null);
+      return;
+    }
+    const es = new EventSource(`/api/generations/${inFlight.uid}/stream`);
+    es.addEventListener('status', (e) => {
+      const next = JSON.parse((e as MessageEvent).data) as Partial<Generation>;
+      setLiveGeneration((prev) => ({ ...(prev ?? inFlight), ...next }) as Generation);
+      if (['succeeded', 'failed', 'cancelled'].includes(next.status ?? '')) {
+        es.close();
+        router.refresh();
+      }
+    });
+    es.onerror = () => es.close();
+    return () => es.close();
   }, [generations, router]);
 
   // Auto-trigger regenerate when arriving with ?action=regenerate from the dashboard's Run Now
@@ -152,6 +173,7 @@ export function SiteDetailClient({
       {/* Background color of this page */}
       <div className="fixed inset-0 bg-[#f3efd9] -z-20 pointer-events-none" />
 
+      <LazyMotion features={loadFeatures} strict>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-8 relative z-10">
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-3">
@@ -236,7 +258,7 @@ export function SiteDetailClient({
               {tabItems.map((item, idx) => (
                 <div key={item.value} className="relative flex-1 h-full">
                   {activeTab === item.value && (
-                    <motion.div
+                    <m.div
                       layoutId="active-folder-tab-bg"
                       className={cn(
                         "absolute inset-y-0 bg-surface-card dark:bg-zinc-900",
@@ -323,6 +345,7 @@ export function SiteDetailClient({
         detailsError={detailsError}
       />
     </Tabs>
+      </LazyMotion>
 
     {/* Full-width illustration background image at the bottom, fixed to viewport to prevent jumping */}
     <div

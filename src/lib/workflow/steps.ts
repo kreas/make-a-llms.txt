@@ -5,15 +5,12 @@ import { getDb } from '@/db';
 import { generations, sites, users } from '@/db/schema';
 import { discoverSitemap } from '@/lib/sitemap-discover';
 import { runLlmstxt } from '@/lib/llmstxt';
-import { fetchPageMarkdown, CfClientError } from '@/lib/markdown-pages/cloudflare';
 import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
 import { mapUrlsToPaths } from '@/lib/markdown-pages/url-to-path';
 import { buildManifest, type PageResult } from '@/lib/markdown-pages/manifest';
 import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
 import { runCrawlerAudit } from '@/lib/crawler-audit';
-import { buildFrontmatter, extractTitle } from './frontmatter';
-import { parseHTML } from 'linkedom';
 import { summarizePage, type SummaryOutcome } from './summarize-page';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
@@ -172,7 +169,6 @@ export async function failStep(
 }
 
 const PAGES_CAP = Number(process.env.PAGES_PER_RUN_CAP ?? 250);
-const PAGES_CONCURRENCY = Number(process.env.CLOUDFLARE_BR_CONCURRENCY ?? 5);
 
 const SUMMARY_CONCURRENCY = Number(process.env.AI_SUMMARY_CONCURRENCY ?? 15);
 const SUMMARY_MAX_INPUT_BYTES = Number(

@@ -58,7 +58,11 @@ export function LlmsContentPanel({
       });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || 'Failed to rewrite llms.txt');
+        throw new Error(
+          errJson.error?.message ||
+            errJson.message ||
+            'Failed to rewrite llms.txt'
+        );
       }
       const data = await res.json();
       setContent(data.content);

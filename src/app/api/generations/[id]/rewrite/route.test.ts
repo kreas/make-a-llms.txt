@@ -178,4 +178,36 @@ describe('POST /api/generations/[id]/rewrite', () => {
     const secondPassCall = vi.mocked(generateText).mock.calls[1][0];
     expect(secondPassCall.system).toContain('The previous output contained these forbidden patterns: seamless, —');
   });
+
+  it('returns 500 when AI model returns empty content', async () => {
+    const { user, site } = await makeUserAndSite('a@a.test');
+    vi.mocked(getCurrentUser).mockResolvedValue(user);
+
+    const [gen] = await getDb()
+      .insert(generations)
+      .values({
+        siteId: site.id,
+        userId: user.id,
+        status: 'succeeded',
+        trigger: 'manual',
+        llmsBlobPath: 'gens/1/llms.txt',
+      })
+      .returning();
+
+    vi.mocked(get).mockResolvedValue({
+      stream: new Response('# Rough Title').body!,
+    } as any);
+
+    vi.mocked(generateText).mockResolvedValue({
+      text: '',
+    } as any);
+
+    const res = await POST(new Request('http://t', { method: 'POST' }), ctx(gen.uid));
+    expect(res.status).toBe(500);
+
+    const body = await res.json();
+    expect(body.error.code).toBe('generation_failed');
+    expect(body.error.message).toContain('empty content');
+    expect(put).not.toHaveBeenCalled();
+  });
 });

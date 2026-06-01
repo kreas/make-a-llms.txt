@@ -190,6 +190,14 @@ export async function POST(_req: Request, ctx: Ctx) {
 
     const cleanedContent = cleanCodeFences(finalContent);
 
+    if (!cleanedContent) {
+      throw new ApiError(
+        500,
+        'generation_failed',
+        'Failed to format llms.txt. The AI model returned empty content.'
+      );
+    }
+
     // Overwrite the Vercel Blob file
     await put(gen.llmsBlobPath, cleanedContent, {
       access: 'private',

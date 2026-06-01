@@ -8,7 +8,7 @@ vi.mock('execa', () => {
   };
 });
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   put: vi.fn(async (pathname: string, body: any) => ({
     url: `https://blob.test/${pathname}`,
     pathname,
@@ -16,7 +16,7 @@ vi.mock('@vercel/blob', () => ({
 }));
 
 import { execa } from 'execa';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/blob';
 
 function fakeProc(stdout: string, exitCode = 0, stderr = '') {
   const stream = Readable.from([Buffer.from(stdout)]);

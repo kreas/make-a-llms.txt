@@ -4,7 +4,7 @@ import { getDb } from '@/db';
 import { generations, sites, users } from '@/db/schema';
 
 vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(async (pathname: string, _opts: unknown) => ({
     pathname,
     url: `https://blob.vercel-storage.com/${pathname}`,

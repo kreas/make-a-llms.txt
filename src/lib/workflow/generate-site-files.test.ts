@@ -13,7 +13,7 @@ vi.mock('execa', () => ({
     return promise;
   }),
 }));
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   put: vi.fn(async (pathname: string) => ({
     url: `https://blob.test/${pathname}`,
     pathname,
@@ -50,14 +50,16 @@ describe('generateSiteFilesWorkflow', () => {
   });
 
   it('runs prepare → (runGen + runFull) → complete and ends in succeeded', async () => {
+    const db = getDb();
+    const [s] = await db.select().from(sites).limit(1);
     await generateSiteFilesWorkflow({ generationId });
-    const [g] = await getDb()
+    const [g] = await db
       .select()
       .from(generations)
       .where(eq(generations.id, generationId));
     expect(g.status).toBe('succeeded');
-    expect(g.llmsBlobPath).toBe(`gens/${generationId}/llms.txt`);
-    expect(g.llmsFullBlobPath).toBe(`gens/${generationId}/llms-full.txt`);
+    expect(g.llmsBlobPath).toBe(`projects/${s.uid}/${g.uid}/llms.txt`);
+    expect(g.llmsFullBlobPath).toBe(`projects/${s.uid}/${g.uid}/llms-full.txt`);
   });
 
   it('marks generation failed when a step throws', async () => {

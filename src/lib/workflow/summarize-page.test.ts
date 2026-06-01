@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(),
   put: vi.fn(async (pathname: string) => ({ url: `https://blob.test/${pathname}`, pathname })),
 }));
@@ -12,7 +12,7 @@ vi.mock('ai', async () => {
   };
 });
 
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { generateText } from 'ai';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';

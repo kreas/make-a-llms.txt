@@ -4,7 +4,7 @@ import { getDb } from '@/db';
 import { users, sites, generations, apiTokens } from '@/db/schema';
 import { createApiToken } from '@/lib/tokens/api-token';
 
-vi.mock('@vercel/blob', () => {
+vi.mock('@/lib/blob', () => {
   const manifest = {
     pages: [
       { path: 'about', filename: 'about.md', blobPath: 'pages/about.md', status: 'ok' },

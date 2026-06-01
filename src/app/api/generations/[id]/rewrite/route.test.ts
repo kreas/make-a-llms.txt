@@ -4,7 +4,7 @@ import { getDb } from '@/db';
 import { generations, sites, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(),
   put: vi.fn(async (pathname: string, body: string) => ({
     url: `https://blob.test/${pathname}`,
@@ -22,7 +22,7 @@ vi.mock('ai', async () => {
 
 vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
 
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { generateText } from 'ai';
 import { getCurrentUser } from '@/lib/auth';
 import { POST } from './route';

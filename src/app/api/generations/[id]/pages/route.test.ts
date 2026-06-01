@@ -5,7 +5,7 @@ import { generations, sites, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 const getBlobSpy = vi.fn();
-vi.mock('@vercel/blob', () => ({ get: (...a: any[]) => getBlobSpy(...a) }));
+vi.mock('@/lib/blob', () => ({ get: (...a: any[]) => getBlobSpy(...a) }));
 vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
 
 import { GET } from './route';

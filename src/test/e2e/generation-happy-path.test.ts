@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Readable } from 'node:stream';
 import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
-import { users, generations } from '@/db/schema';
+import { users, generations, sites } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 const { startMock, sentEmails, MockResend, fetchPageMd, loadSitemap, blobPuts } = vi.hoisted(() => {
@@ -27,7 +27,7 @@ vi.mock('execa', () => ({
     return p;
   }),
 }));
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   put: vi.fn(async (path: string, body: unknown) => {
     blobPuts.push({ path, body });
     return { url: `https://blob.test/${path}`, pathname: path };
@@ -85,14 +85,15 @@ describe('generation happy path', () => {
     await generateSiteFilesWorkflow({ generationId });
 
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
+    const [s] = await getDb().select().from(sites).where(eq(sites.id, g.siteId));
     expect(g.status).toBe('succeeded');
-    expect(g.llmsBlobPath).toBe(`gens/${generationId}/llms.txt`);
-    expect(g.llmsFullBlobPath).toBe(`gens/${generationId}/llms-full.txt`);
+    expect(g.llmsBlobPath).toBe(`projects/${s.uid}/${g.uid}/llms.txt`);
+    expect(g.llmsFullBlobPath).toBe(`projects/${s.uid}/${g.uid}/llms-full.txt`);
     expect(g.pagesStatus).toBe('succeeded');
     expect(g.pagesCount).toBe(3);
-    expect(g.pagesManifestBlobPath).toBe(`gens/${generationId}/pages-manifest.json`);
+    expect(g.pagesManifestBlobPath).toBe(`projects/${s.uid}/${g.uid}/pages-manifest.json`);
 
-    const pageWrites = blobPuts.filter((b) => b.path.includes(`gens/${generationId}/pages/`));
+    const pageWrites = blobPuts.filter((b) => b.path.includes(`projects/${s.uid}/${g.uid}/pages/`));
     expect(pageWrites).toHaveLength(3);
 
     expect(sentEmails.length).toBe(1);

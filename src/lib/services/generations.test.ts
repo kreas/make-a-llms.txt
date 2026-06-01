@@ -3,7 +3,7 @@ import { setupTestDb } from '@/test/db';
 import { getDb } from '@/db';
 import { users, sites, generations } from '@/db/schema';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(async (path: string) => {
     if (path === 'pages/manifest.json') {
       return { stream: new Response(JSON.stringify({ pages: [{ url: 'https://example.com/a', path: 'a', blobPath: 'pages/a.md', status: 'ok', bytes: 10 }] })).body };

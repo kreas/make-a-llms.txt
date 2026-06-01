@@ -4,7 +4,7 @@ import { getDb } from '@/db';
 import { users, sites, generations, apiTokens } from '@/db/schema';
 import { createApiToken } from '@/lib/tokens/api-token';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(async (p: string) => {
     if (p === 'M') {
       return {

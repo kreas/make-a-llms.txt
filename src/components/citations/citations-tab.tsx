@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileText } from 'lucide-react';
 import { TabPanel } from '@/components/layout/tab-panel';
@@ -10,7 +10,7 @@ type ManifestPage = { url: string; path: string; status: 'ok' | 'failed' | 'skip
 type ManifestResponse = { status: string; count: number; pages: ManifestPage[] };
 
 export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestGenUid: string | null }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [manualSelected, setManualSelected] = useState<string | null>(null);
 
   const manifest = useQuery({
     queryKey: ['citation-audits', 'manifest-pages', siteId, latestGenUid],
@@ -43,12 +43,7 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
     };
   });
 
-  // Default to the first page when the manifest loads.
-  useEffect(() => {
-    if (!selected && rows.length > 0) {
-      setSelected(rows[0].pageUrl);
-    }
-  }, [rows, selected]);
+  const selected = manualSelected ?? rows[0]?.pageUrl ?? null;
 
   return (
     <TabPanel flat contentClassName="p-0">
@@ -59,7 +54,7 @@ export function CitationsTab({ siteId, latestGenUid }: { siteId: string; latestG
           ) : rows.length === 0 ? (
             <div className="p-4 text-sm text-body">No pages available.</div>
           ) : (
-            <CitationsPageTree rows={rows} selectedUrl={selected} onSelect={setSelected} />
+            <CitationsPageTree rows={rows} selectedUrl={selected} onSelect={setManualSelected} />
           )}
         </div>
         <div className="min-w-0">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { FileText, RefreshCw, Sparkles, Copy, ChevronDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
@@ -53,7 +53,7 @@ export function PagesContentPanel({
   siteId: string;
 }) {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [manualSelected, setManualSelected] = useState<string | null>(null);
   const [subTab, setSubTab] = useState('citation-audit');
   const [copyingState, setCopyingState] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,6 +76,13 @@ export function PagesContentPanel({
 
   const manifest = q.data && 'pages' in q.data ? q.data : null;
   const pages = useMemo(() => (manifest?.pages ?? []) as ManifestPage[], [manifest?.pages]);
+
+  // Derive the active selection: keep manual pick if still valid, else default to 'index' or first.
+  const selected = useMemo(() => {
+    if (manualSelected && pages.some((p) => p.path === manualSelected)) return manualSelected;
+    if (pages.some((p) => p.path === 'index')) return 'index';
+    return pages[0]?.path ?? null;
+  }, [manualSelected, pages]);
 
   const selectedPage = pages.find((p) => p.path === selected);
 
@@ -105,19 +112,6 @@ export function PagesContentPanel({
     staleTime: 5 * 60 * 1000,
   });
 
-  useEffect(() => {
-    if (pages && pages.length > 0) {
-      const currentValid = selected && pages.some((p) => p.path === selected);
-      if (!currentValid) {
-        const hasIndex = pages.some((p) => p.path === 'index');
-        if (hasIndex) {
-          setSelected('index');
-        } else if (pages[0]?.path) {
-          setSelected(pages[0].path);
-        }
-      }
-    }
-  }, [pages, selected]);
 
   const handleSavePage = () => {
     if (!selectedPage?.path || !generation) return;
@@ -488,7 +482,7 @@ export function PagesContentPanel({
           {q.isPending ? (
             <div className="p-2 text-body">Loading manifest…</div>
           ) : (
-            <PagesTree pages={pages} selectedPath={selected} onSelect={setSelected} />
+            <PagesTree pages={pages} selectedPath={selected} onSelect={setManualSelected} />
           )}
         </div>
         <div className="min-w-0">

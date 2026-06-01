@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Copy, Check, RefreshCw, Sparkles, Save } from 'lucide-react';
 import {
   Dialog,
@@ -108,6 +108,7 @@ export function SettingsDialog({
 
           <TabsContent value="details" className="min-w-0">
             <DetailsTab
+              key={`${details.name}:${details.displayName ?? ''}:${details.description ?? ''}`}
               details={details}
               onSave={onSaveDetails}
               isSaving={isSavingDetails}
@@ -256,12 +257,6 @@ function DetailsTab({
   const [name, setName] = useState(details.name);
   const [displayName, setDisplayName] = useState(details.displayName ?? '');
   const [description, setDescription] = useState(details.description ?? '');
-
-  useEffect(() => {
-    setName(details.name);
-    setDisplayName(details.displayName ?? '');
-    setDescription(details.description ?? '');
-  }, [details.name, details.displayName, details.description]);
 
   const dirty =
     name.trim() !== details.name ||

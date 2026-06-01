@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 
-const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+const accountId = process.env.R2_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
 const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 const bucket = process.env.R2_BUCKET_NAME || 'make-a-llms-txt';
@@ -79,28 +79,39 @@ export async function get(urlOrPath: string, _options?: any) {
   const client = getS3Client();
   const key = cleanKey(urlOrPath);
 
-  const response = await client.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-  );
+  try {
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
 
-  const bodyStream = response.Body;
-  let webStream: ReadableStream | null = null;
-  if (bodyStream) {
-    if (typeof (bodyStream as any).transformToWebStream === 'function') {
-      webStream = (bodyStream as any).transformToWebStream();
-    } else if (bodyStream instanceof Readable) {
-      webStream = Readable.toWeb(bodyStream);
-    } else {
-      webStream = bodyStream as any;
+    const bodyStream = response.Body;
+    let webStream: ReadableStream | null = null;
+    if (bodyStream) {
+      if (typeof (bodyStream as any).transformToWebStream === 'function') {
+        webStream = (bodyStream as any).transformToWebStream();
+      } else if (bodyStream instanceof Readable) {
+        webStream = Readable.toWeb(bodyStream);
+      } else {
+        webStream = bodyStream as any;
+      }
     }
-  }
 
-  return {
-    stream: webStream,
-  };
+    return {
+      stream: webStream,
+    };
+  } catch (err: any) {
+    if (
+      err.name === 'NoSuchKey' ||
+      err.code === 'NoSuchKey' ||
+      err.$metadata?.httpStatusCode === 404
+    ) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function del(urlOrPath: string | string[]) {

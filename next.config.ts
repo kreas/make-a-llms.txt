@@ -5,6 +5,10 @@ import type { NextConfig } from 'next';
 const withMDX = createMDX();
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+
   // Keep llmstxt and execa unbundled — we spawn the llmstxt CLI binary at
   // runtime, which Next.js's tracer can't follow through process.execPath.
   serverExternalPackages: ['llmstxt', 'execa'],

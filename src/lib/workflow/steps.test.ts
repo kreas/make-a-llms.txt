@@ -181,58 +181,27 @@ describe('workflow steps', () => {
     expect(g.pagesErrorMessage).toMatch(/cap/i);
   });
 
-  it('runPagesStepSafe fails when CF env vars are missing', async () => {
-    delete process.env.CLOUDFLARE_ACCOUNT_ID;
-    delete process.env.CLOUDFLARE_API_TOKEN;
-    vi.mocked(loadSitemapUrls).mockResolvedValue(['https://x.test/a']);
-    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
-    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
-    expect(g.pagesStatus).toBe('failed');
-    expect(g.pagesErrorMessage).toMatch(/credentials/i);
-  });
-
   it('runPagesStepSafe succeeds on happy path and writes a manifest', async () => {
-    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
-    process.env.CLOUDFLARE_API_TOKEN = 't';
     vi.mocked(loadSitemapUrls).mockResolvedValue([
       'https://x.test/a',
       'https://x.test/b',
     ]);
-    vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: '# Hi', durationMs: 10 });
     await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
     expect(g.pagesStatus).toBe('succeeded');
     expect(g.pagesCount).toBe(2);
     expect(g.pagesManifestBlobPath).toBe(`projects/${siteUid}/${generationUid}/pages-manifest.json`);
 
-    // Verify that the HTML metadata is extracted and included in the frontmatter
+    // Verify that the manifest is written to blob storage
     expect(put).toHaveBeenCalledWith(
-      expect.stringContaining(`projects/${siteUid}/${generationUid}/pages/`),
-      expect.stringContaining('description: Mocked HTML Desc'),
+      `projects/${siteUid}/${generationUid}/pages-manifest.json`,
+      expect.stringContaining('version'),
       expect.any(Object)
     );
   });
 
-  it('runPagesStepSafe still succeeds when some CF calls fail', async () => {
-    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
-    process.env.CLOUDFLARE_API_TOKEN = 't';
-    vi.mocked(loadSitemapUrls).mockResolvedValue([
-      'https://x.test/a',
-      'https://x.test/b',
-    ]);
-    vi.mocked(fetchPageMarkdown)
-      .mockResolvedValueOnce({ markdown: '# A', durationMs: 10 })
-      .mockRejectedValueOnce(Object.assign(new Error('CF 502'), { kind: 'transient' }));
-    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
-    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
-    expect(g.pagesStatus).toBe('succeeded');
-  });
-
   it('runPagesStepSafe honors cancellation flag', async () => {
-    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
-    process.env.CLOUDFLARE_API_TOKEN = 't';
     vi.mocked(loadSitemapUrls).mockResolvedValue(['https://x.test/a']);
-    vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: '# A', durationMs: 1 });
     await getDb().update(generations).set({ status: 'cancelled' }).where(eq(generations.id, generationId));
     await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));

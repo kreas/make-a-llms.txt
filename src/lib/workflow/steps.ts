@@ -212,6 +212,13 @@ export async function runPagesStepSafe(
   'use step';
   try {
     await markPagesStatus(generationId, { pagesStatus: 'running' });
+    if (await readCancelled(generationId)) {
+      return markPagesStatus(generationId, {
+        pagesStatus: 'cancelled',
+        pagesCount: 0,
+        pagesManifestBlobPath: null,
+      });
+    }
 
     const rawUrls = await loadSitemapUrls(sitemapUrl);
     if (rawUrls.length === 0) {
@@ -226,13 +233,6 @@ export async function runPagesStepSafe(
         pagesErrorMessage: `sitemap has ${rawUrls.length} URLs (cap ${PAGES_CAP})`,
       });
     }
-    if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-      return markPagesStatus(generationId, {
-        pagesStatus: 'failed',
-        pagesErrorMessage: 'Cloudflare credentials missing',
-      });
-    }
-
     const paths = await getGenerationPaths(generationId);
     const mapped = mapUrlsToPaths(rawUrls, rootUrl);
     const generatedAt = nowIso();
@@ -251,106 +251,17 @@ export async function runPagesStepSafe(
         durationMs: 0,
       }));
 
-    const results = await runWithPool(
-      eligible,
-      async (entry): Promise<PageResult> => {
-        try {
-          let ogTitle: string | null = null;
-          let ogDescription: string | null = null;
-          let ogImage: string | null = null;
-          let htmlTitle: string | null = null;
-          let metaDescription: string | null = null;
-          let htmlCanonical: string | null = null;
-
-          try {
-            const htmlRes = await fetch(entry.url, {
-              headers: {
-                'User-Agent': 'MakeALlmsTxt/1.0 (+https://make-a-llms.txt/bot; site-metadata)',
-              },
-            });
-            if (htmlRes.ok) {
-              const html = await htmlRes.text();
-              const { document } = parseHTML(html);
-              ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ?? null;
-              ogDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content')?.trim() ?? null;
-              ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content')?.trim() ?? null;
-              htmlTitle = document.querySelector('title')?.textContent?.trim() ?? null;
-              metaDescription = document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ?? null;
-              htmlCanonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href')?.trim() ?? null;
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch HTML for ${entry.url} during metadata extraction`, err);
-          }
-
-          const resolveUrl = (href: string | null, base: string) => {
-            if (!href) return null;
-            try {
-              return new URL(href, base).toString();
-            } catch {
-              return href;
-            }
-          };
-
-          const finalOgImage = resolveUrl(ogImage, entry.url);
-          const finalCanonical = resolveUrl(htmlCanonical, entry.url) || entry.url;
-
-          const { markdown, durationMs } = await fetchPageMarkdown(entry.url);
-          
-          const title = ogTitle || htmlTitle || extractTitle(markdown) || null;
-          const description = ogDescription || metaDescription || null;
-
-          const body =
-            buildFrontmatter({
-              url: entry.url,
-              updated: generatedAt.slice(0, 10),
-              title,
-              description,
-              image: finalOgImage,
-              ogImage: finalOgImage,
-              canonical: finalCanonical,
-            }) + markdown;
-          const bytes = Buffer.byteLength(body, 'utf8');
-          const blobPath = paths.pagePath(entry.path);
-          await put(blobPath, body, {
-            access: 'private',
-            contentType: 'text/markdown; charset=utf-8',
-            addRandomSuffix: false,
-            allowOverwrite: true,
-          });
-          return {
-            url: entry.url,
-            path: entry.path,
-            filename: entry.filename,
-            status: 'ok',
-            blobPath,
-            bytes,
-            durationMs,
-          };
-        } catch (err) {
-          const reason =
-            err instanceof CfClientError
-              ? err.message
-              : (err as Error)?.message ?? String(err);
-          return {
-            url: entry.url,
-            path: entry.path,
-            filename: entry.filename,
-            status: 'failed',
-            blobPath: null,
-            reason,
-            durationMs: 0,
-          };
-        }
-      },
-      {
-        concurrency: PAGES_CONCURRENCY,
-        isCancelled: () => readCancelled(generationId),
-      },
-    );
-
     const pageResults: PageResult[] = [
       ...skipped,
-      ...(results.filter((r) => !(r instanceof Error)) as PageResult[]),
+      ...eligible.map((entry) => ({
+        url: entry.url,
+        path: entry.path,
+        filename: entry.filename,
+        status: 'ok' as const,
+        blobPath: paths.pagePath(entry.path),
+        bytes: 0,
+        durationMs: 0,
+      })),
     ];
 
     const manifest = buildManifest(

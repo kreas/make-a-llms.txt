@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { put, get } from '@vercel/blob';
+import { put, get } from '@/lib/blob';
 import { getDb } from '@/db';
 import { generations, sites, users } from '@/db/schema';
 import { discoverSitemap } from '@/lib/sitemap-discover';
@@ -20,6 +20,30 @@ const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+async function getGenerationPaths(generationId: number) {
+  const db = getDb();
+  const [g] = await db
+    .select({
+      genUid: generations.uid,
+      siteUid: sites.uid,
+    })
+    .from(generations)
+    .innerJoin(sites, eq(generations.siteId, sites.id))
+    .where(eq(generations.id, generationId));
+
+  if (!g) throw new Error(`generation ${generationId} not found`);
+
+  const prefix = `projects/${g.siteUid}/${g.genUid}`;
+  return {
+    llmsPath: `${prefix}/llms.txt`,
+    llmsFullPath: `${prefix}/llms-full.txt`,
+    pagesManifestPath: `${prefix}/pages-manifest.json`,
+    summariesManifestPath: `${prefix}/summaries-manifest.json`,
+    pagesPrefix: `${prefix}/pages/`,
+    pagePath: (page: string) => `${prefix}/pages/${page}.md`,
+  };
 }
 
 export async function prepareStep(
@@ -49,7 +73,8 @@ export async function prepareStep(
 
 export async function runGenStep(generationId: number, sitemapUrl: string): Promise<void> {
   'use step';
-  const blobPath = `gens/${generationId}/llms.txt`;
+  const paths = await getGenerationPaths(generationId);
+  const blobPath = paths.llmsPath;
   await runLlmstxt({ subcommand: 'gen', sitemapUrl, blobPath, maxBytes: MAX_OUTPUT_BYTES });
   await getDb()
     .update(generations)
@@ -59,7 +84,8 @@ export async function runGenStep(generationId: number, sitemapUrl: string): Prom
 
 export async function runFullStep(generationId: number, sitemapUrl: string): Promise<void> {
   'use step';
-  const blobPath = `gens/${generationId}/llms-full.txt`;
+  const paths = await getGenerationPaths(generationId);
+  const blobPath = paths.llmsFullPath;
   await runLlmstxt({ subcommand: 'gen-full', sitemapUrl, blobPath, maxBytes: MAX_OUTPUT_BYTES });
   await getDb()
     .update(generations)
@@ -207,6 +233,7 @@ export async function runPagesStepSafe(
       });
     }
 
+    const paths = await getGenerationPaths(generationId);
     const mapped = mapUrlsToPaths(rawUrls, rootUrl);
     const generatedAt = nowIso();
     const eligible = mapped.filter(
@@ -283,7 +310,7 @@ export async function runPagesStepSafe(
               canonical: finalCanonical,
             }) + markdown;
           const bytes = Buffer.byteLength(body, 'utf8');
-          const blobPath = `gens/${generationId}/pages/${entry.path}.md`;
+          const blobPath = paths.pagePath(entry.path);
           await put(blobPath, body, {
             access: 'private',
             contentType: 'text/markdown; charset=utf-8',
@@ -338,7 +365,7 @@ export async function runPagesStepSafe(
 
     let manifestPath: string | null = null;
     if (pageResults.length > 0) {
-      manifestPath = `gens/${generationId}/pages-manifest.json`;
+      manifestPath = paths.pagesManifestPath;
       await put(manifestPath, JSON.stringify(manifest), {
         access: 'private',
         contentType: 'application/json',
@@ -469,6 +496,8 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
       return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
     }
 
+    const paths = await getGenerationPaths(generationId);
+
     const allPages = await loadPagesManifestPages(g.pagesManifestBlobPath);
     if (!allPages) {
       return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
@@ -542,7 +571,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
 
     const { succeeded, empty, failed, cached, resolved } = tallyOutcomes(outcomes);
 
-    const manifestPath = `gens/${generationId}/summaries-manifest.json`;
+    const manifestPath = paths.summariesManifestPath;
     await put(
       manifestPath,
       JSON.stringify({

@@ -468,7 +468,19 @@ export function PagesContentPanel({
   return (
     <TabPanel
       flat
-      meta={<p className="text-sm text-body">{summary}</p>}
+      meta={
+        <div className="flex flex-col gap-1 md:grid md:grid-cols-[280px_1fr] md:items-center md:gap-6">
+          <p className="whitespace-nowrap text-sm text-body">{summary}</p>
+          {selected && selectedPage && (
+            <span className="flex min-w-0 items-center gap-1.5 text-sm text-body">
+              <FileText className="h-4 w-4 flex-shrink-0 text-muted-soft" />
+              <span className="truncate">
+                {selectedPage.path ? `${selectedPage.path.split('/').pop()}.md` : 'Page'}
+              </span>
+            </span>
+          )}
+        </div>
+      }
       contentClassName="p-0"
     >
       <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[280px_1fr]">
@@ -482,16 +494,9 @@ export function PagesContentPanel({
         <div className="min-w-0">
           {selected && selectedPage ? (
             <div className="flex flex-col gap-6">
-              {/* Unified Tan Header & Menubar Box */}
-              <div className="flex items-center justify-between bg-[#f3efdb] p-1 pl-4 rounded-lg border border-hairline w-full gap-4">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="h-4 w-4 text-muted-soft flex-shrink-0" />
-                  <span className="font-mono text-[13px] font-medium text-ink truncate">
-                    {selectedPage.path ? `${selectedPage.path}.md` : 'Page'}
-                  </span>
-                </div>
-
-                <Menubar className="border-0 bg-transparent p-0 shadow-none flex-shrink-0">
+              {/* Menubar Box */}
+              <div className="flex items-center bg-[#f3efdb] p-1 rounded-lg border border-hairline w-full">
+                <Menubar className="border-0 bg-transparent p-0 shadow-none">
                   <MenubarMenu>
                     <MenubarTrigger
                       isActive={subTab === 'citation-audit'}

@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
-import { get } from '@vercel/blob';
+import { get } from '@/lib/blob';
 import { getDb } from '@/db';
 import { generations } from '@/db/schema';
 import { ApiError } from '@/lib/auth-guards';

@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/blob';
 import { Readable, PassThrough } from 'node:stream';
 import path from 'node:path';
 

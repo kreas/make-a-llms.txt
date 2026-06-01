@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import archiver from 'archiver';
 import { and, desc, eq } from 'drizzle-orm';
-import { get } from '@vercel/blob';
+import { get } from '@/lib/blob';
 import { ApiError, assertOwnsGenerationByUid } from '@/lib/auth-guards';
 import { getDb } from '@/db';
 import { generations, sites, type Generation } from '@/db/schema';

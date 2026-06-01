@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { generateText, Output } from 'ai';
 import { and, eq, sql } from 'drizzle-orm';
 import { getDb } from '@/db';

@@ -7,7 +7,7 @@ import {
 import { parseGenerationUid } from '@/lib/uid';
 import { readGenerationFile } from '@/lib/services/generations';
 import { generateText } from 'ai';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/blob';
 
 type Ctx = { params: Promise<{ id: string }> };
 

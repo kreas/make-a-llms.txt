@@ -1,7 +1,7 @@
 import { apiErrorResponse, requireUserOrThrow, ApiError, assertOwnsGenerationByUid } from '@/lib/auth-guards';
 import { readPageMarkdown } from '@/lib/services/generations';
 import { parseGenerationUid } from '@/lib/uid';
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { parseFrontmatter, buildFrontmatter } from '@/lib/workflow/frontmatter';
 import { fetchPageMarkdown } from '@/lib/markdown-pages/cloudflare';
 import { parseHTML } from 'linkedom';

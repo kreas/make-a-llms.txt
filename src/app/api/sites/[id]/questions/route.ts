@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { generateText, Output } from 'ai';
 import { getDb } from '@/db';
 import { generations, pageQuestionsCache } from '@/db/schema';

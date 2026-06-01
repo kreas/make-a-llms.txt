@@ -1,168 +1,143 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { SiteForm } from './site-form';
 
-describe('SiteForm', () => {
-  it('calls onSubmit with rootUrl when form is submitted with a valid URL', async () => {
-    const onSubmit = vi.fn();
-    render(<SiteForm onSubmit={onSubmit} />);
-    await userEvent.type(screen.getByLabelText(/website url/i), 'https://acme.com');
-    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
-    expect(onSubmit).toHaveBeenCalledWith({
-      rootUrl: 'https://acme.com',
-      sitemapUrl: undefined,
-    });
-  });
+type PreflightResult = {
+  ok: boolean;
+  homepageReachable: boolean;
+  sitemapUrl: string | null;
+};
 
-  it('automatically prepends https:// if protocol is missing', async () => {
+function stubPreflight(result: PreflightResult, status = 200) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify(result), { status })),
+  );
+}
+
+const PASS: PreflightResult = {
+  ok: true,
+  homepageReachable: true,
+  sitemapUrl: 'https://acme.com/sitemap.xml',
+};
+
+describe('SiteForm validation', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows error when URL is empty', async () => {
     const onSubmit = vi.fn();
     render(<SiteForm onSubmit={onSubmit} />);
-    await userEvent.type(screen.getByLabelText(/website url/i), 'civilization.agency');
-    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
-    expect(onSubmit).toHaveBeenCalledWith({
-      rootUrl: 'https://civilization.agency',
-      sitemapUrl: undefined,
-    });
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
+    expect(await screen.findByText(/please enter a website url/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('shows error when URL is invalid', async () => {
     const onSubmit = vi.fn();
     render(<SiteForm onSubmit={onSubmit} />);
     await userEvent.type(screen.getByLabelText(/website url/i), 'bogus');
-    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
     expect(await screen.findByText(/valid url/i)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('shows error when URL is empty', async () => {
-    const onSubmit = vi.fn();
-    render(<SiteForm onSubmit={onSubmit} />);
-    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
-    expect(await screen.findByText(/please enter a website url/i)).toBeInTheDocument();
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
   it('clears active validation error immediately on typing', async () => {
-    const onSubmit = vi.fn();
-    render(<SiteForm onSubmit={onSubmit} />);
-    
-    // Trigger validation error
-    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+    render(<SiteForm onSubmit={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
     expect(await screen.findByText(/please enter a website url/i)).toBeInTheDocument();
-    
-    // Type something
     await userEvent.type(screen.getByLabelText(/website url/i), 'c');
-    
-    // Check if error is gone
     expect(screen.queryByText(/please enter a website url/i)).not.toBeInTheDocument();
   });
 });
 
-describe('SiteForm sitemap discovery', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+describe('SiteForm preflight', () => {
+  afterEach(() => vi.unstubAllGlobals());
 
-  function stubFetch(impl: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
-    vi.stubGlobal('fetch', vi.fn(impl));
-  }
-
-  it('shows spinner while discovering and populates sitemap hint on success', async () => {
-    let resolveFetch!: (r: Response) => void;
-    stubFetch(
-      () =>
-        new Promise<Response>((res) => {
-          resolveFetch = res;
-        }),
-    );
-
-    vi.useFakeTimers();
-    render(<SiteForm onSubmit={vi.fn()} />);
-
-    act(() => {
-      fireEvent.change(screen.getByLabelText(/website url/i), {
-        target: { value: 'https://acme.com' },
-      });
-    });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
-
-    vi.useRealTimers();
-
-    expect(screen.getByText(/looking for sitemap/i)).toBeInTheDocument();
-
-    await act(async () => {
-      resolveFetch(
-        new Response(JSON.stringify({ sitemapUrl: 'https://acme.com/sitemap.xml' }), {
-          status: 200,
-        }),
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/found sitemap/i)).toBeInTheDocument();
-    });
-  });
-
-  it('shows "No sitemap found" hint on 404', async () => {
-    stubFetch(async () => new Response('', { status: 404 }));
-
-    vi.useFakeTimers();
-    render(<SiteForm onSubmit={vi.fn()} />);
-
-    act(() => {
-      fireEvent.change(screen.getByLabelText(/website url/i), {
-        target: { value: 'https://acme.com' },
-      });
-    });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
-
-    vi.useRealTimers();
-
-    await waitFor(() => {
-      expect(screen.getByText(/no sitemap found/i)).toBeInTheDocument();
-    });
-  });
-
-  it('includes discovered sitemapUrl in onSubmit payload', async () => {
-    stubFetch(async () =>
-      new Response(JSON.stringify({ sitemapUrl: 'https://acme.com/sitemap.xml' }), {
-        status: 200,
-      }),
-    );
-
+  it('runs preflight on the first click and starts the project on the second', async () => {
+    stubPreflight(PASS);
     const onSubmit = vi.fn();
-    vi.useFakeTimers();
-    render(<SiteForm onSubmit={onSubmit} />);
+    const onPreflightSuccess = vi.fn();
+    render(<SiteForm onSubmit={onSubmit} onPreflightSuccess={onPreflightSuccess} />);
 
-    act(() => {
-      fireEvent.change(screen.getByLabelText(/website url/i), {
-        target: { value: 'https://acme.com' },
-      });
-    });
+    await userEvent.type(screen.getByLabelText(/website url/i), 'https://acme.com');
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
-
-    vi.useRealTimers();
-
+    // Button flips to "Start Project" and confetti callback fires
     await waitFor(() => {
-      expect(screen.getByText(/found sitemap/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /start project/i })).toBeInTheDocument();
     });
+    expect(screen.getByText(/site reachable/i)).toBeInTheDocument();
+    expect(onPreflightSuccess).toHaveBeenCalledWith(PASS);
+    expect(onSubmit).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: /add.*generate/i }));
+    // Preflight hits the dedicated endpoint
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      '/api/sitemap/preflight',
+      expect.objectContaining({ method: 'POST' }),
+    );
 
+    // Second click starts the project with the discovered sitemap
+    await userEvent.click(screen.getByRole('button', { name: /start project/i }));
     expect(onSubmit).toHaveBeenCalledWith({
       rootUrl: 'https://acme.com',
       sitemapUrl: 'https://acme.com/sitemap.xml',
     });
+  });
+
+  it('prepends https:// before running the preflight check', async () => {
+    stubPreflight(PASS);
+    render(<SiteForm onSubmit={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText(/website url/i), 'acme.com');
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        '/api/sitemap/preflight',
+        expect.objectContaining({
+          body: JSON.stringify({ rootUrl: 'https://acme.com' }),
+        }),
+      );
+    });
+  });
+
+  it('reports an unreachable homepage and stays on Preflight Check', async () => {
+    stubPreflight({ ok: false, homepageReachable: false, sitemapUrl: null });
+    const onSubmit = vi.fn();
+    const onPreflightSuccess = vi.fn();
+    render(<SiteForm onSubmit={onSubmit} onPreflightSuccess={onPreflightSuccess} />);
+
+    await userEvent.type(screen.getByLabelText(/website url/i), 'https://acme.com');
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
+
+    expect(await screen.findByText(/couldn't reach the homepage/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /preflight check/i })).toBeInTheDocument();
+    expect(onPreflightSuccess).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('reports a missing sitemap when the homepage is reachable but no sitemap exists', async () => {
+    stubPreflight({ ok: false, homepageReachable: true, sitemapUrl: null });
+    render(<SiteForm onSubmit={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/website url/i), 'https://acme.com');
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
+
+    expect(await screen.findByText(/no sitemap\.xml found/i)).toBeInTheDocument();
+  });
+
+  it('resets to the preflight step when the URL is edited after a passing check', async () => {
+    stubPreflight(PASS);
+    render(<SiteForm onSubmit={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/website url/i), 'https://acme.com');
+    await userEvent.click(screen.getByRole('button', { name: /preflight check/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /start project/i })).toBeInTheDocument();
+    });
+
+    await userEvent.type(screen.getByLabelText(/website url/i), '/blog');
+    expect(screen.getByRole('button', { name: /preflight check/i })).toBeInTheDocument();
+    expect(screen.queryByText(/site reachable/i)).not.toBeInTheDocument();
   });
 });

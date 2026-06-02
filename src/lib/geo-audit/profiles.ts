@@ -23,17 +23,17 @@ export const PROFILES: Record<SiteType, SiteTypeProfile> = {
   ecommerce: {
     id: 'ecommerce', label: 'Ecommerce / store',
     detectionHint: 'sells physical or digital products with product pages, cart, checkout',
-    bonusSignals: [],
+    bonusSignals: ['pricing', 'product-detail', 'shipping-returns'],
   },
   local: {
     id: 'local', label: 'Local business',
     detectionHint: 'a physical location or service area; hours, address, bookings, menu',
-    bonusSignals: [],
+    bonusSignals: ['location-hours', 'menu-services'],
   },
   services: {
     id: 'services', label: 'Agency / services',
     detectionHint: 'offers professional services or consulting; portfolio, clients, engagements',
-    bonusSignals: [],
+    bonusSignals: ['case-study', 'client-proof', 'service-offerings'],
   },
   other: {
     id: 'other', label: 'Other',

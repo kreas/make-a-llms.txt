@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { activeSignalIds, PROFILES, GOAL_BOOSTS, UNIVERSAL_CORE } from './profiles';
+import { getSignal } from './signals/index';
 
 describe('profiles', () => {
   it('saas active set = core + saas bonus', () => {
@@ -17,6 +18,20 @@ describe('profiles', () => {
   it('has a profile entry for every site type', () => {
     for (const t of ['saas', 'ecommerce', 'local', 'publisher', 'services', 'other'] as const) {
       expect(PROFILES[t]).toBeDefined();
+    }
+  });
+
+  it('local/services/ecommerce active sets include their bonus signals', () => {
+    expect(activeSignalIds('local')).toEqual([...UNIVERSAL_CORE, 'location-hours', 'menu-services']);
+    expect(activeSignalIds('services')).toEqual([...UNIVERSAL_CORE, 'case-study', 'client-proof', 'service-offerings']);
+    expect(activeSignalIds('ecommerce')).toEqual([...UNIVERSAL_CORE, 'pricing', 'product-detail', 'shipping-returns']);
+  });
+
+  it('every profile bonus signal is a registered signal', () => {
+    for (const t of ['saas', 'ecommerce', 'local', 'publisher', 'services', 'other'] as const) {
+      for (const id of PROFILES[t].bonusSignals) {
+        expect(getSignal(id), `missing signal: ${id}`).toBeDefined();
+      }
     }
   });
 

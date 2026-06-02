@@ -13,7 +13,7 @@ import { OverviewPanel } from '@/components/generations/overview-panel';
 import { ReadablePanel } from '@/components/generations/readable-panel';
 import { RecognizedPanel } from '@/components/generations/recognized-panel';
 import { SetupPanel } from '@/components/generations/setup-panel';
-import { ComingSoonPanel } from '@/components/generations/coming-soon-panel';
+import { RecommendablePanel } from '@/components/generations/recommendable-panel';
 import { PageWorkspaceProvider } from '@/components/generations/page-workspace-context';
 import { GenerationsPopover } from '@/components/generations/generations-popover';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
@@ -327,10 +327,7 @@ export function SiteDetailClient({
                 <ReadablePanel siteId={site.uid} />
               </TabsContent>
               <TabsContent value="recommendable" className="mt-0 outline-none">
-                <ComingSoonPanel
-                  title="Recommendable is coming soon"
-                  blurb="Next, we'll check whether AI has the evidence to recommend you — pricing, comparisons, and proof with real numbers."
-                />
+                <RecommendablePanel siteId={site.uid} />
               </TabsContent>
               <TabsContent value="recognized" className="mt-0 outline-none">
                 <RecognizedPanel siteId={site.uid} />

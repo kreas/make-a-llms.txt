@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sitePillarScores, pickNextAction, stageStatus, type AuditLike } from './site-readiness';
 import type { CheckResult } from './types';
+import type { SiteGeoAuditResult } from '@/lib/geo-audit/types';
 
 function chk(id: string, score: number, weight: number, recommendation: string | null = null): CheckResult {
   return { id, score, weight, passed: score >= 70, evidence: [], recommendation };
@@ -68,8 +69,71 @@ describe('stageStatus', () => {
     expect(stageStatus({ readable: { score: 40, tier: 'poor' }, recognized: { score: 90, tier: 'excellent' }, recommendable: null }))
       .toMatch(/readable/i);
   });
-  it('celebrates when both built pillars clear 70', () => {
+  it('prompts for a GEO run when both built pillars clear 70 but no GEO result yet', () => {
     expect(stageStatus({ readable: { score: 80, tier: 'good' }, recognized: { score: 75, tier: 'good' }, recommendable: null }))
-      .toMatch(/recommendable is coming soon/i);
+      .toMatch(/GEO/);
+  });
+});
+
+const cleared: AuditLike[] = [
+  {
+    pageUrl: 'https://acme.test/',
+    status: 'succeeded',
+    results: {
+      checks: [
+        { id: 'answer-position', passed: true, score: 100, weight: 15, evidence: [], recommendation: null },
+        { id: 'schema-type', passed: true, score: 100, weight: 10, evidence: [], recommendation: null },
+      ],
+    },
+  },
+];
+
+const geo = (score: number, signals: SiteGeoAuditResult['signals']): SiteGeoAuditResult => ({
+  score, tier: score >= 70 ? 'good' : 'poor', signals,
+  metadata: { pagesScanned: 1, candidates: 1, confirmCalls: 1 },
+});
+
+describe('GEO integration in site-readiness', () => {
+  it('recommendable pillar comes from the GEO audit, not per-page checks', () => {
+    const scores = sitePillarScores(cleared, geo(70, []));
+    expect(scores.recommendable).toEqual({ score: 70, tier: 'good' });
+  });
+
+  it('recommendable is null when no GEO audit was run', () => {
+    const scores = sitePillarScores(cleared, null);
+    expect(scores.recommendable).toBeNull();
+  });
+
+  it('pickNextAction surfaces a failing GEO signal only once Readable+Recognized are clean', () => {
+    const g = geo(0, [
+      { signal: 'pricing', weight: 40, present: false, artifacts: [], pages: [], recommendation: 'Add pricing.' },
+      { signal: 'comparison', weight: 30, present: true, artifacts: [], pages: [], recommendation: null },
+      { signal: 'case-study', weight: 30, present: true, artifacts: [], pages: [], recommendation: null },
+    ]);
+    const next = pickNextAction(cleared, g);
+    expect(next?.pillar).toBe('recommendable');
+    expect(next?.checkId).toBe('geo:pricing');
+    expect(next?.recommendation).toBe('Add pricing.');
+  });
+
+  it('pickNextAction prefers an unresolved Readable check over GEO', () => {
+    const withGap: AuditLike[] = [
+      {
+        pageUrl: 'https://acme.test/',
+        status: 'succeeded',
+        results: {
+          checks: [
+            { id: 'answer-position', passed: false, score: 0, weight: 15, evidence: [], recommendation: 'Fix answer.' },
+          ],
+        },
+      },
+    ];
+    const next = pickNextAction(withGap, geo(0, []));
+    expect(next?.pillar).toBe('readable');
+  });
+
+  it('stageStatus asks for a GEO run when Readable+Recognized are cleared but GEO is null', () => {
+    const scores = sitePillarScores(cleared, null);
+    expect(stageStatus(scores)).toContain('GEO');
   });
 });

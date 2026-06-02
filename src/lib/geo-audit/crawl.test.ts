@@ -21,6 +21,12 @@ describe('startCrawl', () => {
     expect(body.formats).toEqual(['markdown']);
     expect(body.options.includePatterns).toContain('**/pricing**');
   });
+
+  it('accepts the job id returned as a bare string', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ success: true, result: 'job-xyz' }) });
+    const id = await startCrawl('https://acme.test', ['**/']);
+    expect(id).toBe('job-xyz');
+  });
 });
 
 describe('pollCrawl', () => {

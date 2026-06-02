@@ -26,9 +26,10 @@ export async function startCrawl(rootUrl: string, includePatterns: string[]): Pr
     }),
   });
   if (!res.ok) throw new Error(`Cloudflare crawl start failed: ${res.status}`);
-  const body = (await res.json()) as { success: boolean; result?: { id: string } };
-  if (!body.success || !body.result?.id) throw new Error('Cloudflare crawl start returned no job id');
-  return body.result.id;
+  const body = (await res.json()) as { success: boolean; result?: string | { id: string } };
+  const id = typeof body.result === 'string' ? body.result : body.result?.id;
+  if (!body.success || !id) throw new Error('Cloudflare crawl start returned no job id');
+  return id;
 }
 
 type CrawlRecord = { url: string; status: string; markdown?: string; metadata?: { url?: string } };

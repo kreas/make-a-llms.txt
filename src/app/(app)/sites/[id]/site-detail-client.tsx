@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { Settings, Link as LinkIcon, Clock } from 'lucide-react';
@@ -296,19 +296,24 @@ export function SiteDetailClient({
           {/* Interactive Triggers (Folder Tab Headers) */}
           <TabsList className="bg-transparent border-transparent p-0 flex w-full h-16! pt-6! group-data-[orientation=horizontal]/tabs:h-16 group-data-[orientation=horizontal]/tabs:pt-6">
             {tabItems.map((item) => (
-              <TabsTrigger
-                key={item.value}
-                value={item.value}
-                className={cn(
-                  'flex-1 h-10 flex items-center justify-center transition-colors duration-200 outline-none',
-                  'data-[state=active]:bg-transparent! data-[state=active]:shadow-none! data-[state=active]:border-transparent! dark:data-[state=active]:bg-transparent! dark:data-[state=active]:border-transparent!',
-                  activeTab === item.value
-                    ? 'text-ink font-semibold'
-                    : 'text-muted-foreground hover:text-ink',
+              <Fragment key={item.value}>
+                {item.isSetup && (
+                  <span aria-hidden className="self-center mx-1 h-5 w-px bg-hairline-strong" />
                 )}
-              >
-                {item.label}
-              </TabsTrigger>
+                <TabsTrigger
+                  value={item.value}
+                  className={cn(
+                    'flex-1 h-10 flex items-center justify-center transition-colors duration-200 outline-none',
+                    'data-[state=active]:bg-transparent! data-[state=active]:shadow-none! data-[state=active]:border-transparent! dark:data-[state=active]:bg-transparent! dark:data-[state=active]:border-transparent!',
+                    activeTab === item.value
+                      ? 'text-ink font-semibold'
+                      : 'text-muted-foreground hover:text-ink',
+                    item.isSetup && 'opacity-70',
+                  )}
+                >
+                  {item.label}
+                </TabsTrigger>
+              </Fragment>
             ))}
           </TabsList>
 

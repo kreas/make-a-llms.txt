@@ -10,19 +10,23 @@ function creds(): { acct: string; token: string } {
   return { acct, token };
 }
 
-export async function startCrawl(rootUrl: string, includePatterns: string[]): Promise<string> {
+export async function startCrawl(rootUrl: string): Promise<string> {
   const { acct, token } = creds();
   const res = await fetch(BASE(acct), {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       url: rootUrl,
+      // Crawl the sitemap broadly (no URL pre-filtering): the per-signal gates +
+      // candidate cap do the filtering. URL-pattern scoping over-filtered sites
+      // whose content lives at non-standard slugs (e.g. a restaurant's /our-story),
+      // collapsing the crawl to just the homepage.
       source: 'sitemaps',
       formats: ['markdown'],
       render: false,
-      limit: 60,
+      limit: 20,
+      depth: 2,
       crawlPurposes: ['ai-input'],
-      options: { includePatterns: Array.from(new Set(includePatterns)) },
     }),
   });
   if (!res.ok) throw new Error(`Cloudflare crawl start failed: ${res.status}`);

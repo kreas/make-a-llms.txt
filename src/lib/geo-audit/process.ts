@@ -5,21 +5,10 @@ import type { SiteGeoAudit } from '@/db/schema';
 import { startCrawl, pollCrawl } from './crawl';
 import { confirmCandidate } from './confirm';
 import { analyzeGeoPages } from './analyze';
-import { activeSignalIds } from './profiles';
-import { getSignal } from './signals/index';
 import type { Goal, SiteType } from './types';
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLLS = 40; // ~2 min ceiling
-
-export function includePatternsFor(siteType: SiteType): string[] {
-  const patterns: string[] = ['**/', '**/about**'];
-  for (const id of activeSignalIds(siteType)) {
-    const sig = getSignal(id);
-    if (sig) patterns.push(...sig.urlPatterns);
-  }
-  return Array.from(new Set(patterns));
-}
 
 async function setRow(id: number, fields: Partial<SiteGeoAudit>): Promise<void> {
   await getDb().update(siteGeoAudits).set(fields).where(eq(siteGeoAudits.id, id));
@@ -42,7 +31,7 @@ export async function processGeoAudit(auditId: number): Promise<void> {
 
   try {
     await setRow(auditId, { status: 'running', stage: 'crawling' });
-    const jobId = await startCrawl(site.rootUrl, includePatternsFor(siteType));
+    const jobId = await startCrawl(site.rootUrl);
     await setRow(auditId, { crawlJobId: jobId });
 
     let poll = await pollCrawl(jobId);

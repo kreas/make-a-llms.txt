@@ -10,21 +10,24 @@ beforeEach(() => {
 });
 
 describe('startCrawl', () => {
-  it('POSTs the crawl with includePatterns and returns the job id', async () => {
+  it('POSTs a broad sitemap markdown crawl and returns the job id', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ success: true, result: { id: 'job-1' } }) });
-    const id = await startCrawl('https://acme.test', ['**/pricing**', '**/']);
+    const id = await startCrawl('https://acme.test');
     expect(id).toBe('job-1');
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/browser-rendering/crawl');
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.url).toBe('https://acme.test');
+    expect(body.source).toBe('sitemaps');
     expect(body.formats).toEqual(['markdown']);
-    expect(body.options.includePatterns).toContain('**/pricing**');
+    expect(body.limit).toBeGreaterThan(0);
+    // No URL pre-filtering — the per-signal gates do the candidate selection.
+    expect(body.options).toBeUndefined();
   });
 
   it('accepts the job id returned as a bare string', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ success: true, result: 'job-xyz' }) });
-    const id = await startCrawl('https://acme.test', ['**/']);
+    const id = await startCrawl('https://acme.test');
     expect(id).toBe('job-xyz');
   });
 });

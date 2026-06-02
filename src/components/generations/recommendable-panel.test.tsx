@@ -31,6 +31,8 @@ describe('RecommendablePanel', () => {
     wrap(<RecommendablePanel siteId="s1" />);
     expect(await screen.findByText(/blog \/ publisher/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^analyze/i })).toBeInTheDocument();
+    const classifyCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/geo-audit/classify'));
+    expect(classifyCalls.length).toBe(1);
   });
 
   it('renders results when a succeeded audit exists', async () => {

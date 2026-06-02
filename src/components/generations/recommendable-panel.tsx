@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { TabPanel } from '@/components/layout/tab-panel';
 import { formatRelativeTime } from '@/lib/format-time';
@@ -20,16 +20,18 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
   const [suggested, setSuggested] = useState<{ siteType: SiteType; confidence: number } | null>(null);
 
   const status = audit?.status ?? null;
-  const needsDiscovery = !isLoading && audit === null && suggested === null && !classifyState.isPending;
+  const discoveryStarted = useRef(false);
 
   useEffect(() => {
-    if (!needsDiscovery) return;
-    let cancelled = false;
+    if (discoveryStarted.current) return;
+    if (isLoading || audit !== null || suggested !== null) return;
+    discoveryStarted.current = true;
     classify()
-      .then((r) => { if (!cancelled) setSuggested({ siteType: r.suggestedType, confidence: r.confidence }); })
-      .catch(() => { if (!cancelled) setSuggested({ siteType: 'other', confidence: 0 }); });
-    return () => { cancelled = true; };
-  }, [needsDiscovery, classify]);
+      .then((r) => setSuggested({ siteType: r.suggestedType, confidence: r.confidence }))
+      .catch(() => setSuggested({ siteType: 'other', confidence: 0 }));
+    // classify is intentionally omitted from deps: the ref guarantees a single call.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, audit, suggested]);
 
   async function handleAnalyze(input: { siteType: SiteType; goal: Goal }) {
     setEditing(false);

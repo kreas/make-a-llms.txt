@@ -70,4 +70,36 @@ describe('runGeoAudit', () => {
     expect(row.status).toBe('failed');
     expect(row.errorReason).toBe('no_generation');
   });
+
+  it('persists a failed row when a confirm call rejects', async () => {
+    const { site } = await seed();
+    const manifest = JSON.stringify({
+      pages: [{ url: 'https://acme.test/pricing', path: 'pricing', blobPath: 'b/pricing.md', status: 'ok' }],
+    });
+    vi.mocked(get).mockImplementation(async (p: string) => {
+      if (p.endsWith('manifest.json')) return blobText(manifest) as never;
+      return blobText('Plans from $29/mo.') as never;
+    });
+    vi.mocked(confirmCandidate).mockRejectedValue(new Error('rate limited'));
+
+    const row = await runGeoAudit({ siteId: site.id });
+    expect(row.status).toBe('failed');
+    expect(row.errorReason).toBe('analysis_failed');
+    expect(row.errorMessage).toContain('rate limited');
+  });
+
+  it('persists a failed row when the generation has no eligible pages', async () => {
+    const { site } = await seed();
+    const manifest = JSON.stringify({
+      pages: [{ url: 'https://acme.test/x', path: 'x', blobPath: null, status: 'failed' }],
+    });
+    vi.mocked(get).mockImplementation(async (p: string) => {
+      if (p.endsWith('manifest.json')) return blobText(manifest) as never;
+      return null as never;
+    });
+
+    const row = await runGeoAudit({ siteId: site.id });
+    expect(row.status).toBe('failed');
+    expect(row.errorReason).toBe('no_pages');
+  });
 });

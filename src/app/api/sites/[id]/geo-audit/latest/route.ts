@@ -1,5 +1,5 @@
 import { ZodError } from 'zod';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { siteGeoAudits } from '@/db/schema';
 import { ApiError, apiErrorResponse, assertOwnsSiteByUid, requireUserOrThrow } from '@/lib/auth-guards';
@@ -23,13 +23,23 @@ export async function GET(_req: Request, ctx: Ctx) {
     const user = await requireUserOrThrow();
     const uid = await parseSiteUid(ctx);
     const site = await assertOwnsSiteByUid(uid, user.id);
-    const [row] = await getDb()
+    const db = getDb();
+    const [succeeded] = await db
+      .select()
+      .from(siteGeoAudits)
+      .where(and(eq(siteGeoAudits.siteId, site.id), eq(siteGeoAudits.status, 'succeeded')))
+      .orderBy(desc(siteGeoAudits.fetchedAt))
+      .limit(1);
+    if (succeeded) {
+      return Response.json({ audit: serializeSiteGeoAudit(succeeded, uid) });
+    }
+    const [latestAny] = await db
       .select()
       .from(siteGeoAudits)
       .where(eq(siteGeoAudits.siteId, site.id))
       .orderBy(desc(siteGeoAudits.fetchedAt))
       .limit(1);
-    return Response.json({ audit: row ? serializeSiteGeoAudit(row, uid) : null });
+    return Response.json({ audit: latestAny ? serializeSiteGeoAudit(latestAny, uid) : null });
   } catch (err) {
     return apiErrorResponse(err);
   }

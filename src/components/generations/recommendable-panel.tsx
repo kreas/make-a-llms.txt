@@ -37,7 +37,11 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
       return body.audit;
     },
     onSuccess: (audit) => {
-      queryClient.setQueryData(['geo-audit', 'latest', siteId], { audit });
+      if (audit.status === 'succeeded') {
+        queryClient.setQueryData(['geo-audit', 'latest', siteId], { audit });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['geo-audit', 'latest', siteId] });
+      }
     },
   });
 
@@ -77,6 +81,9 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
           {run.isError && <p className="text-sm text-destructive">Analysis failed. Try again.</p>}
           {audit?.status === 'failed' && (
             <p className="text-sm text-muted-soft">{audit.errorMessage}</p>
+          )}
+          {run.data?.status === 'failed' && (
+            <p className="text-sm text-muted-soft">{run.data.errorMessage}</p>
           )}
         </div>
       </TabPanel>
@@ -156,8 +163,11 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
           </li>
         ))}
       </ul>
+      {run.data?.status === 'failed' && (
+        <p className="mt-3 text-sm text-destructive">Re-run failed: {run.data.errorMessage}</p>
+      )}
       <p className="mt-4 text-xs text-muted-soft">
-        Scanned {result.metadata.pagesScanned} pages, confirmed {result.metadata.confirmCalls} candidates with a model.
+        Scanned {result.metadata.pagesScanned} pages, checked {result.metadata.confirmCalls} candidates with a model.
       </p>
     </TabPanel>
   );

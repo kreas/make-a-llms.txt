@@ -1,6 +1,10 @@
 import type { GeoSignalDef } from '../types';
 import { socialProof } from './social-proof';
 import { differentiation } from './differentiation';
+import { topicalDepth } from './topical-depth';
+import { verifiableProofs } from './verifiable-proofs';
+import { expertiseSignals } from './expertise-signals';
+import { ratingsReviews } from './ratings-reviews';
 import { pricing } from './pricing';
 import { comparison } from './comparison';
 import { caseStudy } from './case-study';
@@ -15,7 +19,7 @@ import { productDetail } from './product-detail';
 import { shippingReturns } from './shipping-returns';
 
 const ALL: GeoSignalDef[] = [
-  socialProof, differentiation,
+  socialProof, differentiation, topicalDepth, verifiableProofs, expertiseSignals, ratingsReviews,
   pricing, comparison, caseStudy,
   authorCredibility, citedSources, originalData,
   locationHours, menuServices, clientProof, serviceOfferings, productDetail, shippingReturns,

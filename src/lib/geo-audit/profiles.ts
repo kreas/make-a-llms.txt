@@ -1,6 +1,8 @@
 import type { Goal, SignalTag, SiteType } from './types';
 
-export const UNIVERSAL_CORE = ['social-proof', 'differentiation'] as const;
+export const UNIVERSAL_CORE = [
+  'social-proof', 'differentiation', 'topical-depth', 'verifiable-proofs', 'expertise-signals', 'ratings-reviews',
+] as const;
 
 export type SiteTypeProfile = {
   id: SiteType;

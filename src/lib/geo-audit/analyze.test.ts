@@ -20,7 +20,7 @@ describe('analyzeGeoPages', () => {
     const result = await analyzeGeoPages(pages, { entityName: 'Acme', siteType: 'saas', goal: 'win-comparisons' }, confirm);
 
     const ids = result.signals.map((s) => s.signal);
-    expect(ids).toEqual(['social-proof', 'differentiation', 'pricing', 'comparison', 'case-study']);
+    expect(ids).toEqual(['social-proof', 'differentiation', 'topical-depth', 'verifiable-proofs', 'expertise-signals', 'ratings-reviews', 'pricing', 'comparison', 'case-study']);
     expect(result.signals.find((s) => s.signal === 'pricing')!.present).toBe(true);
     expect(result.signals.find((s) => s.signal === 'comparison')!.present).toBe(false);
     expect(result.siteType).toBe('saas');

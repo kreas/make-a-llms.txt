@@ -1,26 +1,150 @@
-import { put, del, list, head, type PutBlobResult } from '@vercel/blob';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
+import { Readable } from 'node:stream';
 
-type BlobBody = string | Blob | ArrayBuffer | Buffer | ReadableStream;
+// Lazily initialize client to avoid crashes if variables are missing during startup or test runs
+let s3Client: S3Client | null = null;
+let activeBucket: string | null = null;
 
-export async function uploadFile(
+function getS3Client() {
+  const accountId = process.env.R2_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const bucket = process.env.R2_BUCKET_NAME || 'make-a-llms-txt';
+
+  if (!s3Client) {
+    if (!accountId || !accessKeyId || !secretAccessKey) {
+      throw new Error(
+        'Cloudflare R2 credentials are not fully configured in environment variables.'
+      );
+    }
+    s3Client = new S3Client({
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      region: 'auto',
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+    activeBucket = bucket;
+  }
+  return { client: s3Client, bucket: activeBucket || bucket };
+}
+
+function cleanKey(urlOrPath: string): string {
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    try {
+      const url = new URL(urlOrPath);
+      // Remove leading slash
+      return url.pathname.substring(1);
+    } catch {
+      // ignore
+    }
+  }
+  return urlOrPath;
+}
+
+export async function put(
   pathname: string,
-  body: BlobBody,
-  options?: { contentType?: string; access?: 'public' | 'private' },
-): Promise<PutBlobResult> {
-  return put(pathname, body, {
-    access: options?.access ?? 'public',
-    contentType: options?.contentType,
-  });
+  body: string | Buffer | Uint8Array | ReadableStream,
+  options?: { contentType?: string }
+) {
+  const { client, bucket } = getS3Client();
+  const key = cleanKey(pathname);
+
+  let finalBody: any = body;
+  if (body instanceof ReadableStream) {
+    finalBody = Readable.fromWeb(body as any);
+  }
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: finalBody,
+      ContentType: options?.contentType,
+    })
+  );
+
+  const publicUrlPrefix = process.env.R2_PUBLIC_URL || `https://pub-r2.test`;
+  return {
+    url: `${publicUrlPrefix}/${key}`,
+    pathname: key,
+  };
 }
 
-export async function deleteFile(url: string) {
-  await del(url);
+export async function get(urlOrPath: string, _options?: any) {
+  const { client, bucket } = getS3Client();
+  const key = cleanKey(urlOrPath);
+
+  try {
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+
+    const bodyStream = response.Body;
+    let webStream: ReadableStream | null = null;
+    if (bodyStream) {
+      if (typeof (bodyStream as any).transformToWebStream === 'function') {
+        webStream = (bodyStream as any).transformToWebStream();
+      } else if (bodyStream instanceof Readable) {
+        webStream = Readable.toWeb(bodyStream) as unknown as ReadableStream;
+      } else {
+        webStream = bodyStream as any;
+      }
+    }
+
+    return {
+      stream: webStream,
+    };
+  } catch (err: any) {
+    if (
+      err.name === 'NoSuchKey' ||
+      err.code === 'NoSuchKey' ||
+      err.$metadata?.httpStatusCode === 404
+    ) {
+      return null;
+    }
+    throw err;
+  }
 }
 
-export async function listFiles(prefix?: string) {
-  return list({ prefix });
+export async function del(urlOrPath: string | string[]) {
+  const { client, bucket } = getS3Client();
+  const keys = Array.isArray(urlOrPath) ? urlOrPath.map(cleanKey) : [cleanKey(urlOrPath)];
+
+  for (const key of keys) {
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+  }
 }
 
-export async function getFileMetadata(url: string) {
-  return head(url);
+export async function list(options?: { prefix?: string }) {
+  const { client, bucket } = getS3Client();
+  const prefix = options?.prefix ? cleanKey(options.prefix) : undefined;
+
+  const response = await client.send(
+    new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+    })
+  );
+
+  const blobs = (response.Contents ?? []).map((item) => ({
+    pathname: item.Key || '',
+  }));
+
+  return { blobs };
 }

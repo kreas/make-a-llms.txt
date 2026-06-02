@@ -57,3 +57,6 @@ public/openapi.json
 
 # fumadocs-mdx generated source files (rebuilt by next dev/build)
 /.source/
+
+# Local scratch / experiments
+scratch/

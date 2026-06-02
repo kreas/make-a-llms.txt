@@ -5,7 +5,7 @@ import { generations, sites, users } from '@/db/schema';
 
 const getBlobSpy = vi.fn();
 const putBlobSpy = vi.fn();
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: (...a: any[]) => getBlobSpy(...a),
   put: (...a: any[]) => putBlobSpy(...a),
 }));

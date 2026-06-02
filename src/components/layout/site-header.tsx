@@ -1,44 +1,39 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { UserMenu } from '@/components/auth/user-menu';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import NavBar, { IMenu } from '@/components/ui/navbar';
 
 interface SiteHeaderProps {
   authenticated?: boolean;
 }
 
 export function SiteHeader({ authenticated = true }: SiteHeaderProps) {
-  const pathname = usePathname();
-
-  const navItems = authenticated
+  const menus: IMenu[] = authenticated
     ? [
-        { href: '/dashboard', label: 'Dashboard' },
-        { href: '/pricing', label: 'Pricing' },
-        { href: '/blog', label: 'Blog' },
-        { href: '/docs', label: 'Docs' },
+        { id: 1, title: 'Dashboard', url: '/dashboard' },
+        { id: 2, title: 'Pricing', url: '/pricing' },
+        { id: 3, title: 'Blog', url: '/blog' },
+        { id: 4, title: 'Docs', url: '/docs' },
       ]
     : [
-        { href: '/pricing', label: 'Pricing' },
-        { href: '/blog', label: 'Blog' },
-        { href: '/docs', label: 'Docs' },
+        { id: 2, title: 'Pricing', url: '/pricing' },
+        { id: 3, title: 'Blog', url: '/blog' },
+        { id: 4, title: 'Docs', url: '/docs' },
       ];
-
-  const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
-    return pathname === href || pathname.startsWith(href + '/');
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-hairline bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
+        {/* Left side: Logo Icon + Navigation links with dropdowns */}
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="flex items-center gap-2 text-ink"
+            title="Home"
+            aria-label="Home"
+            className="flex items-center text-ink"
           >
             <img
               src="/logo-v4.png"
@@ -46,26 +41,16 @@ export function SiteHeader({ authenticated = true }: SiteHeaderProps) {
               width={28}
               height={28}
               className="h-7 w-7 shrink-0 rounded-md"
+              aria-hidden="true"
             />
-            <span className="display-sm">AI Ready</span>
+            <span className="sr-only">Home</span>
           </Link>
-          <nav className="hidden gap-8 md:flex">
-            {navItems.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'text-sm transition-colors duration-200',
-                  isActive(href)
-                    ? 'font-medium text-primary'
-                    : 'text-body hover:text-primary'
-                )}
-              >
-                {label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex">
+            <NavBar list={menus} />
           </nav>
         </div>
+
+        {/* Right side: Action Buttons */}
         <div className="flex items-center gap-3">
           {authenticated ? (
             <>

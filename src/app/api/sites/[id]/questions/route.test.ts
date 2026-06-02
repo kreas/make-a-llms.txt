@@ -4,7 +4,7 @@ import { getDb } from '@/db';
 import { sites, users, generations, pageQuestionsCache } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(),
   put: vi.fn(async (pathname: string) => ({ url: `https://blob.test/${pathname}`, pathname })),
 }));
@@ -19,7 +19,7 @@ vi.mock('ai', async () => {
 
 vi.mock('@/lib/auth', () => ({ getCurrentUser: vi.fn() }));
 
-import { get } from '@vercel/blob';
+import { get } from '@/lib/blob';
 import { generateText } from 'ai';
 import { getCurrentUser } from '@/lib/auth';
 import { hashBody } from '@/lib/workflow/summarize-page';

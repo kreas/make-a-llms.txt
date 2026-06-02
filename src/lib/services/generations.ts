@@ -2,12 +2,15 @@ import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import archiver from 'archiver';
 import { and, desc, eq } from 'drizzle-orm';
-import { get } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { ApiError, assertOwnsGenerationByUid } from '@/lib/auth-guards';
 import { getDb } from '@/db';
 import { generations, sites, type Generation } from '@/db/schema';
 import { cancelRun } from '@/lib/workflow/wdk';
 import { GenerationViewPublic, GenerationPublic } from '@/lib/types/public';
+import { fetchPageMarkdown } from '@/lib/markdown-pages/cloudflare';
+import { parseHTML } from 'linkedom';
+import { buildFrontmatter, extractTitle } from '@/lib/workflow/frontmatter';
 
 export type GenerationStatus = Generation['status'];
 export type PagesStatus = Generation['pagesStatus'];
@@ -96,6 +99,77 @@ export async function readPageManifest(
   };
 }
 
+async function generatePageMarkdownOnTheFly(
+  url: string,
+  blobPath: string,
+): Promise<string> {
+  let ogTitle: string | null = null;
+  let ogDescription: string | null = null;
+  let ogImage: string | null = null;
+  let htmlTitle: string | null = null;
+  let metaDescription: string | null = null;
+  let htmlCanonical: string | null = null;
+
+  try {
+    const USER_AGENT = 'MakeALlmsTxt/1.0 (+https://make-a-llms.txt/bot; site-metadata)';
+    const htmlRes = await fetch(url, {
+      headers: {
+        'user-agent': USER_AGENT,
+        accept: 'text/html,*/*',
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
+      },
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+    if (htmlRes.ok) {
+      const html = await htmlRes.text();
+      const { document } = parseHTML(html);
+      ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ?? null;
+      ogDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content')?.trim() ?? null;
+      ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content')?.trim() ?? null;
+      htmlTitle = document.querySelector('title')?.textContent?.trim() ?? null;
+      metaDescription = document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ?? null;
+      htmlCanonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href')?.trim() ?? null;
+    }
+  } catch (err) {
+    console.warn(`Failed to fetch HTML for ${url} during metadata extraction`, err);
+  }
+
+  const resolveUrl = (href: string | null, base: string) => {
+    if (!href) return null;
+    try {
+      return new URL(href, base).toString();
+    } catch {
+      return href;
+    }
+  };
+
+  const finalOgImage = resolveUrl(ogImage, url);
+  const finalCanonical = resolveUrl(htmlCanonical, url) || url;
+
+  const { markdown } = await fetchPageMarkdown(url);
+  const title = ogTitle || htmlTitle || extractTitle(markdown) || null;
+  const description = ogDescription || metaDescription || null;
+
+  const body =
+    buildFrontmatter({
+      url,
+      updated: new Date().toISOString().slice(0, 10),
+      title,
+      description,
+      image: finalOgImage,
+      ogImage: finalOgImage,
+      canonical: finalCanonical,
+    }) + markdown;
+
+  await put(blobPath, body, {
+    contentType: 'text/markdown; charset=utf-8',
+  });
+
+  return body;
+}
+
 export async function readPageMarkdown(
   generationUid: string,
   userId: number,
@@ -113,9 +187,11 @@ export async function readPageMarkdown(
   const wanted = path.replace(/\.md$/, '');
   const entry = manifest.pages.find((p) => p.path === wanted && p.status === 'ok');
   if (!entry?.blobPath) throw new ApiError(404, 'not_found', 'Page not found');
-  const blob = await get(entry.blobPath, { access: 'private' });
-  if (!blob) throw new ApiError(404, 'not_found', 'Page blob missing');
-  if (!blob.stream) throw new ApiError(404, 'not_found', 'Page stream unavailable');
+  let blob = await get(entry.blobPath, { access: 'private' });
+  if (!blob || !blob.stream) {
+    const body = await generatePageMarkdownOnTheFly(entry.url, entry.blobPath);
+    return new Response(body).body as unknown as ReadableStream;
+  }
   return blob.stream;
 }
 
@@ -181,10 +257,19 @@ export async function streamPagesZip(
   archive.append(manifestText, { name: 'manifest.json' });
   for (const entry of manifest.pages) {
     if (entry.status !== 'ok' || !entry.blobPath || !entry.path) continue;
-    const pageBlob = await get(entry.blobPath, { access: 'private' });
-    if (!pageBlob || !pageBlob.stream) continue;
-    const nodeStream = Readable.fromWeb(pageBlob.stream as unknown as NodeReadableStream);
-    archive.append(nodeStream, { name: `${entry.path}.md` });
+    try {
+      const pageBlob = await get(entry.blobPath, { access: 'private' });
+      let nodeStream: any;
+      if (!pageBlob || !pageBlob.stream) {
+        const body = await generatePageMarkdownOnTheFly(entry.url, entry.blobPath);
+        nodeStream = Readable.from(body);
+      } else {
+        nodeStream = Readable.fromWeb(pageBlob.stream as unknown as NodeReadableStream);
+      }
+      archive.append(nodeStream, { name: `${entry.path}.md` });
+    } catch (err) {
+      console.error(`[streamPagesZip] Failed to archive page ${entry.path}:`, err);
+    }
   }
   void archive.finalize();
 

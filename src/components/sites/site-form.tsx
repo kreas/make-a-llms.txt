@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Loader2, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,132 +11,116 @@ export type SiteFormValues = {
   sitemapUrl?: string;
 };
 
-type DiscoveryStatus = 'idle' | 'discovering' | 'found' | 'not-found' | 'error';
+type PreflightResult = {
+  ok: boolean;
+  homepageReachable: boolean;
+  sitemapUrl: string | null;
+};
 
+type Phase = 'idle' | 'checking' | 'ready';
+
+/**
+ * Two-step project setup form. The user first runs a "Preflight Check" that
+ * verifies the homepage is reachable and a sitemap.xml exists. Only once both
+ * pass does the button become "Start Project" (and confetti fires via
+ * `onPreflightSuccess`). Editing the URL after a passing check resets the flow.
+ */
 export function SiteForm({
   onSubmit,
-  onSitemapFound,
+  onPreflightSuccess,
 }: {
   onSubmit: (v: SiteFormValues) => void;
-  onSitemapFound?: (url: string) => void;
+  onPreflightSuccess?: (result: PreflightResult) => void;
 }) {
   const [rootUrl, setRootUrl] = useState('');
-  const [discoveredSitemapUrl, setDiscoveredSitemapUrl] = useState<string | undefined>(undefined);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [preflight, setPreflight] = useState<PreflightResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [discoveryStatus, setDiscoveryStatus] = useState<DiscoveryStatus>('idle');
 
-  const autoFilledRef = useRef(false);
-  const sitemapValueRef = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    sitemapValueRef.current = discoveredSitemapUrl;
-  }, [discoveredSitemapUrl]);
-
-  // Debounced sitemap discovery
-  useEffect(() => {
+  /** Validates and normalizes the input. Returns null (and sets error) on failure. */
+  function normalize(): string | null {
     const trimmed = rootUrl.trim();
     if (!trimmed) {
-      setDiscoveryStatus('idle');
-      setDiscoveredSitemapUrl(undefined);
-      return;
-    }
-
-    // Auto-prepend https:// for validation and discovery if no protocol is present
-    let normalized = trimmed;
-    if (!/^https?:\/\//i.test(normalized)) {
-      normalized = `https://${normalized}`;
-    }
-
-    let shouldDiscover = false;
-    try {
-      const u = new URL(normalized);
-      if (/^https?:$/.test(u.protocol)) {
-        const host = u.hostname;
-        if (host === 'localhost' || host.includes('.')) {
-          if (!sitemapValueRef.current || autoFilledRef.current) {
-            shouldDiscover = true;
-          }
-        }
-      }
-    } catch {
-      // invalid URL — skip
-    }
-
-    if (!shouldDiscover) {
-      setDiscoveryStatus('idle');
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setDiscoveryStatus('discovering');
-      try {
-        const res = await fetch('/api/sitemap/discover', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ rootUrl: normalized }),
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted) return;
-        if (res.ok) {
-          const body = (await res.json()) as { sitemapUrl: string };
-          autoFilledRef.current = true;
-          setDiscoveredSitemapUrl(body.sitemapUrl);
-          setDiscoveryStatus('found');
-          onSitemapFound?.(body.sitemapUrl);
-        } else if (res.status === 404) {
-          if (autoFilledRef.current) {
-            autoFilledRef.current = false;
-            setDiscoveredSitemapUrl(undefined);
-          }
-          setDiscoveryStatus('not-found');
-        } else {
-          setDiscoveryStatus('error');
-        }
-      } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-        setDiscoveryStatus('error');
-      }
-    }, 500);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [rootUrl]);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    let normalized = rootUrl.trim();
-    if (!normalized) {
       setError('Please enter a website URL');
-      return;
+      return null;
     }
 
     // Auto-prepend https:// if no protocol is present
-    if (!/^https?:\/\//i.test(normalized)) {
-      normalized = `https://${normalized}`;
-    }
+    const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 
     try {
-      const u = new URL(normalized);
+      const u = new URL(candidate);
       if (!/^https?:$/.test(u.protocol)) {
         setError('URL must start with http:// or https://');
-        return;
+        return null;
       }
-      
       const host = u.hostname;
       if (host !== 'localhost' && !host.includes('.')) {
         setError('Please enter a valid URL');
-        return;
+        return null;
       }
     } catch {
       setError('Please enter a valid URL');
-      return;
+      return null;
     }
 
+    return candidate;
+  }
+
+  async function runPreflight() {
+    const normalized = normalize();
+    if (!normalized) return;
+
     setError(null);
-    setRootUrl(normalized);
-    onSubmit({ rootUrl: normalized, sitemapUrl: discoveredSitemapUrl });
+    setPreflight(null);
+    setPhase('checking');
+
+    try {
+      const res = await fetch('/api/sitemap/preflight', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ rootUrl: normalized }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+        setError(body?.error?.message ?? 'Preflight check failed. Please try again.');
+        setPhase('idle');
+        return;
+      }
+
+      const result = (await res.json()) as PreflightResult;
+      setRootUrl(normalized);
+      setPreflight(result);
+
+      if (result.ok) {
+        setPhase('ready');
+        onPreflightSuccess?.(result);
+      } else {
+        setPhase('idle');
+      }
+    } catch {
+      setError("Couldn't run the preflight check. Please try again.");
+      setPhase('idle');
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (phase === 'ready' && preflight) {
+      onSubmit({ rootUrl, sitemapUrl: preflight.sitemapUrl ?? undefined });
+      return;
+    }
+    void runPreflight();
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setRootUrl(e.target.value);
+    setError(null);
+    // Any edit invalidates a prior check — the user must re-run preflight.
+    if (phase !== 'idle' || preflight) {
+      setPhase('idle');
+      setPreflight(null);
+    }
   }
 
   return (
@@ -146,34 +130,31 @@ export function SiteForm({
         <Input
           id="rootUrl"
           value={rootUrl}
-          onChange={(e) => {
-            setRootUrl(e.target.value);
-            setError(null);
-          }}
+          onChange={handleChange}
           placeholder="https://example.com"
           type="text"
         />
         <div className="min-h-[20px]">
-          <DiscoveryHint status={discoveryStatus} sitemapUrl={discoveredSitemapUrl} />
+          <PreflightHint phase={phase} result={preflight} />
         </div>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full">
-        Add &amp; Generate
+      <Button type="submit" className="w-full" disabled={phase === 'checking'}>
+        {phase === 'checking' && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+        {phase === 'ready' ? 'Start Project' : 'Preflight Check'}
       </Button>
     </form>
   );
 }
 
-function DiscoveryHint({
-  status,
-  sitemapUrl,
+function PreflightHint({
+  phase,
+  result,
 }: {
-  status: DiscoveryStatus;
-  sitemapUrl?: string;
+  phase: Phase;
+  result: PreflightResult | null;
 }) {
-  if (status === 'idle') return null;
-  if (status === 'discovering') {
+  if (phase === 'checking') {
     return (
       <span
         role="status"
@@ -181,31 +162,34 @@ function DiscoveryHint({
         className="inline-flex items-center gap-1.5 text-xs text-muted-strong"
       >
         <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-        Looking for sitemap…
+        Running preflight check…
       </span>
     );
   }
-  if (status === 'found') {
+
+  if (!result) return null;
+
+  if (result.ok) {
     return (
       <span
         role="status"
         className="inline-flex items-center gap-1.5 text-xs text-semantic-success"
       >
         <Check className="h-3 w-3" aria-hidden />
-        Found sitemap{sitemapUrl ? `: ${sitemapUrl}` : ''}
+        Site reachable{result.sitemapUrl ? ` — sitemap found at ${result.sitemapUrl}` : ''}
       </span>
     );
   }
-  if (status === 'not-found') {
-    return (
-      <span role="status" className="text-xs text-muted-strong">
-        No sitemap found — we&apos;ll still try at run time
-      </span>
-    );
-  }
+
+  // Failed: explain which check did not pass.
+  const message = !result.homepageReachable
+    ? "Couldn't reach the homepage — check the URL and try again"
+    : 'No sitemap.xml found — add one, then run the check again';
+
   return (
-    <span role="status" className="text-xs text-muted-strong">
-      Couldn&apos;t reach the site
+    <span role="status" className="inline-flex items-center gap-1.5 text-xs text-destructive">
+      <X className="h-3 w-3" aria-hidden />
+      {message}
     </span>
   );
 }

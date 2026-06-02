@@ -3,7 +3,7 @@ import { setupTestDb } from '@/test/db';
 import { users, sites, generations, apiTokens } from '@/db/schema';
 import { createApiToken } from '@/lib/tokens/api-token';
 
-vi.mock('@vercel/blob', () => ({ get: vi.fn(async () => null) }));
+vi.mock('@/lib/blob', () => ({ get: vi.fn(async () => null) }));
 
 import { GET } from './route';
 

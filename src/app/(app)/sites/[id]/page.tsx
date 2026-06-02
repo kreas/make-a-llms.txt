@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/db';
 import { sites, generations } from '@/db/schema';
@@ -27,11 +27,24 @@ export default async function SiteDetailPage({
   if (!site || site.userId !== user.id) notFound();
 
   const recent = await getDb()
-    .select()
+    .select({
+      generation: generations,
+      projectRunNumber: sql<number>`row_number() over (order by ${generations.id} asc)`,
+    })
     .from(generations)
     .where(eq(generations.siteId, site.id))
-    .orderBy(desc(generations.createdAt))
+    .orderBy(desc(generations.id))
     .limit(20);
 
-  return <SiteDetailClient site={site} generations={recent} />;
+  const recentMapped = recent.map(({ generation, projectRunNumber }) => ({
+    ...generation,
+    projectRunNumber,
+  }));
+
+  const [allRunsCountResult] = await getDb()
+    .select({ count: sql<number>`count(*)` })
+    .from(generations);
+  const allRunsCount = allRunsCountResult?.count ?? 0;
+
+  return <SiteDetailClient site={site} generations={recentMapped} allRunsCount={allRunsCount} />;
 }

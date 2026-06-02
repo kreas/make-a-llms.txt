@@ -1,25 +1,46 @@
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { put, get } from '@vercel/blob';
+import { put, get } from '@/lib/blob';
 import { getDb } from '@/db';
 import { generations, sites, users } from '@/db/schema';
 import { discoverSitemap } from '@/lib/sitemap-discover';
 import { runLlmstxt } from '@/lib/llmstxt';
-import { fetchPageMarkdown, CfClientError } from '@/lib/markdown-pages/cloudflare';
 import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
 import { mapUrlsToPaths } from '@/lib/markdown-pages/url-to-path';
 import { buildManifest, type PageResult } from '@/lib/markdown-pages/manifest';
 import type { MappedUrl } from '@/lib/markdown-pages/url-to-path';
 import { runWithPool } from '@/lib/markdown-pages/pool';
 import { runCrawlerAudit } from '@/lib/crawler-audit';
-import { buildFrontmatter, extractTitle } from './frontmatter';
-import { parseHTML } from 'linkedom';
 import { summarizePage, type SummaryOutcome } from './summarize-page';
 
 const MAX_OUTPUT_BYTES = Number(process.env.MAX_OUTPUT_BYTES ?? 50 * 1024 * 1024);
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+async function getGenerationPaths(generationId: number) {
+  const db = getDb();
+  const [g] = await db
+    .select({
+      genUid: generations.uid,
+      siteUid: sites.uid,
+    })
+    .from(generations)
+    .innerJoin(sites, eq(generations.siteId, sites.id))
+    .where(eq(generations.id, generationId));
+
+  if (!g) throw new Error(`generation ${generationId} not found`);
+
+  const prefix = `projects/${g.siteUid}/${g.genUid}`;
+  return {
+    llmsPath: `${prefix}/llms.txt`,
+    llmsFullPath: `${prefix}/llms-full.txt`,
+    pagesManifestPath: `${prefix}/pages-manifest.json`,
+    summariesManifestPath: `${prefix}/summaries-manifest.json`,
+    pagesPrefix: `${prefix}/pages/`,
+    pagePath: (page: string) => `${prefix}/pages/${page}.md`,
+  };
 }
 
 export async function prepareStep(
@@ -49,7 +70,8 @@ export async function prepareStep(
 
 export async function runGenStep(generationId: number, sitemapUrl: string): Promise<void> {
   'use step';
-  const blobPath = `gens/${generationId}/llms.txt`;
+  const paths = await getGenerationPaths(generationId);
+  const blobPath = paths.llmsPath;
   await runLlmstxt({ subcommand: 'gen', sitemapUrl, blobPath, maxBytes: MAX_OUTPUT_BYTES });
   await getDb()
     .update(generations)
@@ -59,7 +81,8 @@ export async function runGenStep(generationId: number, sitemapUrl: string): Prom
 
 export async function runFullStep(generationId: number, sitemapUrl: string): Promise<void> {
   'use step';
-  const blobPath = `gens/${generationId}/llms-full.txt`;
+  const paths = await getGenerationPaths(generationId);
+  const blobPath = paths.llmsFullPath;
   await runLlmstxt({ subcommand: 'gen-full', sitemapUrl, blobPath, maxBytes: MAX_OUTPUT_BYTES });
   await getDb()
     .update(generations)
@@ -146,7 +169,6 @@ export async function failStep(
 }
 
 const PAGES_CAP = Number(process.env.PAGES_PER_RUN_CAP ?? 250);
-const PAGES_CONCURRENCY = Number(process.env.CLOUDFLARE_BR_CONCURRENCY ?? 5);
 
 const SUMMARY_CONCURRENCY = Number(process.env.AI_SUMMARY_CONCURRENCY ?? 15);
 const SUMMARY_MAX_INPUT_BYTES = Number(
@@ -186,6 +208,13 @@ export async function runPagesStepSafe(
   'use step';
   try {
     await markPagesStatus(generationId, { pagesStatus: 'running' });
+    if (await readCancelled(generationId)) {
+      return markPagesStatus(generationId, {
+        pagesStatus: 'cancelled',
+        pagesCount: 0,
+        pagesManifestBlobPath: null,
+      });
+    }
 
     const rawUrls = await loadSitemapUrls(sitemapUrl);
     if (rawUrls.length === 0) {
@@ -200,13 +229,7 @@ export async function runPagesStepSafe(
         pagesErrorMessage: `sitemap has ${rawUrls.length} URLs (cap ${PAGES_CAP})`,
       });
     }
-    if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-      return markPagesStatus(generationId, {
-        pagesStatus: 'failed',
-        pagesErrorMessage: 'Cloudflare credentials missing',
-      });
-    }
-
+    const paths = await getGenerationPaths(generationId);
     const mapped = mapUrlsToPaths(rawUrls, rootUrl);
     const generatedAt = nowIso();
     const eligible = mapped.filter(
@@ -224,106 +247,17 @@ export async function runPagesStepSafe(
         durationMs: 0,
       }));
 
-    const results = await runWithPool(
-      eligible,
-      async (entry): Promise<PageResult> => {
-        try {
-          let ogTitle: string | null = null;
-          let ogDescription: string | null = null;
-          let ogImage: string | null = null;
-          let htmlTitle: string | null = null;
-          let metaDescription: string | null = null;
-          let htmlCanonical: string | null = null;
-
-          try {
-            const htmlRes = await fetch(entry.url, {
-              headers: {
-                'User-Agent': 'MakeALlmsTxt/1.0 (+https://make-a-llms.txt/bot; site-metadata)',
-              },
-            });
-            if (htmlRes.ok) {
-              const html = await htmlRes.text();
-              const { document } = parseHTML(html);
-              ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ?? null;
-              ogDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content')?.trim() ?? null;
-              ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content')?.trim() ?? null;
-              htmlTitle = document.querySelector('title')?.textContent?.trim() ?? null;
-              metaDescription = document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ?? null;
-              htmlCanonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href')?.trim() ?? null;
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch HTML for ${entry.url} during metadata extraction`, err);
-          }
-
-          const resolveUrl = (href: string | null, base: string) => {
-            if (!href) return null;
-            try {
-              return new URL(href, base).toString();
-            } catch {
-              return href;
-            }
-          };
-
-          const finalOgImage = resolveUrl(ogImage, entry.url);
-          const finalCanonical = resolveUrl(htmlCanonical, entry.url) || entry.url;
-
-          const { markdown, durationMs } = await fetchPageMarkdown(entry.url);
-          
-          const title = ogTitle || htmlTitle || extractTitle(markdown) || null;
-          const description = ogDescription || metaDescription || null;
-
-          const body =
-            buildFrontmatter({
-              url: entry.url,
-              updated: generatedAt.slice(0, 10),
-              title,
-              description,
-              image: finalOgImage,
-              ogImage: finalOgImage,
-              canonical: finalCanonical,
-            }) + markdown;
-          const bytes = Buffer.byteLength(body, 'utf8');
-          const blobPath = `gens/${generationId}/pages/${entry.path}.md`;
-          await put(blobPath, body, {
-            access: 'private',
-            contentType: 'text/markdown; charset=utf-8',
-            addRandomSuffix: false,
-            allowOverwrite: true,
-          });
-          return {
-            url: entry.url,
-            path: entry.path,
-            filename: entry.filename,
-            status: 'ok',
-            blobPath,
-            bytes,
-            durationMs,
-          };
-        } catch (err) {
-          const reason =
-            err instanceof CfClientError
-              ? err.message
-              : (err as Error)?.message ?? String(err);
-          return {
-            url: entry.url,
-            path: entry.path,
-            filename: entry.filename,
-            status: 'failed',
-            blobPath: null,
-            reason,
-            durationMs: 0,
-          };
-        }
-      },
-      {
-        concurrency: PAGES_CONCURRENCY,
-        isCancelled: () => readCancelled(generationId),
-      },
-    );
-
     const pageResults: PageResult[] = [
       ...skipped,
-      ...(results.filter((r) => !(r instanceof Error)) as PageResult[]),
+      ...eligible.map((entry) => ({
+        url: entry.url,
+        path: entry.path,
+        filename: entry.filename,
+        status: 'ok' as const,
+        blobPath: paths.pagePath(entry.path),
+        bytes: 0,
+        durationMs: 0,
+      })),
     ];
 
     const manifest = buildManifest(
@@ -338,12 +272,9 @@ export async function runPagesStepSafe(
 
     let manifestPath: string | null = null;
     if (pageResults.length > 0) {
-      manifestPath = `gens/${generationId}/pages-manifest.json`;
+      manifestPath = paths.pagesManifestPath;
       await put(manifestPath, JSON.stringify(manifest), {
-        access: 'private',
         contentType: 'application/json',
-        addRandomSuffix: false,
-        allowOverwrite: true,
       });
     }
 
@@ -469,6 +400,8 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
       return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
     }
 
+    const paths = await getGenerationPaths(generationId);
+
     const allPages = await loadPagesManifestPages(g.pagesManifestBlobPath);
     if (!allPages) {
       return markSummariesStatus(generationId, { summariesStatus: 'skipped' });
@@ -542,7 +475,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
 
     const { succeeded, empty, failed, cached, resolved } = tallyOutcomes(outcomes);
 
-    const manifestPath = `gens/${generationId}/summaries-manifest.json`;
+    const manifestPath = paths.summariesManifestPath;
     await put(
       manifestPath,
       JSON.stringify({
@@ -556,10 +489,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
         results: resolved,
       }),
       {
-        access: 'private',
         contentType: 'application/json',
-        addRandomSuffix: false,
-        allowOverwrite: true,
       },
     );
 

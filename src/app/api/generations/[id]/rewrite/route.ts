@@ -7,7 +7,7 @@ import {
 import { parseGenerationUid } from '@/lib/uid';
 import { readGenerationFile } from '@/lib/services/generations';
 import { generateText } from 'ai';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/blob';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -190,12 +190,17 @@ export async function POST(_req: Request, ctx: Ctx) {
 
     const cleanedContent = cleanCodeFences(finalContent);
 
+    if (!cleanedContent) {
+      throw new ApiError(
+        500,
+        'generation_failed',
+        'Failed to format llms.txt. The AI model returned empty content.'
+      );
+    }
+
     // Overwrite the Vercel Blob file
     await put(gen.llmsBlobPath, cleanedContent, {
-      access: 'private',
       contentType: 'text/plain; charset=utf-8',
-      addRandomSuffix: false,
-      allowOverwrite: true,
     });
 
     return Response.json({ content: cleanedContent });

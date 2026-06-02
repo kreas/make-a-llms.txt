@@ -1,5 +1,5 @@
 import { and, eq, sql, desc } from 'drizzle-orm';
-import { get } from '@vercel/blob';
+import { get } from '@/lib/blob';
 import { generateText } from 'ai';
 import { getDb } from '@/db';
 import { pageQuestionAnswersCache, generations } from '@/db/schema';

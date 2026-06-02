@@ -4,7 +4,7 @@ import { getDb } from '@/db';
 import { users, sites, generations, apiTokens } from '@/db/schema';
 import { createApiToken } from '@/lib/tokens/api-token';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(async () => ({
     stream: new Response(
       JSON.stringify({ pages: [{ path: 'about', blobPath: 'pages/about.md', status: 'ok', bytes: 11 }] }),

@@ -36,7 +36,7 @@ export default function NewSitePage() {
 
   return (
     <div className="w-full pb-36 md:pb-48">
-      {/* Confetti effect when sitemap is discovered */}
+      {/* Confetti effect when the preflight check passes */}
       {showConfetti && (
         <Confetti
           stopping={mutation.isPending}
@@ -50,12 +50,12 @@ export default function NewSitePage() {
       {/* Page Content */}
       <div className="mx-auto flex max-w-xl flex-col gap-8 relative z-10">
         <header className="text-center">
-          <h1 className="display-lg text-ink">Add New Site</h1>
+          <h1 className="display-lg text-ink">Start a New Project</h1>
         </header>
         <div className="rounded-lg border border-hairline bg-surface-card p-8 shadow-sm">
           <SiteForm
             onSubmit={(v) => mutation.mutate(v)}
-            onSitemapFound={() => setShowConfetti(true)}
+            onPreflightSuccess={() => setShowConfetti(true)}
           />
           {mutation.error && (
             <p className="mt-4 text-sm text-destructive">{(mutation.error as Error).message}</p>

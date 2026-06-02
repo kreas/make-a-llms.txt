@@ -1,8 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LlmsContentPanel } from './llms-content-panel';
 import type { Generation } from '@/db/schema';
+
+function renderWithQuery(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -31,7 +37,7 @@ const mkGen = (over: Partial<Generation> = {}): Generation => ({
 
 describe('LlmsContentPanel', () => {
   it('shows empty state when no generation is provided', () => {
-    render(<LlmsContentPanel generation={null} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
+    renderWithQuery(<LlmsContentPanel generation={null} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
     expect(screen.getByText(/no successful generation yet/i)).toBeInTheDocument();
   });
 
@@ -43,7 +49,7 @@ describe('LlmsContentPanel', () => {
       ),
     );
 
-    render(<LlmsContentPanel generation={mkGen()} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
+    renderWithQuery(<LlmsContentPanel generation={mkGen()} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
 
     expect(await screen.findByText('# llms.txt content')).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith('/api/generations/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/files/llms');
@@ -61,7 +67,7 @@ describe('LlmsContentPanel', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    render(<LlmsContentPanel generation={mkGen()} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
+    renderWithQuery(<LlmsContentPanel generation={mkGen()} siteId="cccccccc-cccc-4ccc-8ccc-cccccccccccc" />);
 
     // Wait for original content to load
     expect(await screen.findByText('rough text')).toBeInTheDocument();

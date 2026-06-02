@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { FileText, RefreshCw, Sparkles, Copy, ChevronDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
@@ -53,7 +53,7 @@ export function PagesContentPanel({
   siteId: string;
 }) {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [manualSelected, setManualSelected] = useState<string | null>(null);
   const [subTab, setSubTab] = useState('citation-audit');
   const [copyingState, setCopyingState] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,6 +76,13 @@ export function PagesContentPanel({
 
   const manifest = q.data && 'pages' in q.data ? q.data : null;
   const pages = useMemo(() => (manifest?.pages ?? []) as ManifestPage[], [manifest?.pages]);
+
+  // Derive the active selection: keep manual pick if still valid, else default to 'index' or first.
+  const selected = useMemo(() => {
+    if (manualSelected && pages.some((p) => p.path === manualSelected)) return manualSelected;
+    if (pages.some((p) => p.path === 'index')) return 'index';
+    return pages[0]?.path ?? null;
+  }, [manualSelected, pages]);
 
   const selectedPage = pages.find((p) => p.path === selected);
 
@@ -105,19 +112,6 @@ export function PagesContentPanel({
     staleTime: 5 * 60 * 1000,
   });
 
-  useEffect(() => {
-    if (pages && pages.length > 0) {
-      const currentValid = selected && pages.some((p) => p.path === selected);
-      if (!currentValid) {
-        const hasIndex = pages.some((p) => p.path === 'index');
-        if (hasIndex) {
-          setSelected('index');
-        } else if (pages[0]?.path) {
-          setSelected(pages[0].path);
-        }
-      }
-    }
-  }, [pages, selected]);
 
   const handleSavePage = () => {
     if (!selectedPage?.path || !generation) return;
@@ -468,7 +462,19 @@ export function PagesContentPanel({
   return (
     <TabPanel
       flat
-      meta={<p className="text-sm text-body">{summary}</p>}
+      meta={
+        <div className="flex flex-col gap-1 md:grid md:grid-cols-[280px_1fr] md:items-center md:gap-6">
+          <p className="whitespace-nowrap text-sm text-body">{summary}</p>
+          {selected && selectedPage && (
+            <span className="flex min-w-0 items-center gap-1.5 text-sm text-body">
+              <FileText className="h-4 w-4 flex-shrink-0 text-muted-soft" />
+              <span className="truncate">
+                {selectedPage.path ? `${selectedPage.path.split('/').pop()}.md` : 'Page'}
+              </span>
+            </span>
+          )}
+        </div>
+      }
       contentClassName="p-0"
     >
       <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[280px_1fr]">
@@ -476,22 +482,15 @@ export function PagesContentPanel({
           {q.isPending ? (
             <div className="p-2 text-body">Loading manifest…</div>
           ) : (
-            <PagesTree pages={pages} selectedPath={selected} onSelect={setSelected} />
+            <PagesTree pages={pages} selectedPath={selected} onSelect={setManualSelected} />
           )}
         </div>
         <div className="min-w-0">
           {selected && selectedPage ? (
             <div className="flex flex-col gap-6">
-              {/* Unified Tan Header & Menubar Box */}
-              <div className="flex items-center justify-between bg-[#f3efdb] p-1 pl-4 rounded-lg border border-hairline w-full gap-4">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="h-4 w-4 text-muted-soft flex-shrink-0" />
-                  <span className="font-mono text-[13px] font-medium text-ink truncate">
-                    {selectedPage.path ? `${selectedPage.path}.md` : 'Page'}
-                  </span>
-                </div>
-
-                <Menubar className="border-0 bg-transparent p-0 shadow-none flex-shrink-0">
+              {/* Menubar Box */}
+              <div className="flex items-center bg-[#f3efdb] p-1 rounded-lg border border-hairline w-full">
+                <Menubar className="border-0 bg-transparent p-0 shadow-none">
                   <MenubarMenu>
                     <MenubarTrigger
                       isActive={subTab === 'citation-audit'}

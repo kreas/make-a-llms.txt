@@ -1,5 +1,5 @@
 import { and, inArray, lt, isNotNull, or } from 'drizzle-orm';
-import { del, list } from '@vercel/blob';
+import { del, list } from '@/lib/blob';
 import { getDb } from '@/db';
 import { generations } from '@/db/schema';
 
@@ -32,17 +32,25 @@ export async function GET(req: Request) {
     for (const path of [g.llmsBlobPath, g.llmsFullBlobPath, g.pagesManifestBlobPath]) {
       if (!path) continue;
       try {
-        await del(`https://blob.vercel-storage.com/${path}`);
+        await del(path);
         deleted++;
       } catch (err) {
         console.warn('[cron] del failed', path, err);
       }
     }
     try {
-      const { blobs } = await list({ prefix: `gens/${g.id}/pages/` });
+      let pagesPrefix = `gens/${g.id}/pages/`;
+      const anyPath = g.pagesManifestBlobPath || g.llmsBlobPath || g.llmsFullBlobPath;
+      if (anyPath) {
+        const parts = anyPath.split('/');
+        if (parts.length >= 3 && parts[0] === 'projects') {
+          pagesPrefix = `projects/${parts[1]}/${parts[2]}/pages/`;
+        }
+      }
+      const { blobs } = await list({ prefix: pagesPrefix });
       for (const b of blobs) {
         try {
-          await del(`https://blob.vercel-storage.com/${b.pathname}`);
+          await del(b.pathname);
           deleted++;
         } catch (err) {
           console.warn('[cron] del failed', b.pathname, err);

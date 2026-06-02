@@ -9,7 +9,7 @@ const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
 vi.mock('execa', () => ({ execa: vi.fn() }));
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   put: vi.fn(async (pathname: string) => ({
     url: `https://blob.test/${pathname}`,
     pathname,
@@ -37,7 +37,7 @@ vi.mock('@/lib/markdown-pages/sitemap-urls', () => ({
 }));
 
 import { execa } from 'execa';
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { generateText } from 'ai';
 import { fetchPageMarkdown } from '@/lib/markdown-pages/cloudflare';
 import { loadSitemapUrls } from '@/lib/markdown-pages/sitemap-urls';
@@ -63,6 +63,8 @@ describe('workflow steps', () => {
   let userId: number;
   let siteId: number;
   let generationId: number;
+  let siteUid: string;
+  let generationUid: string;
 
   beforeEach(async () => {
     fetchMock.mockReset();
@@ -83,11 +85,13 @@ describe('workflow steps', () => {
       })
       .returning();
     siteId = s.id;
+    siteUid = s.uid;
     const [g] = await db
       .insert(generations)
       .values({ siteId, userId, trigger: 'manual', notifyEmail: false })
       .returning();
     generationId = g.id;
+    generationUid = g.uid;
 
     vi.mocked(execa).mockReturnValue(fakeProc('# fixture\n'));
   });
@@ -113,13 +117,13 @@ describe('workflow steps', () => {
   it('runGenStep writes llmsBlobPath', async () => {
     await runGenStep(generationId, 'https://x.test/sitemap.xml');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
-    expect(g.llmsBlobPath).toBe(`gens/${generationId}/llms.txt`);
+    expect(g.llmsBlobPath).toBe(`projects/${siteUid}/${generationUid}/llms.txt`);
   });
 
   it('runFullStep writes llmsFullBlobPath', async () => {
     await runFullStep(generationId, 'https://x.test/sitemap.xml');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
-    expect(g.llmsFullBlobPath).toBe(`gens/${generationId}/llms-full.txt`);
+    expect(g.llmsFullBlobPath).toBe(`projects/${siteUid}/${generationUid}/llms-full.txt`);
   });
 
   it('completeStep marks succeeded and updates site.lastGeneratedAt', async () => {
@@ -177,58 +181,27 @@ describe('workflow steps', () => {
     expect(g.pagesErrorMessage).toMatch(/cap/i);
   });
 
-  it('runPagesStepSafe fails when CF env vars are missing', async () => {
-    delete process.env.CLOUDFLARE_ACCOUNT_ID;
-    delete process.env.CLOUDFLARE_API_TOKEN;
-    vi.mocked(loadSitemapUrls).mockResolvedValue(['https://x.test/a']);
-    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
-    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
-    expect(g.pagesStatus).toBe('failed');
-    expect(g.pagesErrorMessage).toMatch(/credentials/i);
-  });
-
   it('runPagesStepSafe succeeds on happy path and writes a manifest', async () => {
-    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
-    process.env.CLOUDFLARE_API_TOKEN = 't';
     vi.mocked(loadSitemapUrls).mockResolvedValue([
       'https://x.test/a',
       'https://x.test/b',
     ]);
-    vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: '# Hi', durationMs: 10 });
     await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
     expect(g.pagesStatus).toBe('succeeded');
     expect(g.pagesCount).toBe(2);
-    expect(g.pagesManifestBlobPath).toBe(`gens/${generationId}/pages-manifest.json`);
+    expect(g.pagesManifestBlobPath).toBe(`projects/${siteUid}/${generationUid}/pages-manifest.json`);
 
-    // Verify that the HTML metadata is extracted and included in the frontmatter
+    // Verify that the manifest is written to blob storage
     expect(put).toHaveBeenCalledWith(
-      expect.stringContaining('gens/1/pages/'),
-      expect.stringContaining('description: Mocked HTML Desc'),
+      `projects/${siteUid}/${generationUid}/pages-manifest.json`,
+      expect.stringContaining('version'),
       expect.any(Object)
     );
   });
 
-  it('runPagesStepSafe still succeeds when some CF calls fail', async () => {
-    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
-    process.env.CLOUDFLARE_API_TOKEN = 't';
-    vi.mocked(loadSitemapUrls).mockResolvedValue([
-      'https://x.test/a',
-      'https://x.test/b',
-    ]);
-    vi.mocked(fetchPageMarkdown)
-      .mockResolvedValueOnce({ markdown: '# A', durationMs: 10 })
-      .mockRejectedValueOnce(Object.assign(new Error('CF 502'), { kind: 'transient' }));
-    await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
-    const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
-    expect(g.pagesStatus).toBe('succeeded');
-  });
-
   it('runPagesStepSafe honors cancellation flag', async () => {
-    process.env.CLOUDFLARE_ACCOUNT_ID = 'a';
-    process.env.CLOUDFLARE_API_TOKEN = 't';
     vi.mocked(loadSitemapUrls).mockResolvedValue(['https://x.test/a']);
-    vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: '# A', durationMs: 1 });
     await getDb().update(generations).set({ status: 'cancelled' }).where(eq(generations.id, generationId));
     await runPagesStepSafe(generationId, 'https://x.test/sitemap.xml', 'https://x.test');
     const [g] = await getDb().select().from(generations).where(eq(generations.id, generationId));
@@ -261,6 +234,8 @@ describe('runSummariesStepSafe', () => {
   let userId: number;
   let siteId: number;
   let generationId: number;
+  let siteUid: string;
+  let generationUid: string;
 
   beforeEach(async () => {
     fetchMock.mockReset();
@@ -281,11 +256,13 @@ describe('runSummariesStepSafe', () => {
       })
       .returning();
     siteId = s.id;
+    siteUid = s.uid;
     const [g] = await db
       .insert(generations)
       .values({ siteId, userId, trigger: 'manual', notifyEmail: false })
       .returning();
     generationId = g.id;
+    generationUid = g.uid;
     vi.clearAllMocks();
     process.env.AI_SUMMARY_RETRY_DELAY_MS = '0';
   });
@@ -308,7 +285,7 @@ describe('runSummariesStepSafe', () => {
             path: p.path,
             filename: `${p.path}.md`,
             status: p.status,
-            blobPath: p.status === 'ok' ? `gens/${generationId}/pages/${p.path}.md` : null,
+            blobPath: p.status === 'ok' ? `projects/${siteUid}/${generationUid}/pages/${p.path}.md` : null,
             bytes: 100,
             durationMs: 1,
           })),
@@ -351,7 +328,7 @@ describe('runSummariesStepSafe', () => {
       .update(generations)
       .set({
         pagesStatus: 'succeeded',
-        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+        pagesManifestBlobPath: `projects/${siteUid}/${generationUid}/pages-manifest.json`,
       })
       .where(eq(generations.id, generationId));
     vi.mocked(get).mockResolvedValueOnce(manifestBlob([{ url: 'https://x.test/a', path: 'a', status: 'ok' }]) as any);
@@ -368,7 +345,7 @@ describe('runSummariesStepSafe', () => {
       .update(generations)
       .set({
         pagesStatus: 'succeeded',
-        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+        pagesManifestBlobPath: `projects/${siteUid}/${generationUid}/pages-manifest.json`,
       })
       .where(eq(generations.id, generationId));
     process.env.AI_GATEWAY_API_KEY = 'test';
@@ -391,7 +368,7 @@ describe('runSummariesStepSafe', () => {
     expect(g.summariesCount).toBe(2);
     expect(g.summariesEmptyCount).toBe(0);
     expect(g.summariesFailedCount).toBe(0);
-    expect(g.summariesManifestBlobPath).toBe(`gens/${generationId}/summaries-manifest.json`);
+    expect(g.summariesManifestBlobPath).toBe(`projects/${siteUid}/${generationUid}/summaries-manifest.json`);
   });
 
   it('tallies empty and failed outcomes separately', async () => {
@@ -399,7 +376,7 @@ describe('runSummariesStepSafe', () => {
       .update(generations)
       .set({
         pagesStatus: 'succeeded',
-        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+        pagesManifestBlobPath: `projects/${siteUid}/${generationUid}/pages-manifest.json`,
       })
       .where(eq(generations.id, generationId));
     process.env.AI_GATEWAY_API_KEY = 'test';
@@ -437,7 +414,7 @@ describe('runSummariesStepSafe', () => {
       .update(generations)
       .set({
         pagesStatus: 'succeeded',
-        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+        pagesManifestBlobPath: `projects/${siteUid}/${generationUid}/pages-manifest.json`,
       })
       .where(eq(generations.id, generationId));
     process.env.AI_GATEWAY_API_KEY = 'test';
@@ -467,7 +444,7 @@ describe('runSummariesStepSafe', () => {
       .update(generations)
       .set({
         pagesStatus: 'succeeded',
-        pagesManifestBlobPath: `gens/${generationId}/pages-manifest.json`,
+        pagesManifestBlobPath: `projects/${siteUid}/${generationUid}/pages-manifest.json`,
         status: 'cancelled',
       })
       .where(eq(generations.id, generationId));

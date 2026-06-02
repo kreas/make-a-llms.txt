@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('@vercel/blob', () => ({
+vi.mock('@/lib/blob', () => ({
   get: vi.fn(),
   put: vi.fn(async (pathname: string) => ({ url: `https://blob.test/${pathname}`, pathname })),
 }));
@@ -12,7 +12,7 @@ vi.mock('ai', async () => {
   };
 });
 
-import { get, put } from '@vercel/blob';
+import { get, put } from '@/lib/blob';
 import { generateText } from 'ai';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
@@ -279,6 +279,39 @@ describe('summarizePage', () => {
       .from(pageSummaryCache)
       .where(eq(pageSummaryCache.siteId, siteId));
     expect(rows).toHaveLength(0);
+  });
+
+  it('preserves description, image, ogImage, and canonical from existing frontmatter', async () => {
+    const blobWithMeta =
+      '---\n' +
+      'title: About\n' +
+      'url: https://x.test/about\n' +
+      'summary: \n' +
+      'updated: 2026-05-14\n' +
+      'description: Acme builds AI tools for developers.\n' +
+      'image: https://x.test/og.png\n' +
+      'ogImage: https://x.test/og.png\n' +
+      'canonical: https://x.test/about\n' +
+      '---\n\n' +
+      BODY;
+    mockBlob(blobWithMeta);
+    vi.mocked(generateText).mockResolvedValue({
+      output: { summary: 'Acme builds AI tools.', page_type: 'about' },
+    } as any);
+
+    await summarizePage({
+      generationId: 1,
+      siteId,
+      page: PAGE,
+      siteName: 'Acme',
+      maxInputBytes: 1_000_000,
+    });
+
+    const [, bodyArg] = vi.mocked(put).mock.calls[0];
+    expect(bodyArg).toMatch(/^description: Acme builds AI tools for developers\.$/m);
+    expect(bodyArg).toMatch(/^image: https:\/\/x\.test\/og\.png$/m);
+    expect(bodyArg).toMatch(/^ogImage: https:\/\/x\.test\/og\.png$/m);
+    expect(bodyArg).toMatch(/^canonical: https:\/\/x\.test\/about$/m);
   });
 
   it('returns failed when the blob cannot be loaded', async () => {

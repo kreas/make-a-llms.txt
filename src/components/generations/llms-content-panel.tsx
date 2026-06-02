@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FileText, Copy, Download, Check, Sparkles } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
 import { TabPanel } from '@/components/layout/tab-panel';
 
@@ -12,61 +13,45 @@ export function LlmsContentPanel({
   generation: Generation | null;
   siteId: string;
 }) {
-  const [content, setContent] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [rewriting, setRewriting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!generation || !generation.llmsBlobPath) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting content on dependency change; not a cascading-render risk.
-      setContent(null);
-      return;
-    }
-    let cancelled = false;
-    setError(null);
-    fetch(`/api/generations/${generation.uid}/files/llms`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to load content');
-        return res.text();
-      })
-      .then((text) => {
-        if (!cancelled) setContent(text);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
+  const contentQuery = useQuery({
+    queryKey: ['llmsContent', generation?.uid],
+    enabled: !!generation?.llmsBlobPath,
+    queryFn: async () => {
+      const res = await fetch(`/api/generations/${generation!.uid}/files/llms`);
+      if (!res.ok) throw new Error('Failed to load content');
+      return res.text();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const rewrite = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/generations/${generation!.uid}/rewrite`, {
+        method: 'POST',
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [generation]);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({})) as { error?: { message?: string }; message?: string };
+        throw new Error(errJson.error?.message ?? errJson.message ?? 'Failed to rewrite llms.txt');
+      }
+      const data = await res.json() as { content: string };
+      return data.content;
+    },
+    onSuccess: (newContent) => {
+      queryClient.setQueryData(['llmsContent', generation?.uid], newContent);
+    },
+  });
+
+  const content = contentQuery.data ?? null;
+  const error = contentQuery.error?.message ?? rewrite.error?.message ?? null;
 
   async function handleCopy() {
     if (!content) return;
     await navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-  }
-
-  async function handleRewrite() {
-    if (!generation || !content) return;
-    setRewriting(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/generations/${generation.uid}/rewrite`, {
-        method: 'POST',
-      });
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || 'Failed to rewrite llms.txt');
-      }
-      const data = await res.json();
-      setContent(data.content);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setRewriting(false);
-    }
   }
 
   if (!generation) {
@@ -94,12 +79,12 @@ export function LlmsContentPanel({
         <>
           <button
             type="button"
-            onClick={handleRewrite}
-            disabled={rewriting || !content}
+            onClick={() => rewrite.mutate()}
+            disabled={rewrite.isPending || !content}
             className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface-card px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft disabled:opacity-50"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            {rewriting ? 'Rewriting…' : 'Smart Format'}
+            {rewrite.isPending ? 'Rewriting…' : 'Smart Format'}
           </button>
           <button
             type="button"

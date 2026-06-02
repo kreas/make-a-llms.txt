@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/blob';
 import { Readable, PassThrough } from 'node:stream';
 import path from 'node:path';
 
@@ -72,10 +72,7 @@ export async function runLlmstxt(opts: RunOpts): Promise<RunResult> {
 
   // Upload to Vercel Blob
   const result = await put(opts.blobPath, procResult.stdout, {
-    access: 'private',
     contentType: 'text/plain; charset=utf-8',
-    addRandomSuffix: false,
-    allowOverwrite: true,
   });
 
   return { blobPath: opts.blobPath, url: result.url, bytes: Buffer.byteLength(procResult.stdout) };

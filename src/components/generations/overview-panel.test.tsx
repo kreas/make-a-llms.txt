@@ -69,3 +69,24 @@ describe('OverviewPanel GEO card', () => {
     expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
   });
 });
+
+describe('OverviewPanel radar', () => {
+  it('shows the AI-readiness radar when all three pillars have scores', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('citation-audits/latest')) {
+        return Promise.resolve({ ok: true, json: async () => ({ audits: [
+          { pageUrl: 'https://acme.test/', status: 'succeeded', results: { checks: [
+            { id: 'answer-position', passed: true, score: 100, weight: 15, evidence: [], recommendation: null },
+            { id: 'schema-type', passed: true, score: 100, weight: 10, evidence: [], recommendation: null },
+          ] } },
+        ] }) });
+      }
+      if (url.includes('geo-audit/latest')) {
+        return Promise.resolve({ ok: true, json: async () => ({ audit: { status: 'succeeded', score: 70, tier: 'good', results: { score: 70, tier: 'good', siteType: 'saas', goal: 'get-cited', signals: [], metadata: { pagesScanned: 1, candidates: 0, confirmCalls: 0 } } } }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    wrap(<OverviewPanel siteId="site-1" onNavigate={() => {}} />);
+    expect(await screen.findByText(/your ai-readiness shape/i)).toBeInTheDocument();
+  });
+});

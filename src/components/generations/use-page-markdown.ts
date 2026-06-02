@@ -6,9 +6,7 @@ export function usePageMarkdown(generationUid: string | undefined, path: string 
     queryKey: ['pageMd', generationUid, path],
     enabled: !!generationUid && !!path,
     queryFn: async () => {
-      const res = await fetch(`/api/generations/${generationUid}/pages/${path}?t=${Date.now()}`, {
-        cache: 'no-store',
-      });
+      const res = await fetch(`/api/generations/${generationUid}/pages/${path}?t=${Date.now()}`);
       if (!res.ok) throw new Error(`status ${res.status}`);
       return res.text();
     },

@@ -1,26 +1,18 @@
 import type { Tier } from '@/lib/citation-audit/types';
 
-export type GeoSignalId = 'pricing' | 'comparison' | 'case-study';
-
-/** Existence weights — sum to 100 so a score is already 0–100 (spec §5). */
-export const GEO_SIGNAL_WEIGHTS: Record<GeoSignalId, number> = {
-  pricing: 40,
-  comparison: 30,
-  'case-study': 30,
-};
-
-export const GEO_SIGNALS: readonly GeoSignalId[] = ['pricing', 'comparison', 'case-study'] as const;
+export type SiteType = 'saas' | 'ecommerce' | 'local' | 'publisher' | 'services' | 'other';
+export type Goal = 'get-cited' | 'win-comparisons' | 'build-trust';
+export type SignalTag = 'proof' | 'comparison' | 'evidence' | 'trust' | 'value';
 
 export type GeoPageInput = {
   url: string;
-  /** Manifest path slug for the page, e.g. "pricing" or "index". */
   path: string;
   markdown: string;
 };
 
 /** A heuristic gate firing: this page is a candidate for one signal. */
 export type GateMatch = {
-  signal: GeoSignalId;
+  signalId: string;
   url: string;
   path: string;
   reason: string;
@@ -32,16 +24,34 @@ export type GeoConfirm = {
   artifact: string | null;
 };
 
+/** A self-contained, registered signal definition. */
+export type GeoSignalDef = {
+  id: string;
+  label: string;
+  tags: SignalTag[];
+  defaultWeight: number;
+  /** URL globs handed to the crawl's includePatterns. */
+  urlPatterns: string[];
+  /** Cheap per-page heuristic over crawled markdown → candidate or null. */
+  gate: (page: GeoPageInput) => GateMatch | null;
+  /** LLM confirm system prompt for this signal. */
+  confirmPrompt: (entityName: string) => string;
+  /** Shown when the signal is absent. */
+  recommendation: string;
+};
+
 export type GeoConfirmFn = (
-  signal: GeoSignalId,
+  signalId: string,
   page: GeoPageInput,
   entityName: string,
 ) => Promise<GeoConfirm>;
 
 /** Per-signal verdict after gating + confirming. */
 export type GeoSignalResult = {
-  signal: GeoSignalId;
-  weight: number;
+  signal: string;          // signal id
+  label: string;
+  tags: SignalTag[];
+  weight: number;          // effective (goal-adjusted) weight used in scoring
   present: boolean;
   artifacts: string[];
   pages: string[];
@@ -49,6 +59,8 @@ export type GeoSignalResult = {
 };
 
 export type SiteGeoAuditResult = {
+  siteType: SiteType;
+  goal: Goal;
   score: number;
   tier: Tier;
   signals: GeoSignalResult[];

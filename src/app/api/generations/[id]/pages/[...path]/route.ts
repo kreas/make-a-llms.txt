@@ -145,10 +145,7 @@ export async function POST(_req: Request, ctx: Ctx) {
       }
 
       await put(entry.blobPath, finalMarkdown, {
-        access: 'private',
         contentType: 'text/markdown; charset=utf-8',
-        addRandomSuffix: false,
-        allowOverwrite: true,
       });
 
       return new Response(finalMarkdown, {
@@ -243,10 +240,7 @@ export async function POST(_req: Request, ctx: Ctx) {
     }) + cleanMarkdown;
 
     await put(entry.blobPath, body, {
-      access: 'private',
       contentType: 'text/markdown; charset=utf-8',
-      addRandomSuffix: false,
-      allowOverwrite: true,
     });
 
     return new Response(body, {

@@ -200,10 +200,7 @@ export async function POST(_req: Request, ctx: Ctx) {
 
     // Overwrite the Vercel Blob file
     await put(gen.llmsBlobPath, cleanedContent, {
-      access: 'private',
       contentType: 'text/plain; charset=utf-8',
-      addRandomSuffix: false,
-      allowOverwrite: true,
     });
 
     return Response.json({ content: cleanedContent });

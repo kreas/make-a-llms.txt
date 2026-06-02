@@ -73,8 +73,16 @@ export async function POST(_req: Request, ctx: Ctx) {
     const action = searchParams.get('action');
 
     if (action === 'format' || action === 'rewrite') {
-      const modelName = 'google/gemini-3.5-flash';
+      const modelName = 'google/gemini-3.1-flash-lite';
       const userPrompt = `Format the following page markdown to spec:\n\n---\n${existingMarkdown}\n---`;
+
+      // Gemini 3.x enables thinking by default. For mechanical reformatting the
+      // reasoning pass adds latency and can consume the entire output-token
+      // budget before any text is emitted (finishReason 'length', empty text).
+      // Disable it so the model spends its budget on the formatted output.
+      const providerOptions = {
+        google: { thinkingConfig: { thinkingBudget: 0 } },
+      };
 
       // First pass LLM call
       const firstPass = await generateText({
@@ -83,6 +91,7 @@ export async function POST(_req: Request, ctx: Ctx) {
         prompt: userPrompt,
         temperature: 0.3,
         maxOutputTokens: 8000,
+        providerOptions,
       });
 
       let finalContent = firstPass.text;
@@ -116,6 +125,7 @@ export async function POST(_req: Request, ctx: Ctx) {
           prompt: `Format the following page markdown to spec:\n\n---\n${finalContent}\n---`,
           temperature: 0.3,
           maxOutputTokens: 8000,
+          providerOptions,
         });
 
         finalContent = secondPass.text;
@@ -257,13 +267,7 @@ export async function POST(_req: Request, ctx: Ctx) {
 }
 
 function cleanCodeFences(content: string): string {
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```markdown')) {
-    cleaned = cleaned.replace(/^```markdown\r?\n/, '').replace(/\r?\n```$/, '');
-  } else if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```\r?\n/, '').replace(/\r?\n```$/, '');
-  }
-  return cleaned.trim();
+  return content.trim().replace(/^```[a-z]*\r?\n/, '').replace(/\r?\n```$/, '').trim();
 }
 
 function parseFrontmatterFieldsSafe(markdown: string): { fields: Record<string, string>; body: string } {

@@ -128,13 +128,7 @@ const FORBIDDEN = /\b(innovative|cutting-edge|seamless|robust|comprehensive|worl
 const DASHES = /[—–]/g;
 
 function cleanCodeFences(content: string): string {
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```markdown')) {
-    cleaned = cleaned.replace(/^```markdown\r?\n/, '').replace(/\r?\n```$/, '');
-  } else if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```\r?\n/, '').replace(/\r?\n```$/, '');
-  }
-  return cleaned.trim();
+  return content.trim().replace(/^```[a-z]*\r?\n/, '').replace(/\r?\n```$/, '').trim();
 }
 
 export async function POST(_req: Request, ctx: Ctx) {
@@ -152,8 +146,16 @@ export async function POST(_req: Request, ctx: Ctx) {
     const { stream } = await readGenerationFile(uid, user.id, 'llms');
     const roughText = await new Response(stream).text();
 
-    const modelName = 'google/gemini-3.5-flash';
+    const modelName = 'google/gemini-3.1-flash-lite';
     const userPrompt = `Format the following rough llms.txt to spec:\n\n---\n${roughText}\n---`;
+
+    // Gemini 3.x enables thinking by default. For mechanical reformatting the
+    // reasoning pass adds latency and can consume the entire output-token
+    // budget before any text is emitted (finishReason 'length', empty text).
+    // Disable it so the model spends its budget on the formatted output.
+    const providerOptions = {
+      google: { thinkingConfig: { thinkingBudget: 0 } },
+    };
 
     // First pass LLM call
     const firstPass = await generateText({
@@ -161,8 +163,17 @@ export async function POST(_req: Request, ctx: Ctx) {
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.3,
-      maxOutputTokens: 4000,
+      maxOutputTokens: 8000,
+      providerOptions,
     });
+
+    if (!firstPass.text && firstPass.finishReason !== 'stop') {
+      throw new ApiError(
+        500,
+        'generation_failed',
+        `AI model returned no content (finish reason: ${firstPass.finishReason}). Try again.`
+      );
+    }
 
     let finalContent = firstPass.text;
 
@@ -176,16 +187,17 @@ export async function POST(_req: Request, ctx: Ctx) {
       );
 
       const nudge = `The previous output contained these forbidden patterns: ${uniqueMatches.join(', ')}. Rewrite affected lines without those words. Keep everything else identical.`;
-      
+
       const secondPass = await generateText({
         model: modelName,
         system: `${nudge}\n\n${SYSTEM_PROMPT}`,
         prompt: `Format the following rough llms.txt to spec:\n\n---\n${finalContent}\n---`,
         temperature: 0.3,
-        maxOutputTokens: 4000,
+        maxOutputTokens: 8000,
+        providerOptions,
       });
 
-      finalContent = secondPass.text;
+      finalContent = secondPass.text || finalContent;
     }
 
     const cleanedContent = cleanCodeFences(finalContent);

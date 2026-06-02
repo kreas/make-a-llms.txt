@@ -152,7 +152,7 @@ POST https://api.cloudflare.com/client/v4/accounts/<acct>/browser-rendering/craw
 
 **Confirm + score step** — over the crawl's `records[].markdown`: run each active signal's `gate`, cap candidates per signal at 5, `confirmCandidate` (existing LLM confirm, now driven by the signal's `confirmPrompt`), then normalized scoring (§4.4). Persist the final result and set `status: 'succeeded'`.
 
-**Background mechanism:** reuse the durable background-job pattern the generation pipeline already uses (so crawl + confirm survive request timeouts), updating the row's `status`/`stage` as it advances. The panel never blocks on it.
+**Background mechanism:** a Vercel Workflow (WDK), the same primitive the generation pipeline uses. Define `runGeoAuditWorkflow` (`'use workflow'`) with `'use step'` stages (crawl → confirm → score → persist) and start it from the POST route via `start(runGeoAuditWorkflow, [{ auditId }])` (re-exported from `@/lib/workflow/wdk`), exactly like `enqueue-generations.ts` starts `generateSiteFilesWorkflow`. Store the returned `runId` on the audit row as `workflowRunId`. Each step updates the row's `status`/`stage` so crawl + confirm survive request timeouts and the panel never blocks. Use `RetryableError` for transient crawl/LLM failures and `FatalError` for unrecoverable ones.
 
 **Failure & resilience:** any step failure persists `status: 'failed'` with an `errorReason` (`crawl_failed` / `analysis_failed` / `no_pages`), mirroring v1's hardening. A later failed run never erases a prior succeeded score — `latest` already prefers the most recent succeeded audit (carried over from v1).
 
@@ -164,7 +164,7 @@ POST https://api.cloudflare.com/client/v4/accounts/<acct>/browser-rendering/craw
 
 **`site_geo_audits`** — extend the v1 table:
 - `status` enum gains `'pending'` and `'running'` (SQLite stores text; this is a TS-enum widening, no column change).
-- add `crawlJobId text` (Cloudflare job id), `stage text` (`'crawling' | 'confirming' | 'scoring'` for progress), `siteType text`, `goal text`.
+- add `crawlJobId text` (Cloudflare crawl job id), `workflowRunId text` (WDK run id, mirroring `generations.workflowRunId`), `stage text` (`'crawling' | 'confirming' | 'scoring'` for progress), `siteType text`, `goal text`.
 - `results` JSON now carries `{ siteType, goal, signals: GeoSignalResult[], score, tier, metadata }` so each audit is self-describing.
 
 `GeoSignalResult` gains `label` and `tags` (denormalized for display); otherwise unchanged from v1.
@@ -206,9 +206,12 @@ The v1 `src/lib/geo-audit/` modules are refactored, not discarded:
 - `render: true` by default (start with the free `render: false`; escalate per-site only if pages return empty).
 - Auto-fix / CMS write-back.
 
-## 12. Open questions (resolve during implementation)
+## 12. Open questions
 
-1. **Background job mechanism** — confirm whether to reuse the exact generation workflow primitive or a lighter durable task; pick the one that already survives timeouts in this deployment.
-2. **Crawl `limit` tuning** — 60 is a starting point; tune against real sites and the free-beta budget.
-3. **Classifier confidence threshold** — 0.5 for "show unset" is a starting value.
-4. **Progress granularity** — `stage` enum is the minimum; per-candidate counts in the running UI are a nice-to-have, not required for v1.
+### Resolved
+- **Background job mechanism** — use the existing Vercel Workflow (WDK) pattern, as in §6. Background jobs are acceptable here.
+- **Progress granularity** — ship the `stage` enum only for v1; per-candidate counts in the running UI are deferred to a follow-up.
+
+### Tuning during implementation
+- **Crawl `limit`** — 60 is a starting point; tune against real sites and the free-beta budget.
+- **Classifier confidence threshold** — 0.5 for "show unset" is a starting value.

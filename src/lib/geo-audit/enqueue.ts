@@ -32,11 +32,24 @@ export async function enqueueGeoAudit(opts: {
     })
     .returning();
 
-  const { runId } = await start(runGeoAuditWorkflow, [{ auditId: row.id }]);
-  const [updated] = await db
-    .update(siteGeoAudits)
-    .set({ workflowRunId: runId })
-    .where(eq(siteGeoAudits.id, row.id))
-    .returning();
-  return updated;
+  try {
+    const { runId } = await start(runGeoAuditWorkflow, [{ auditId: row.id }]);
+    const [updated] = await db
+      .update(siteGeoAudits)
+      .set({ workflowRunId: runId })
+      .where(eq(siteGeoAudits.id, row.id))
+      .returning();
+    return updated;
+  } catch (err) {
+    const [failed] = await db
+      .update(siteGeoAudits)
+      .set({
+        status: 'failed',
+        errorReason: 'enqueue_failed',
+        errorMessage: err instanceof Error ? err.message : String(err),
+      })
+      .where(eq(siteGeoAudits.id, row.id))
+      .returning();
+    return failed;
+  }
 }

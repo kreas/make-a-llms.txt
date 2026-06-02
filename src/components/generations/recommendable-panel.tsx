@@ -33,7 +33,11 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
 
   async function handleAnalyze(input: { siteType: SiteType; goal: Goal }) {
     setEditing(false);
-    await run(input);
+    try {
+      await run(input);
+    } catch {
+      // Failure is surfaced via runState.isError below.
+    }
   }
 
   if (isLoading) {
@@ -75,6 +79,11 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
           onAnalyze={handleAnalyze}
           isRunning={runState.isPending}
         />
+        {audit?.status === 'failed' && !runState.isError && (
+          <p className="pb-4 text-center text-sm text-muted-soft">
+            The last analysis didn&apos;t finish{audit.errorMessage ? `: ${audit.errorMessage}` : ''}. Try again.
+          </p>
+        )}
         {runState.isError && <p className="pb-4 text-center text-sm text-destructive">Couldn&apos;t start the analysis. Try again.</p>}
       </TabPanel>
     );

@@ -274,10 +274,7 @@ export async function runPagesStepSafe(
     if (pageResults.length > 0) {
       manifestPath = paths.pagesManifestPath;
       await put(manifestPath, JSON.stringify(manifest), {
-        access: 'private',
         contentType: 'application/json',
-        addRandomSuffix: false,
-        allowOverwrite: true,
       });
     }
 
@@ -492,10 +489,7 @@ export async function runSummariesStepSafe(generationId: number): Promise<void> 
         results: resolved,
       }),
       {
-        access: 'private',
         contentType: 'application/json',
-        addRandomSuffix: false,
-        allowOverwrite: true,
       },
     );
 

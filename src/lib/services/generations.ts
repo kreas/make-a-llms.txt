@@ -164,10 +164,7 @@ async function generatePageMarkdownOnTheFly(
     }) + markdown;
 
   await put(blobPath, body, {
-    access: 'private',
     contentType: 'text/markdown; charset=utf-8',
-    addRandomSuffix: false,
-    allowOverwrite: true,
   });
 
   return body;

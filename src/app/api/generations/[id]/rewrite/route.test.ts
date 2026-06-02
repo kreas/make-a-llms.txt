@@ -133,10 +133,7 @@ describe('POST /api/generations/[id]/rewrite', () => {
 
     expect(generateText).toHaveBeenCalledTimes(1);
     expect(put).toHaveBeenCalledWith('gens/1/llms.txt', expect.any(String), {
-      access: 'private',
       contentType: 'text/plain; charset=utf-8',
-      addRandomSuffix: false,
-      allowOverwrite: true,
     });
   });
 

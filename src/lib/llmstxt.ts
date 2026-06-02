@@ -72,10 +72,7 @@ export async function runLlmstxt(opts: RunOpts): Promise<RunResult> {
 
   // Upload to Vercel Blob
   const result = await put(opts.blobPath, procResult.stdout, {
-    access: 'private',
     contentType: 'text/plain; charset=utf-8',
-    addRandomSuffix: false,
-    allowOverwrite: true,
   });
 
   return { blobPath: opts.blobPath, url: result.url, bytes: Buffer.byteLength(procResult.stdout) };

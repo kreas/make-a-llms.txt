@@ -1,0 +1,75 @@
+import { describe, it, expect } from 'vitest';
+import { sitePillarScores, pickNextAction, stageStatus, type AuditLike } from './site-readiness';
+import type { CheckResult } from './types';
+
+function chk(id: string, score: number, weight: number, recommendation: string | null = null): CheckResult {
+  return { id, score, weight, passed: score >= 70, evidence: [], recommendation };
+}
+
+function audit(pageUrl: string, checks: CheckResult[]): AuditLike {
+  return { pageUrl, status: 'succeeded', results: { checks } };
+}
+
+describe('sitePillarScores', () => {
+  it('averages each pillar score across pages', () => {
+    const audits = [
+      audit('https://x.com/', [chk('answer-position', 100, 15), chk('schema-type', 0, 10)]),
+      audit('https://x.com/a', [chk('answer-position', 0, 15), chk('schema-type', 100, 10)]),
+    ];
+    const r = sitePillarScores(audits);
+    expect(r.readable?.score).toBe(50); // (100 + 0) / 2
+    expect(r.recognized?.score).toBe(50); // (0 + 100) / 2
+    expect(r.recommendable).toBeNull(); // no lists-tables checks present
+  });
+
+  it('ignores failed audits and audits with no results', () => {
+    const audits: AuditLike[] = [
+      { pageUrl: 'https://x.com/', status: 'failed', results: null },
+      audit('https://x.com/a', [chk('answer-position', 80, 15)]),
+    ];
+    expect(sitePillarScores(audits).readable?.score).toBe(80);
+  });
+
+  it('returns all-null when there are no usable audits', () => {
+    const r = sitePillarScores([]);
+    expect(r.readable).toBeNull();
+    expect(r.recognized).toBeNull();
+  });
+});
+
+describe('pickNextAction', () => {
+  it('picks the highest-weight failing Readable/Recognized check', () => {
+    const audits = [
+      audit('https://x.com/a', [chk('h1-present', 0, 5, 'Add an H1'), chk('schema-type', 0, 10, 'Add schema')]),
+    ];
+    const next = pickNextAction(audits);
+    expect(next?.checkId).toBe('schema-type'); // weight 10 > 5
+    expect(next?.pillar).toBe('recognized');
+    expect(next?.recommendation).toBe('Add schema');
+    expect(next?.pageUrl).toBe('https://x.com/a');
+  });
+
+  it('prefers the index page on weight ties', () => {
+    const audits = [
+      audit('https://x.com/about', [chk('h1-present', 0, 5, 'Add H1 about')]),
+      audit('https://x.com/', [chk('h1-present', 0, 5, 'Add H1 home')]),
+    ];
+    expect(pickNextAction(audits)?.pageUrl).toBe('https://x.com/');
+  });
+
+  it('ignores Recommendable checks this phase and returns null when nothing fails', () => {
+    const audits = [audit('https://x.com/', [chk('lists-tables', 0, 5, 'Add a table'), chk('h1-present', 100, 5)])];
+    expect(pickNextAction(audits)).toBeNull();
+  });
+});
+
+describe('stageStatus', () => {
+  it('flags when readable is below threshold', () => {
+    expect(stageStatus({ readable: { score: 40, tier: 'poor' }, recognized: { score: 90, tier: 'excellent' }, recommendable: null }))
+      .toMatch(/readable/i);
+  });
+  it('celebrates when both built pillars clear 70', () => {
+    expect(stageStatus({ readable: { score: 80, tier: 'good' }, recognized: { score: 75, tier: 'good' }, recommendable: null }))
+      .toMatch(/recommendable is coming soon/i);
+  });
+});

@@ -60,3 +60,6 @@ public/openapi.json
 
 # Local scratch / experiments
 scratch/
+
+# Brainstorming visual companion
+.superpowers/

@@ -22,7 +22,7 @@ export function ScrollAnimate({
   as = 'div',
   yOffset = 16,
 }: ScrollAnimateProps) {
-  const Component = (m as Record<string, unknown>)[as as string] as typeof m.div || m.div;
+  const Component = (typeof as === 'string' ? (m as unknown as Record<string, typeof m.div>)[as] : undefined) ?? m.div;
 
   return (
     <LazyMotion features={loadFeatures} strict>

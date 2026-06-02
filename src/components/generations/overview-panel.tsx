@@ -134,7 +134,7 @@ export function OverviewPanel({
         </div>
       ) : audits.length > 0 ? (
         <div className="mb-6 rounded-xl border border-hairline bg-surface-card p-5">
-          <p className="text-sm text-body">You're all caught up on the basics. Well done.</p>
+          <p className="text-sm text-body">You&apos;re all caught up on the basics. Well done.</p>
         </div>
       ) : null}
 

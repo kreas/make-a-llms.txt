@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
 import type { ManifestPage } from './pages-tree';
@@ -26,7 +26,7 @@ export function PageWorkspaceProvider({
   generation: Generation | null;
   children: React.ReactNode;
 }) {
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [manualSelected, setManualSelected] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ['pagesManifest', generation?.id, generation?.pagesStatus],
@@ -44,17 +44,15 @@ export function PageWorkspaceProvider({
   const manifest = q.data && 'pages' in q.data ? q.data : null;
   const pages = useMemo(() => (manifest?.pages ?? []) as ManifestPage[], [manifest?.pages]);
 
-  // Default the selection to index (or first page) once the manifest arrives.
-  useEffect(() => {
-    if (pages.length === 0) return;
-    const valid = selectedPath && pages.some((p) => p.path === selectedPath);
-    if (valid) return;
-    const hasIndex = pages.some((p) => p.path === 'index');
-    setSelectedPath(hasIndex ? 'index' : (pages[0]?.path ?? null));
-  }, [pages, selectedPath]);
+  // Derive the effective selection during render — no useEffect needed.
+  const selectedPath = useMemo(() => {
+    if (manualSelected && pages.some((p) => p.path === manualSelected)) return manualSelected;
+    if (pages.some((p) => p.path === 'index')) return 'index';
+    return pages[0]?.path ?? null;
+  }, [manualSelected, pages]);
 
   const value = useMemo<Ctx>(
-    () => ({ generation, pages, manifestPending: q.isPending, selectedPath, setSelectedPath }),
+    () => ({ generation, pages, manifestPending: q.isPending, selectedPath, setSelectedPath: setManualSelected }),
     [generation, pages, q.isPending, selectedPath],
   );
 

@@ -50,7 +50,7 @@ export function GenerationsPopover({
           <ul className="max-h-80 overflow-auto">
             {completed.map((g) => {
               const selected = g.id === selectedId;
-              const completedTime = g.completedAt ? new Date(g.completedAt) : new Date(g.createdAt);
+              const completedTime = g.completedAt ?? g.createdAt;
               const runLabel = `#${g.projectRunNumber ?? g.id}`;
               return (
                 <li key={g.id} className="border-b border-hairline last:border-b-0">

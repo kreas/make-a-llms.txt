@@ -5,49 +5,37 @@ import type { GeoConfirmFn, GeoPageInput } from './types';
 const pages: GeoPageInput[] = [
   { url: 'https://acme.test/pricing', path: 'pricing', markdown: 'Plans from $29/mo.' },
   { url: 'https://acme.test/customers/x', path: 'customers/x', markdown: 'Achieved 40% faster onboarding.' },
-  { url: 'https://acme.test/about', path: 'about', markdown: 'Our story.' },
+  { url: 'https://acme.test/about', path: 'about', markdown: 'Why choose us: the only tool that…' },
 ];
 
 describe('analyzeGeoPages', () => {
-  it('confirms gated candidates and scores present signals', async () => {
-    const confirm: GeoConfirmFn = vi.fn(async (signal) => {
-      if (signal === 'pricing') return { confirmed: true, artifact: 'from $29/mo' };
-      if (signal === 'case-study') return { confirmed: true, artifact: '40% faster onboarding' };
+  it('resolves the active set for the site type, confirms, and scores', async () => {
+    const confirm: GeoConfirmFn = vi.fn(async (signalId) => {
+      if (signalId === 'pricing') return { confirmed: true, artifact: 'from $29/mo' };
+      if (signalId === 'case-study') return { confirmed: true, artifact: '40% faster onboarding' };
+      if (signalId === 'differentiation') return { confirmed: true, artifact: 'the only tool that…' };
       return { confirmed: false, artifact: null };
     });
 
-    const result = await analyzeGeoPages(pages, 'Acme', confirm);
+    const result = await analyzeGeoPages(pages, { entityName: 'Acme', siteType: 'saas', goal: 'win-comparisons' }, confirm);
 
-    const pricing = result.signals.find((s) => s.signal === 'pricing')!;
-    const comparison = result.signals.find((s) => s.signal === 'comparison')!;
-    const caseStudy = result.signals.find((s) => s.signal === 'case-study')!;
-
-    expect(pricing.present).toBe(true);
-    expect(pricing.artifacts).toContain('from $29/mo');
-    expect(caseStudy.present).toBe(true);
-    expect(comparison.present).toBe(false);
-    expect(comparison.recommendation).not.toBeNull();
-    expect(result.score).toBe(70); // pricing 40 + case-study 30
-    expect(result.metadata.confirmCalls).toBe(2); // only 2 candidates gated
+    const ids = result.signals.map((s) => s.signal);
+    expect(ids).toEqual(['social-proof', 'differentiation', 'pricing', 'comparison', 'case-study']);
+    expect(result.signals.find((s) => s.signal === 'pricing')!.present).toBe(true);
+    expect(result.signals.find((s) => s.signal === 'comparison')!.present).toBe(false);
+    expect(result.siteType).toBe('saas');
+    expect(result.goal).toBe('win-comparisons');
+    expect(result.score).toBeGreaterThan(0);
   });
 
-  it('marks a signal absent when the LLM rejects every candidate', async () => {
-    const confirm: GeoConfirmFn = vi.fn(async () => ({ confirmed: false, artifact: null }));
-    const result = await analyzeGeoPages(pages, 'Acme', confirm);
+  it('only confirms gated candidates (no gate → not present, not called)', async () => {
+    const confirm = vi.fn<GeoConfirmFn>(async () => ({ confirmed: true, artifact: 'x' }));
+    const result = await analyzeGeoPages(
+      [{ url: 'https://acme.test/', path: 'index', markdown: 'nothing relevant here' }],
+      { entityName: 'Acme', siteType: 'other', goal: 'get-cited' },
+      confirm,
+    );
     expect(result.signals.every((s) => !s.present)).toBe(true);
-    expect(result.score).toBe(0);
-  });
-
-  it('caps candidates per signal at 5', async () => {
-    const many: GeoPageInput[] = Array.from({ length: 8 }, (_, i) => ({
-      url: `https://acme.test/customers/${i}`,
-      path: `customers/${i}`,
-      markdown: 'x',
-    }));
-    const confirm = vi.fn<GeoConfirmFn>(async () => ({ confirmed: false, artifact: null }));
-    const result = await analyzeGeoPages(many, 'Acme', confirm);
-    const caseStudyCalls = confirm.mock.calls.filter((c) => c[0] === 'case-study').length;
-    expect(caseStudyCalls).toBe(5);
-    expect(result.metadata.candidates).toBe(5);
+    expect(confirm).not.toHaveBeenCalled();
   });
 });

@@ -35,9 +35,20 @@ describe('gatePage', () => {
     expect(m.map((x) => x.signal)).toContain('comparison');
   });
 
-  it('gates a case study by URL and by metric + testimonial language', () => {
-    expect(gatePage(page({ url: 'https://acme.test/customers/northwind' })).map((x) => x.signal)).toContain('case-study');
-    expect(gatePage(page({ markdown: 'Northwind achieved 40% faster onboarding with our platform.' })).map((x) => x.signal)).toContain('case-study');
+  it('gates a case study by URL', () => {
+    const m = gatePage(page({ url: 'https://acme.test/customers/northwind' }));
+    expect(m.map((x) => x.signal)).toContain('case-study');
+  });
+
+  it('gates a case study by metric + testimonial language', () => {
+    const m = gatePage(page({ markdown: 'Northwind achieved 40% faster onboarding with our platform.' }));
+    expect(m.map((x) => x.signal)).toContain('case-study');
+  });
+
+  it('intentionally over-gates borderline "X vs Y" prose (LLM confirm filters later)', () => {
+    // The gate is deliberately permissive; the LLM confirm step is the precision layer.
+    const m = gatePage(page({ markdown: 'When weighing manual vs automated workflows, teams differ.' }));
+    expect(m.map((x) => x.signal)).toContain('comparison');
   });
 
   it('returns no matches for an ordinary page', () => {

@@ -13,6 +13,7 @@ export const GEO_SIGNALS: readonly GeoSignalId[] = ['pricing', 'comparison', 'ca
 
 export type GeoPageInput = {
   url: string;
+  /** Manifest path slug for the page, e.g. "pricing" or "index". */
   path: string;
   markdown: string;
 };

@@ -4,7 +4,7 @@ const PRICING_URL = /\/(pricing|plans|pricing-plans)(\/|$|\?)/i;
 const CURRENCY = /[$€£]\s?\d/;
 const PLAN_KEYWORDS = /(per month|\/mo\b|\/month|per year|\/yr\b|starting at|starts at|free tier|free plan|billed annually|per seat)/i;
 
-const COMPARISON_URL = /\/(vs|compare|comparison|alternatives?|alternative-to)(\/|-|$|\?)/i;
+const COMPARISON_URL = /\/(vs|compare|comparison|alternatives?|alternative-to)(\/|$|\?)/i;
 const COMPARISON_TEXT = /\b[\w][\w .&-]{1,30}\s+vs\.?\s+[\w][\w .&-]{1,30}\b|\balternatives?\s+to\b/i;
 
 const CASE_STUDY_URL = /\/(case-stud(y|ies)|customers?|success-stor(y|ies)|customer-stor(y|ies))(\/|$|\?)/i;

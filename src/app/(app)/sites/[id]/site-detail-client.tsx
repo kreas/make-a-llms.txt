@@ -9,22 +9,26 @@ import type { Site, Generation } from '@/db/schema';
 
 const loadFeatures = () => import('framer-motion').then((mod) => mod.domMax);
 import { ProcessTimeline } from '@/components/generations/process-timeline';
-import { LlmsContentPanel } from '@/components/generations/llms-content-panel';
-import { PagesContentPanel } from '@/components/generations/pages-content-panel';
+import { OverviewPanel } from '@/components/generations/overview-panel';
+import { ReadablePanel } from '@/components/generations/readable-panel';
+import { RecognizedPanel } from '@/components/generations/recognized-panel';
+import { SetupPanel } from '@/components/generations/setup-panel';
+import { ComingSoonPanel } from '@/components/generations/coming-soon-panel';
+import { PageWorkspaceProvider } from '@/components/generations/page-workspace-context';
 import { GenerationsPopover } from '@/components/generations/generations-popover';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
-import { CrawlerAuditTab } from '@/components/crawlers/crawler-audit-tab';
-import { CitationsTab } from '@/components/citations/citations-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GooeyFilter } from '@/components/ui/gooey-filter';
 import { useScreenSize } from '@/hooks/use-screen-size';
 import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
 
-const tabItems = [
-  { value: 'pages', label: 'Pages' },
-  { value: 'llms', label: 'llms.txt' },
-  { value: 'crawlers', label: 'AI Crawlers' },
+const tabItems: { value: string; label: string; isSetup?: boolean }[] = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'readable', label: 'Readable' },
+  { value: 'recommendable', label: 'Recommendable' },
+  { value: 'recognized', label: 'Recognized' },
+  { value: 'setup', label: 'Setup', isSetup: true },
 ];
 
 export function SiteDetailClient({
@@ -36,7 +40,7 @@ export function SiteDetailClient({
   generations: (Generation & { projectRunNumber?: number })[];
   allRunsCount?: number;
 }) {
-  const [activeTab, setActiveTab] = useState('pages');
+  const [activeTab, setActiveTab] = useState('overview');
   const screenSize = useScreenSize();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -309,17 +313,28 @@ export function SiteDetailClient({
           </TabsList>
 
           {/* Content panel area */}
-          <div className="p-4 md:p-6 min-w-0 min-h-[600px]">
-            <TabsContent value="pages" className="mt-0 outline-none">
-              <PagesContentPanel generation={selected} siteId={site.uid} />
-            </TabsContent>
-            <TabsContent value="llms" className="mt-0 outline-none">
-              <LlmsContentPanel generation={selected} siteId={site.uid} />
-            </TabsContent>
-            <TabsContent value="crawlers" className="mt-0 outline-none">
-              <CrawlerAuditTab siteId={site.uid} />
-            </TabsContent>
-          </div>
+          <PageWorkspaceProvider generation={selected}>
+            <div className="p-4 md:p-6 min-w-0 min-h-[600px]">
+              <TabsContent value="overview" className="mt-0 outline-none">
+                <OverviewPanel siteId={site.uid} onNavigate={setActiveTab} />
+              </TabsContent>
+              <TabsContent value="readable" className="mt-0 outline-none">
+                <ReadablePanel siteId={site.uid} />
+              </TabsContent>
+              <TabsContent value="recommendable" className="mt-0 outline-none">
+                <ComingSoonPanel
+                  title="Recommendable is coming soon"
+                  blurb="Next, we'll check whether AI has the evidence to recommend you — pricing, comparisons, and proof with real numbers."
+                />
+              </TabsContent>
+              <TabsContent value="recognized" className="mt-0 outline-none">
+                <RecognizedPanel siteId={site.uid} />
+              </TabsContent>
+              <TabsContent value="setup" className="mt-0 outline-none">
+                <SetupPanel generation={selected} siteId={site.uid} />
+              </TabsContent>
+            </div>
+          </PageWorkspaceProvider>
         </div>
       </div>
 

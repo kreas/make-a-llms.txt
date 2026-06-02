@@ -13,27 +13,43 @@ function hookWrap() {
   );
 }
 
+function routeMock(over: { audit?: unknown; classify?: unknown } = {}) {
+  fetchMock.mockImplementation((url: string) => {
+    if (String(url).includes('/geo-audit/classify')) {
+      return Promise.resolve({ ok: true, json: async () => over.classify ?? { suggestedType: 'publisher', confidence: 0.9 } });
+    }
+    if (String(url).includes('/geo-audit/latest')) {
+      return Promise.resolve({ ok: true, json: async () => ({ audit: over.audit ?? null }) });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ audit: { status: 'pending' } }) });
+  });
+}
+
 describe('useGeoAudit', () => {
   it('loads the latest audit', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ audit: { status: 'succeeded', score: 70 } }) });
+    routeMock({ audit: { status: 'succeeded', score: 70 } });
     const { result } = renderHook(() => useGeoAudit('site-1'), { wrapper: hookWrap() });
     await waitFor(() => expect(result.current.audit?.status).toBe('succeeded'));
   });
 
-  it('classify() posts to the classify endpoint', async () => {
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ audit: null }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ suggestedType: 'publisher', confidence: 0.9 }) });
+  it('auto-discovers the site type exactly once when there is no audit', async () => {
+    routeMock({ audit: null, classify: { suggestedType: 'publisher', confidence: 0.9 } });
     const { result } = renderHook(() => useGeoAudit('site-1'), { wrapper: hookWrap() });
-    const res = await result.current.classify();
-    expect(res.suggestedType).toBe('publisher');
-    expect(fetchMock).toHaveBeenCalledWith('/api/sites/site-1/geo-audit/classify', { method: 'POST' });
+    await waitFor(() => expect(result.current.suggested?.suggestedType).toBe('publisher'));
+    const classifyCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/geo-audit/classify'));
+    expect(classifyCalls.length).toBe(1);
+  });
+
+  it('does not run discovery when an audit already exists', async () => {
+    routeMock({ audit: { status: 'succeeded', score: 70 } });
+    const { result } = renderHook(() => useGeoAudit('site-1'), { wrapper: hookWrap() });
+    await waitFor(() => expect(result.current.audit).not.toBeNull());
+    const classifyCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/geo-audit/classify'));
+    expect(classifyCalls.length).toBe(0);
   });
 
   it('run() posts type + goal', async () => {
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ audit: null }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ audit: { status: 'pending' } }) });
+    routeMock({ audit: null });
     const { result } = renderHook(() => useGeoAudit('site-1'), { wrapper: hookWrap() });
     await result.current.run({ siteType: 'saas', goal: 'get-cited' });
     const call = fetchMock.mock.calls.find((c) => c[0] === '/api/sites/site-1/geo-audit');

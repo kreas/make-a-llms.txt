@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { TabPanel } from '@/components/layout/tab-panel';
 import { formatRelativeTime } from '@/lib/format-time';
@@ -15,23 +15,10 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 export function RecommendablePanel({ siteId }: { siteId: string }) {
-  const { audit, isLoading, classify, classifyState, run, runState } = useGeoAudit(siteId);
+  const { audit, isLoading, suggested, discoveryLoading, run, runState } = useGeoAudit(siteId);
   const [editing, setEditing] = useState(false);
-  const [suggested, setSuggested] = useState<{ siteType: SiteType; confidence: number } | null>(null);
 
   const status = audit?.status ?? null;
-  const discoveryStarted = useRef(false);
-
-  useEffect(() => {
-    if (discoveryStarted.current) return;
-    if (isLoading || audit !== null || suggested !== null) return;
-    discoveryStarted.current = true;
-    classify()
-      .then((r) => setSuggested({ siteType: r.suggestedType, confidence: r.confidence }))
-      .catch(() => setSuggested({ siteType: 'other', confidence: 0 }));
-    // classify is intentionally omitted from deps: the ref guarantees a single call.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, audit, suggested]);
 
   async function handleAnalyze(input: { siteType: SiteType; goal: Goal }) {
     setEditing(false);
@@ -61,7 +48,7 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
   const result = status === 'succeeded' ? audit?.results ?? null : null;
 
   if (!result || editing) {
-    if (classifyState.isPending || (!suggested && !audit)) {
+    if (discoveryLoading || (!suggested && !audit)) {
       return (
         <TabPanel flat>
           <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -71,7 +58,7 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
         </TabPanel>
       );
     }
-    const seedType = (audit?.siteType as SiteType) ?? suggested?.siteType ?? 'other';
+    const seedType = (audit?.siteType as SiteType) ?? suggested?.suggestedType ?? 'other';
     const seedConf = suggested?.confidence ?? 1;
     return (
       <TabPanel flat>

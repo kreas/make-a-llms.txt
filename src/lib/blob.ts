@@ -96,7 +96,7 @@ export async function get(urlOrPath: string, _options?: any) {
       if (typeof (bodyStream as any).transformToWebStream === 'function') {
         webStream = (bodyStream as any).transformToWebStream();
       } else if (bodyStream instanceof Readable) {
-        webStream = Readable.toWeb(bodyStream);
+        webStream = Readable.toWeb(bodyStream) as unknown as ReadableStream;
       } else {
         webStream = bodyStream as any;
       }

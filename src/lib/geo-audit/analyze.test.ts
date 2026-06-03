@@ -38,4 +38,35 @@ describe('analyzeGeoPages', () => {
     expect(result.signals.every((s) => !s.present)).toBe(true);
     expect(confirm).not.toHaveBeenCalled();
   });
+
+  it('confirms candidates concurrently (bounded) without dropping any', async () => {
+    // Each page gates several core signals (ratings, proofs, expertise, social-proof),
+    // so there are well over 8 confirm tasks — enough to exercise the worker pool.
+    const md =
+      'Rated 4.8/5 from 320 reviews. ISO 9001 certified, award-winning. Our board-certified team has 15 years of experience.';
+    const many: GeoPageInput[] = Array.from({ length: 5 }, (_, i) => ({
+      url: `https://x.test/p${i}`,
+      path: `p${i}`,
+      markdown: md,
+    }));
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const confirm: GeoConfirmFn = vi.fn(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight -= 1;
+      return { confirmed: true, artifact: 'x' };
+    });
+
+    const result = await analyzeGeoPages(many, { entityName: 'X', siteType: 'other', goal: 'build-trust' }, confirm);
+
+    expect(result.metadata.confirmCalls).toBeGreaterThan(8); // more tasks than the concurrency cap
+    expect(maxInFlight).toBeGreaterThan(1); // genuinely ran in parallel
+    expect(maxInFlight).toBeLessThanOrEqual(8); // …but bounded
+    for (const id of ['ratings-reviews', 'verifiable-proofs', 'expertise-signals']) {
+      expect(result.signals.find((s) => s.signal === id)!.present).toBe(true);
+    }
+  });
 });

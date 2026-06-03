@@ -176,6 +176,35 @@ export const citationAudits = sqliteTable(
 export type CitationAudit = typeof citationAudits.$inferSelect;
 export type NewCitationAudit = typeof citationAudits.$inferInsert;
 
+export const siteGeoAudits = sqliteTable(
+  'site_geo_audits',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    generationId: integer('generation_id').references(() => generations.id, {
+      onDelete: 'set null',
+    }),
+    status: text('status', { enum: ['succeeded', 'failed'] }).notNull(),
+    score: integer('score'),
+    tier: text('tier', { enum: ['poor', 'fair', 'good', 'excellent'] }),
+    results: text('results'),
+    errorReason: text('error_reason'),
+    errorMessage: text('error_message'),
+    llmMsUsed: integer('llm_ms_used'),
+    fetchedAt: text('fetched_at').notNull().default(sql`(current_timestamp)`),
+    trigger: text('trigger', { enum: ['manual'] }).notNull(),
+  },
+  (t) => ({
+    bySiteRecent: index('geo_audit_by_site_recent').on(t.siteId, t.fetchedAt),
+  }),
+);
+
+export type SiteGeoAudit = typeof siteGeoAudits.$inferSelect;
+export type NewSiteGeoAudit = typeof siteGeoAudits.$inferInsert;
+
 export const robotsGeneratorDrafts = sqliteTable(
   'robots_generator_drafts',
   {

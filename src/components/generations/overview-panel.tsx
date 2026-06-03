@@ -10,6 +10,7 @@ import {
 } from '@/lib/citation-audit/site-readiness';
 import type { Pillar } from '@/lib/citation-audit/pillars';
 import type { Tier } from '@/lib/citation-audit/types';
+import type { SiteGeoAuditResult } from '@/lib/geo-audit/types';
 
 const CHECK_LABEL: Record<string, string> = {
   'h1-present': 'H1 present',
@@ -27,6 +28,9 @@ const CHECK_LABEL: Record<string, string> = {
   'readability': 'Reading level grade 8-10',
   'named-entities': 'Named entities disambiguated',
   'internal-links': 'Internal links to related pages',
+  'geo:pricing': 'Add a public pricing page',
+  'geo:comparison': 'Add a competitor comparison page',
+  'geo:case-study': 'Add a case study with a real metric',
 };
 
 const PILLAR_TAB: Record<Pillar, string> = {
@@ -87,7 +91,16 @@ export function OverviewPanel({
     },
   });
 
-  if (latest.isPending) {
+  const geo = useQuery({
+    queryKey: ['geo-audit', 'latest', siteId],
+    queryFn: async (): Promise<{ audit: { status: string; results: SiteGeoAuditResult | null } | null }> => {
+      const res = await fetch(`/api/sites/${siteId}/geo-audit/latest`);
+      if (!res.ok) throw new Error('Failed to load GEO analysis');
+      return res.json();
+    },
+  });
+
+  if (latest.isPending || geo.isPending) {
     return (
       <TabPanel flat>
         <p className="text-center text-body py-8">Loading readiness…</p>
@@ -104,8 +117,10 @@ export function OverviewPanel({
   }
 
   const audits = latest.data?.audits ?? [];
-  const scores = sitePillarScores(audits);
-  const next = pickNextAction(audits);
+  const geoResult =
+    geo.data?.audit?.status === 'succeeded' ? (geo.data.audit.results ?? null) : null;
+  const scores = sitePillarScores(audits, geoResult);
+  const next = pickNextAction(audits, geoResult);
   const status = stageStatus(scores);
 
   return (
@@ -146,11 +161,12 @@ export function OverviewPanel({
           score={scores.readable}
           onClick={() => onNavigate('readable')}
         />
-        <div className="rounded-xl border border-hairline bg-surface-card p-5 flex flex-col gap-2">
-          <p className="caption-uppercase text-muted-strong">Recommendable</p>
-          <p className="text-xs text-muted-soft">Will AI pick you when asked to choose?</p>
-          <p className="mt-auto text-sm text-muted-soft italic">Coming soon</p>
-        </div>
+        <PillarCard
+          title="Recommendable"
+          subtitle="Will AI pick you when asked to choose?"
+          score={scores.recommendable}
+          onClick={() => onNavigate('recommendable')}
+        />
         <PillarCard
           title="Recognized"
           subtitle="Does AI already know who you are?"

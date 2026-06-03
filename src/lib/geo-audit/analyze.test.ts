@@ -69,4 +69,25 @@ describe('analyzeGeoPages', () => {
       expect(result.signals.find((s) => s.signal === id)!.present).toBe(true);
     }
   });
+
+  it('tolerates an individual confirm failure without aborting the audit', async () => {
+    const confirm: GeoConfirmFn = vi.fn(async (signalId) => {
+      if (signalId === 'pricing') throw new Error('gateway timeout');
+      if (signalId === 'case-study') return { confirmed: true, artifact: '40% faster' };
+      return { confirmed: false, artifact: null };
+    });
+    const result = await analyzeGeoPages(pages, { entityName: 'Acme', siteType: 'saas', goal: 'get-cited' }, confirm);
+    // The failed call leaves its candidate unconfirmed; everything else still resolves.
+    expect(result.signals.find((s) => s.signal === 'pricing')!.present).toBe(false);
+    expect(result.signals.find((s) => s.signal === 'case-study')!.present).toBe(true);
+  });
+
+  it('fails the audit when every confirm call fails (gateway down)', async () => {
+    const confirm: GeoConfirmFn = vi.fn(async () => {
+      throw new Error('gateway down');
+    });
+    await expect(
+      analyzeGeoPages(pages, { entityName: 'Acme', siteType: 'saas', goal: 'get-cited' }, confirm),
+    ).rejects.toThrow(/all candidate checks failed/i);
+  });
 });

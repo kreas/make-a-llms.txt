@@ -2,11 +2,11 @@ import { activeSignalIds } from './profiles';
 import { getSignal } from './signals/index';
 import { effectiveWeight, scoreActiveSignals } from './score';
 import type {
-  GeoConfirmFn, GeoPageInput, GeoSignalDef, GeoSignalResult, Goal, SiteGeoAuditResult, SiteType,
+  GeoConfirm, GeoConfirmFn, GeoPageInput, GeoSignalDef, GeoSignalResult, Goal, SiteGeoAuditResult, SiteType,
 } from './types';
 
 const CANDIDATE_CAP = 5;
-const CONFIRM_CONCURRENCY = 8;
+const CONFIRM_CONCURRENCY = 6;
 
 /** Run `fn` over `items` with a bounded worker pool; output order matches input. */
 async function mapWithConcurrency<T, R>(
@@ -27,6 +27,9 @@ async function mapWithConcurrency<T, R>(
 }
 
 type ConfirmTask = { signalId: string; page: GeoPageInput };
+type ConfirmOutcome = ConfirmTask & { res: GeoConfirm; failed: boolean };
+
+const NOT_CONFIRMED: GeoConfirm = { confirmed: false, artifact: null };
 
 export async function analyzeGeoPages(
   pages: GeoPageInput[],
@@ -46,11 +49,23 @@ export async function analyzeGeoPages(
     for (const page of gated) tasks.push({ signalId: id, page });
   }
 
-  // 2. Confirm all candidates concurrently (bounded), instead of one-at-a-time.
-  const confirmed = await mapWithConcurrency(tasks, CONFIRM_CONCURRENCY, async (t) => {
-    const res = await confirm(t.signalId, t.page, ctx.entityName);
-    return { ...t, res };
+  // 2. Confirm all candidates concurrently (bounded). A single confirm failure
+  //    (e.g. a transient AI-gateway timeout) must NOT abort the whole audit — it
+  //    marks just that candidate unconfirmed. If EVERY call fails (gateway down),
+  //    throw so the run is recorded as failed rather than a misleading 0 score.
+  const confirmed = await mapWithConcurrency(tasks, CONFIRM_CONCURRENCY, async (t): Promise<ConfirmOutcome> => {
+    try {
+      const res = await confirm(t.signalId, t.page, ctx.entityName);
+      return { ...t, res, failed: false };
+    } catch {
+      return { ...t, res: NOT_CONFIRMED, failed: true };
+    }
   });
+
+  const failedCount = confirmed.reduce((n, c) => n + (c.failed ? 1 : 0), 0);
+  if (tasks.length > 0 && failedCount === tasks.length) {
+    throw new Error('All candidate checks failed (AI gateway unavailable). Try again.');
+  }
 
   // 3. Assemble per-signal verdicts (in active-set order for stable display).
   const bySignal = new Map<string, { pages: string[]; artifacts: string[] }>();

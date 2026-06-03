@@ -11,6 +11,7 @@ import {
 import type { Pillar } from '@/lib/citation-audit/pillars';
 import type { Tier } from '@/lib/citation-audit/types';
 import type { SiteGeoAuditResult } from '@/lib/geo-audit/types';
+import { PillarRadar } from './pillar-radar';
 
 const CHECK_LABEL: Record<string, string> = {
   'h1-present': 'H1 present',
@@ -152,6 +153,17 @@ export function OverviewPanel({
           <p className="text-sm text-body">You&apos;re all caught up on the basics. Well done.</p>
         </div>
       ) : null}
+
+      {scores.readable && scores.recognized && scores.recommendable && (
+        <div className="mb-6 rounded-xl border border-hairline bg-surface-card p-5">
+          <p className="caption-uppercase text-muted-strong mb-3">Your AI-readiness shape</p>
+          <PillarRadar
+            readable={scores.readable.score}
+            recommendable={scores.recommendable.score}
+            recognized={scores.recognized.score}
+          />
+        </div>
+      )}
 
       {/* Three pillar cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

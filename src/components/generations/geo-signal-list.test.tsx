@@ -1,0 +1,19 @@
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { GeoSignalList } from './geo-signal-list';
+import type { SerializedSiteGeoAudit } from '@/lib/geo-audit/serialize';
+
+const signals: NonNullable<SerializedSiteGeoAudit['results']>['signals'] = [
+  { signal: 'pricing', label: 'Public pricing page', tags: ['value'], weight: 40, present: true, artifacts: ['from $29/mo'], pages: ['https://acme.test/pricing'], recommendation: null },
+  { signal: 'comparison', label: 'Competitor comparison', tags: ['comparison'], weight: 30, present: false, artifacts: [], pages: [], recommendation: 'Add a comparison page.' },
+];
+
+describe('GeoSignalList', () => {
+  it('renders present signals with artifacts and missing ones with recommendations', () => {
+    render(<GeoSignalList signals={signals} />);
+    expect(screen.getByText('Public pricing page')).toBeInTheDocument();
+    expect(screen.getByText('from $29/mo')).toBeInTheDocument();
+    expect(screen.getByText('Add a comparison page.')).toBeInTheDocument();
+    expect(screen.getAllByRole('progressbar').length).toBe(2);
+  });
+});

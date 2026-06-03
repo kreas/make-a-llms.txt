@@ -1,70 +1,108 @@
-import { gatePage } from './gates';
-import { scoreGeoSignals } from './score';
-import {
-  GEO_SIGNALS,
-  GEO_SIGNAL_WEIGHTS,
-  type GeoConfirmFn,
-  type GeoPageInput,
-  type GeoSignalId,
-  type GeoSignalResult,
-  type SiteGeoAuditResult,
+import { activeSignalIds } from './profiles';
+import { getSignal } from './signals/index';
+import { effectiveWeight, scoreActiveSignals } from './score';
+import type {
+  GeoConfirm, GeoConfirmFn, GeoPageInput, GeoSignalDef, GeoSignalResult, Goal, SiteGeoAuditResult, SiteType,
 } from './types';
 
 const CANDIDATE_CAP = 5;
+const CONFIRM_CONCURRENCY = 6;
 
-const RECOMMENDATIONS: Record<GeoSignalId, string> = {
-  pricing:
-    'Publish a public pricing or plans page. AI cannot recommend you on value if it cannot see what you cost.',
-  comparison:
-    'Publish a "You vs [competitor]" or "alternatives to" page so AI has a sourced answer when buyers compare named rivals.',
-  'case-study':
-    'Publish a customer case study with a concrete outcome metric (a real %, multiple, time saved, or dollar figure).',
-};
+/** Run `fn` over `items` with a bounded worker pool; output order matches input. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < items.length) {
+      const idx = next++;
+      out[idx] = await fn(items[idx]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+type ConfirmTask = { signalId: string; page: GeoPageInput };
+type ConfirmOutcome = ConfirmTask & { res: GeoConfirm; failed: boolean };
+
+const NOT_CONFIRMED: GeoConfirm = { confirmed: false, artifact: null };
 
 export async function analyzeGeoPages(
   pages: GeoPageInput[],
-  entityName: string,
+  ctx: { entityName: string; siteType: SiteType; goal: Goal },
   confirm: GeoConfirmFn,
 ): Promise<SiteGeoAuditResult> {
-  const candidatesBySignal: Record<GeoSignalId, GeoPageInput[]> = {
-    pricing: [],
-    comparison: [],
-    'case-study': [],
-  };
-  for (const page of pages) {
-    for (const match of gatePage(page)) {
-      candidatesBySignal[match.signal].push(page);
+  const ids = activeSignalIds(ctx.siteType);
+
+  // 1. Gate every page per active signal → a flat list of confirm tasks (capped per signal).
+  const activeSignals: GeoSignalDef[] = [];
+  const tasks: ConfirmTask[] = [];
+  for (const id of ids) {
+    const sig = getSignal(id);
+    if (!sig) continue;
+    activeSignals.push(sig);
+    const gated = pages.filter((p) => sig.gate(p) !== null).slice(0, CANDIDATE_CAP);
+    for (const page of gated) tasks.push({ signalId: id, page });
+  }
+
+  // 2. Confirm all candidates concurrently (bounded). A single confirm failure
+  //    (e.g. a transient AI-gateway timeout) must NOT abort the whole audit — it
+  //    marks just that candidate unconfirmed. If EVERY call fails (gateway down),
+  //    throw so the run is recorded as failed rather than a misleading 0 score.
+  const confirmed = await mapWithConcurrency(tasks, CONFIRM_CONCURRENCY, async (t): Promise<ConfirmOutcome> => {
+    try {
+      const res = await confirm(t.signalId, t.page, ctx.entityName);
+      return { ...t, res, failed: false };
+    } catch {
+      return { ...t, res: NOT_CONFIRMED, failed: true };
+    }
+  });
+
+  const failedCount = confirmed.reduce((n, c) => n + (c.failed ? 1 : 0), 0);
+  if (tasks.length > 0 && failedCount === tasks.length) {
+    throw new Error('All candidate checks failed (AI gateway unavailable). Try again.');
+  }
+
+  // 3. Assemble per-signal verdicts (in active-set order for stable display).
+  const bySignal = new Map<string, { pages: string[]; artifacts: string[] }>();
+  for (const { signalId, page, res } of confirmed) {
+    let entry = bySignal.get(signalId);
+    if (!entry) {
+      entry = { pages: [], artifacts: [] };
+      bySignal.set(signalId, entry);
+    }
+    if (res.confirmed) {
+      entry.pages.push(page.url);
+      if (res.artifact) entry.artifacts.push(res.artifact);
     }
   }
 
-  let candidates = 0;
-  let confirmCalls = 0;
-  const signals: GeoSignalResult[] = [];
-
-  for (const signal of GEO_SIGNALS) {
-    const pool = candidatesBySignal[signal].slice(0, CANDIDATE_CAP);
-    candidates += pool.length;
-    const artifacts: string[] = [];
-    const confirmedPages: string[] = [];
-    for (const page of pool) {
-      confirmCalls += 1;
-      const res = await confirm(signal, page, entityName);
-      if (res.confirmed) {
-        confirmedPages.push(page.url);
-        if (res.artifact) artifacts.push(res.artifact);
-      }
-    }
-    const present = confirmedPages.length > 0;
-    signals.push({
-      signal,
-      weight: GEO_SIGNAL_WEIGHTS[signal],
+  const signals: GeoSignalResult[] = activeSignals.map((sig) => {
+    const entry = bySignal.get(sig.id) ?? { pages: [], artifacts: [] };
+    const present = entry.pages.length > 0;
+    return {
+      signal: sig.id,
+      label: sig.label,
+      tags: sig.tags,
+      weight: effectiveWeight(sig, ctx.goal),
       present,
-      artifacts,
-      pages: confirmedPages,
-      recommendation: present ? null : RECOMMENDATIONS[signal],
-    });
-  }
+      artifacts: entry.artifacts,
+      pages: entry.pages,
+      recommendation: present ? null : sig.recommendation,
+    };
+  });
 
-  const { score, tier } = scoreGeoSignals(signals);
-  return { score, tier, signals, metadata: { pagesScanned: pages.length, candidates, confirmCalls } };
+  const { score, tier } = scoreActiveSignals(signals);
+  return {
+    siteType: ctx.siteType,
+    goal: ctx.goal,
+    score,
+    tier,
+    signals,
+    metadata: { pagesScanned: pages.length, candidates: tasks.length, confirmCalls: tasks.length },
+  };
 }

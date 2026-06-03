@@ -40,25 +40,22 @@ describe('GET /api/sites/[id]/geo-audit/latest', () => {
     expect(body.audit).toBeNull();
   });
 
-  it('prefers the latest succeeded audit over a newer failed one', async () => {
+  it('returns the most recent audit regardless of status (so failures surface)', async () => {
     const { user, site } = await makeUserAndSite('b@b.test');
     vi.mocked(getCurrentUser).mockResolvedValue(user);
     const db = getDb();
-    // older succeeded
     await db.insert(siteGeoAudits).values({
       siteId: site.id, status: 'succeeded', score: 70, tier: 'good',
-      results: JSON.stringify({ score: 70, tier: 'good', signals: [], metadata: { pagesScanned: 1, candidates: 0, confirmCalls: 0 } }),
+      results: JSON.stringify({ siteType: 'saas', goal: 'get-cited', score: 70, tier: 'good', signals: [], metadata: { pagesScanned: 1, candidates: 0, confirmCalls: 0 } }),
       trigger: 'manual', fetchedAt: '2026-06-01T00:00:00Z',
     });
-    // newer failed
     await db.insert(siteGeoAudits).values({
       siteId: site.id, status: 'failed', errorReason: 'analysis_failed', errorMessage: 'boom',
       trigger: 'manual', fetchedAt: '2026-06-02T00:00:00Z',
     });
-
     const res = await GET(new Request('http://t'), ctx(site.uid));
     const body = await res.json();
-    expect(body.audit.status).toBe('succeeded');
-    expect(body.audit.score).toBe(70);
+    expect(body.audit.status).toBe('failed');
+    expect(body.audit.errorMessage).toBe('boom');
   });
 });

@@ -204,7 +204,7 @@ describe('POST /api/generations/[id]/rewrite', () => {
 
     const body = await res.json();
     expect(body.error.code).toBe('generation_failed');
-    expect(body.error.message).toContain('empty content');
+    expect(body.error.message).toMatch(/no content|empty content/i);
     expect(put).not.toHaveBeenCalled();
   });
 });

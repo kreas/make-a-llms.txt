@@ -41,6 +41,12 @@ describe('paragraph-length', () => {
     expect(r.score).toBe(80);
   });
 
+  it('does not penalize a paragraph at exactly the threshold (130 words)', () => {
+    const r = check(pageWith([para(130)]), { entityName: 'X' });
+    expect(r.passed).toBe(true);
+    expect(r.score).toBe(100);
+  });
+
   it('scores 0 when half or more are walls', () => {
     const r = check(pageWith([para(200), para(200), para(40), para(40)]), { entityName: 'X' });
     expect(r.score).toBe(0);

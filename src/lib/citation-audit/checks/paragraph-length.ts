@@ -24,7 +24,7 @@ export function check(parsed: ParsedPage, _ctx: CheckContext): CheckResult {
   const score = Math.max(0, Math.min(100, Math.round(100 - longFraction * 200)));
   const passed = longFraction <= WALL_FRACTION_PASS;
 
-  if (passed && longCounts.length === 0) {
+  if (longCounts.length === 0) {
     return {
       id: ID, weight: WEIGHT, passed: true, score,
       evidence: [`All ${total} paragraphs are within ${LONG_PARAGRAPH_WORDS} words.`],
@@ -38,6 +38,6 @@ export function check(parsed: ParsedPage, _ctx: CheckContext): CheckResult {
     evidence: [`${longCounts.length} of ${total} paragraphs exceed ${LONG_PARAGRAPH_WORDS} words (longest: ${longest}).`],
     recommendation: passed
       ? null
-      : 'Break up long paragraphs (over 130 words) into shorter, self-contained passages so AI models can extract and cite them cleanly.',
+      : `Break up long paragraphs (over ${LONG_PARAGRAPH_WORDS} words) into shorter, self-contained passages so AI models can extract and cite them cleanly.`,
   };
 }

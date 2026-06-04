@@ -22,6 +22,13 @@ const PASS: PreflightResult = {
   sitemapUrl: 'https://acme.com/sitemap.xml',
 };
 
+describe('SiteForm prefill', () => {
+  it('prefills the URL input from initialUrl', () => {
+    render(<SiteForm onSubmit={() => {}} initialUrl="https://acme.com" />);
+    expect(screen.getByLabelText('Website URL')).toHaveValue('https://acme.com');
+  });
+});
+
 describe('SiteForm validation', () => {
   afterEach(() => vi.unstubAllGlobals());
 

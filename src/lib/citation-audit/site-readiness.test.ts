@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sitePillarScores, pickNextAction, stageStatus, type AuditLike } from './site-readiness';
+import { sitePillarScores, pickNextAction, stageStatus, compositeScore, failingCheckCount, type AuditLike } from './site-readiness';
 import type { CheckResult } from './types';
 import type { SiteGeoAuditResult } from '@/lib/geo-audit/types';
 
@@ -135,5 +135,49 @@ describe('GEO integration in site-readiness', () => {
   it('stageStatus asks for a GEO run when Readable+Recognized are cleared but GEO is null', () => {
     const scores = sitePillarScores(cleared, null);
     expect(stageStatus(scores)).toContain('GEO');
+  });
+});
+
+describe('compositeScore', () => {
+  it('averages the non-null pillar scores', () => {
+    expect(
+      compositeScore({
+        readable: { score: 80, tier: 'good' },
+        recommendable: { score: 40, tier: 'poor' },
+        recognized: { score: 90, tier: 'excellent' },
+      }),
+    ).toBe(70); // (80 + 40 + 90) / 3
+  });
+
+  it('ignores pillars that have not been scored', () => {
+    expect(
+      compositeScore({
+        readable: { score: 80, tier: 'good' },
+        recommendable: null,
+        recognized: { score: 60, tier: 'fair' },
+      }),
+    ).toBe(70); // (80 + 60) / 2
+  });
+
+  it('returns null when no pillar has been scored', () => {
+    expect(compositeScore({ readable: null, recommendable: null, recognized: null })).toBeNull();
+  });
+});
+
+describe('failingCheckCount', () => {
+  it('counts failing per-page checks plus failing GEO signals', () => {
+    const audits = [
+      audit('https://x.com/', [chk('h1-present', 0, 5), chk('answer-position', 100, 15)]),
+      audit('https://x.com/a', [chk('schema-type', 0, 10)]),
+    ];
+    const g = geo(0, [
+      { signal: 'pricing', weight: 40, present: false, artifacts: [], pages: [], recommendation: 'x' },
+      { signal: 'comparison', weight: 30, present: true, artifacts: [], pages: [], recommendation: null },
+    ]);
+    expect(failingCheckCount(audits, g)).toBe(3); // 2 failing checks + 1 failing signal
+  });
+
+  it('counts zero when everything passes and no GEO audit exists', () => {
+    expect(failingCheckCount([audit('https://x.com/', [chk('h1-present', 100, 5)])], null)).toBe(0);
   });
 });

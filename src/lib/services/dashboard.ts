@@ -143,7 +143,8 @@ export async function loadDashboardData(userId: number): Promise<DashboardData> 
       // which `new Date()` would parse as local time); normalize to UTC before comparing.
       const ts = r.fetchedAt.includes('T') ? r.fetchedAt : `${r.fetchedAt.replace(' ', 'T')}Z`;
       if (new Date(ts).getTime() >= weekAgo) auditedSitesThisWeek.add(r.siteId);
-      if (lastAuditedBySiteId[r.siteId] === null) lastAuditedBySiteId[r.siteId] = r.fetchedAt;
+      // Store the normalized timestamp so downstream `formatRelativeTime` parses it correctly.
+      if (lastAuditedBySiteId[r.siteId] === null) lastAuditedBySiteId[r.siteId] = ts;
 
       const taken = seenPage.get(r.siteId) ?? new Set<string>();
       if (taken.has(r.pageUrl)) continue;

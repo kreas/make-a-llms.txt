@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { AppSidebar } from './app-sidebar';
 
 export function AppShell({ userEmail, children }: { userEmail: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
       {/* Desktop sidebar */}
@@ -47,7 +56,7 @@ export function AppShell({ userEmail, children }: { userEmail: string; children:
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-v4.png" alt="" aria-hidden className="h-6 w-6 rounded" />
         </div>
-        <main className={cn('mx-auto w-full max-w-[1100px] flex-1 px-6 py-10')}>{children}</main>
+        <main className="relative mx-auto w-full max-w-[1100px] flex-1 px-6 py-10">{children}</main>
       </div>
     </div>
   );

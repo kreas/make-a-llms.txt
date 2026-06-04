@@ -102,6 +102,28 @@ export function pickNextAction(
   return null;
 }
 
+/** Mean of the pillar scores that have actually been scored; null if none have. */
+export function compositeScore(scores: SitePillarScores): number | null {
+  const present = (['readable', 'recommendable', 'recognized'] as Pillar[])
+    .map((p) => scores[p])
+    .filter((s): s is PillarScore => s !== null);
+  if (present.length === 0) return null;
+  return Math.round(present.reduce((a, s) => a + s.score, 0) / present.length);
+}
+
+/** Total unresolved items: failing per-page checks + failing GEO signals. */
+export function failingCheckCount(
+  audits: AuditLike[],
+  geo: SiteGeoAuditResult | null = null,
+): number {
+  let n = 0;
+  for (const { checks } of usable(audits)) {
+    for (const c of checks) if (!c.passed) n += 1;
+  }
+  if (geo) n += geo.signals.filter((s) => !s.present).length;
+  return n;
+}
+
 /** Plain-language stage sentence across all three pillars (spec §3 ladder). */
 export function stageStatus(scores: SitePillarScores): string {
   const readable = scores.readable?.score ?? 0;

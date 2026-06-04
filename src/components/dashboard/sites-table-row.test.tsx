@@ -40,4 +40,9 @@ describe('SitesTableRow', () => {
     wrap(row({ issues: 0, nextAction: null }));
     expect(screen.getByText(/caught up/i)).toBeInTheDocument();
   });
+
+  it('uses the singular "1 issue" for a single issue', () => {
+    wrap(row({ issues: 1 }));
+    expect(screen.getByText('1 issue')).toBeInTheDocument();
+  });
 });

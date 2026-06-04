@@ -1,5 +1,7 @@
 import type { Section } from './text';
 
+export type { Section } from './text';
+
 export type Tier = 'poor' | 'fair' | 'good' | 'excellent';
 
 export type AuditInput = {

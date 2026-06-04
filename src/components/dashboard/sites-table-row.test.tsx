@@ -45,4 +45,16 @@ describe('SitesTableRow', () => {
     wrap(row({ issues: 1 }));
     expect(screen.getByText('1 issue')).toBeInTheDocument();
   });
+
+  it('shows issues (not Run audit) for a GEO-only site scored without a citation audit', () => {
+    // audited=false (no citation audit) but a composite exists from a GEO audit
+    wrap(row({
+      audited: false,
+      composite: 65,
+      issues: 2,
+      scores: { readable: null, recommendable: { score: 65, tier: 'fair' }, recognized: null },
+    }));
+    expect(screen.queryByRole('link', { name: /run audit/i })).toBeNull();
+    expect(screen.getByText('2 issues')).toBeInTheDocument();
+  });
 });

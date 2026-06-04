@@ -56,7 +56,7 @@ export function AppShell({ userEmail, children }: { userEmail: string; children:
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-v4.png" alt="" aria-hidden className="h-6 w-6 rounded" />
         </div>
-        <main className="relative mx-auto w-full max-w-[1100px] flex-1 px-6 py-10">{children}</main>
+        <main className="relative w-full flex-1 px-6 py-10 md:px-8">{children}</main>
       </div>
     </div>
   );

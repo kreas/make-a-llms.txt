@@ -125,7 +125,7 @@ export async function loadDashboardData(userId: number): Promise<DashboardData> 
   }
 
   if (siteIds.length > 0) {
-    const rows = await db
+    const auditRows = await db
       .select()
       .from(citationAudits)
       .where(inArray(citationAudits.siteId, siteIds))
@@ -134,21 +134,29 @@ export async function loadDashboardData(userId: number): Promise<DashboardData> 
     const seenPage = new Map<number, Set<string>>(); // siteId -> pageUrls already taken (latest)
     const auditedSitesThisWeek = new Set<number>();
     const weekAgo = Date.now() - WEEK_MS;
-    for (const r of rows) {
+    for (const r of auditRows) {
       // Trend: every succeeded audit with a numeric score contributes a daily point.
       if (r.status === 'succeeded' && typeof r.score === 'number') {
         trendPoints.push({ day: r.fetchedAt.slice(0, 10), score: r.score });
       }
-      if (new Date(r.fetchedAt).getTime() >= weekAgo) auditedSitesThisWeek.add(r.siteId);
+      // fetchedAt may be ISO (with T/Z) or SQLite's `current_timestamp` ("YYYY-MM-DD HH:MM:SS",
+      // which `new Date()` would parse as local time); normalize to UTC before comparing.
+      const ts = r.fetchedAt.includes('T') ? r.fetchedAt : `${r.fetchedAt.replace(' ', 'T')}Z`;
+      if (new Date(ts).getTime() >= weekAgo) auditedSitesThisWeek.add(r.siteId);
       if (lastAuditedBySiteId[r.siteId] === null) lastAuditedBySiteId[r.siteId] = r.fetchedAt;
 
       const taken = seenPage.get(r.siteId) ?? new Set<string>();
       if (taken.has(r.pageUrl)) continue;
       taken.add(r.pageUrl);
       seenPage.set(r.siteId, taken);
-      const results = r.results
-        ? (JSON.parse(r.results) as { checks: CheckResult[] })
-        : null;
+      let results: { checks: CheckResult[] } | null = null;
+      if (r.results) {
+        try {
+          results = JSON.parse(r.results) as { checks: CheckResult[] };
+        } catch {
+          results = null;
+        }
+      }
       auditsBySiteId[r.siteId].push({ pageUrl: r.pageUrl, status: r.status, results });
     }
     auditedThisWeek = auditedSitesThisWeek.size;
@@ -163,7 +171,11 @@ export async function loadDashboardData(userId: number): Promise<DashboardData> 
       if (seenGeo.has(g.siteId)) continue;
       seenGeo.add(g.siteId);
       if (g.status === 'succeeded' && g.results) {
-        geoBySiteId[g.siteId] = JSON.parse(g.results) as SiteGeoAuditResult;
+        try {
+          geoBySiteId[g.siteId] = JSON.parse(g.results) as SiteGeoAuditResult;
+        } catch {
+          geoBySiteId[g.siteId] = null;
+        }
       }
     }
   }

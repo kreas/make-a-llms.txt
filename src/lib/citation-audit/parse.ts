@@ -73,12 +73,9 @@ export function parsePage(url: string, html: string): ParsedPage {
       };
       if (r.content) {
         const { document: artDoc } = parseHTML(r.content);
-        // linkedom may leave body empty when parsing a fragment; fall back to
-        // documentElement so we still search the whole parsed tree.
-        const artBody = artDoc.body as unknown as Element;
-        contentRoot = (artBody && artBody.childNodes.length > 0)
-          ? artBody
-          : artDoc.documentElement as unknown as Element ?? artBody;
+        // Readability emits a bare fragment, so the parsed doc's <body> is empty
+        // and the content lives under documentElement (the outer container).
+        contentRoot = artDoc.documentElement as unknown as Element;
       }
     }
   } catch {

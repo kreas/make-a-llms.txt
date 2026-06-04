@@ -118,7 +118,10 @@ export function failingCheckCount(
 ): number {
   let n = 0;
   for (const { checks } of usable(audits)) {
-    for (const c of checks) if (!c.passed) n += 1;
+    for (const c of checks) {
+      if (PILLAR_OF[c.id] === 'recommendable') continue; // GEO audit is the authority for this pillar
+      if (!c.passed) n += 1;
+    }
   }
   if (geo) n += geo.signals.filter((s) => !s.present).length;
   return n;

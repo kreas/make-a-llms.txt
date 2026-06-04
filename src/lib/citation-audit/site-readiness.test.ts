@@ -180,4 +180,10 @@ describe('failingCheckCount', () => {
   it('counts zero when everything passes and no GEO audit exists', () => {
     expect(failingCheckCount([audit('https://x.com/', [chk('h1-present', 100, 5)])], null)).toBe(0);
   });
+
+  it('excludes recommendable per-page checks (GEO is the authority for that pillar)', () => {
+    const audits = [audit('https://x.com/', [chk('lists-tables', 0, 5), chk('h1-present', 0, 5)])];
+    // only h1-present (readable) counts; lists-tables (recommendable) is excluded
+    expect(failingCheckCount(audits, null)).toBe(1);
+  });
 });

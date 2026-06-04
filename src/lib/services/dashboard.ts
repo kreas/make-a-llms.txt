@@ -1,5 +1,9 @@
+import { desc, eq, inArray } from 'drizzle-orm';
+import { getDb } from '@/db';
+import { sites as sitesTable, citationAudits, siteGeoAudits } from '@/db/schema';
 import type { Site } from '@/db/schema';
 import type { SiteGeoAuditResult } from '@/lib/geo-audit/types';
+import type { CheckResult } from '@/lib/citation-audit/types';
 import {
   sitePillarScores,
   compositeScore,
@@ -99,5 +103,77 @@ export function buildReadinessTrend(points: { day: string; score: number }[]): n
   return days.slice(-7).map((d) => {
     const b = byDay.get(d)!;
     return Math.round(b.sum / b.n);
+  });
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+export async function loadDashboardData(userId: number): Promise<DashboardData> {
+  const db = getDb();
+  const userSites = await db.select().from(sitesTable).where(eq(sitesTable.userId, userId));
+  const siteIds = userSites.map((s) => s.id);
+
+  const auditsBySiteId: Record<number, AuditLike[]> = {};
+  const geoBySiteId: Record<number, SiteGeoAuditResult | null> = {};
+  const lastAuditedBySiteId: Record<number, string | null> = {};
+  const trendPoints: { day: string; score: number }[] = [];
+  let auditedThisWeek = 0;
+  for (const id of siteIds) {
+    auditsBySiteId[id] = [];
+    geoBySiteId[id] = null;
+    lastAuditedBySiteId[id] = null;
+  }
+
+  if (siteIds.length > 0) {
+    const rows = await db
+      .select()
+      .from(citationAudits)
+      .where(inArray(citationAudits.siteId, siteIds))
+      .orderBy(desc(citationAudits.fetchedAt));
+
+    const seenPage = new Map<number, Set<string>>(); // siteId -> pageUrls already taken (latest)
+    const auditedSitesThisWeek = new Set<number>();
+    const weekAgo = Date.now() - WEEK_MS;
+    for (const r of rows) {
+      // Trend: every succeeded audit with a numeric score contributes a daily point.
+      if (r.status === 'succeeded' && typeof r.score === 'number') {
+        trendPoints.push({ day: r.fetchedAt.slice(0, 10), score: r.score });
+      }
+      if (new Date(r.fetchedAt).getTime() >= weekAgo) auditedSitesThisWeek.add(r.siteId);
+      if (lastAuditedBySiteId[r.siteId] === null) lastAuditedBySiteId[r.siteId] = r.fetchedAt;
+
+      const taken = seenPage.get(r.siteId) ?? new Set<string>();
+      if (taken.has(r.pageUrl)) continue;
+      taken.add(r.pageUrl);
+      seenPage.set(r.siteId, taken);
+      const results = r.results
+        ? (JSON.parse(r.results) as { checks: CheckResult[] })
+        : null;
+      auditsBySiteId[r.siteId].push({ pageUrl: r.pageUrl, status: r.status, results });
+    }
+    auditedThisWeek = auditedSitesThisWeek.size;
+
+    const geoRows = await db
+      .select()
+      .from(siteGeoAudits)
+      .where(inArray(siteGeoAudits.siteId, siteIds))
+      .orderBy(desc(siteGeoAudits.fetchedAt));
+    const seenGeo = new Set<number>();
+    for (const g of geoRows) {
+      if (seenGeo.has(g.siteId)) continue;
+      seenGeo.add(g.siteId);
+      if (g.status === 'succeeded' && g.results) {
+        geoBySiteId[g.siteId] = JSON.parse(g.results) as SiteGeoAuditResult;
+      }
+    }
+  }
+
+  return buildDashboardData({
+    sites: userSites,
+    auditsBySiteId,
+    geoBySiteId,
+    lastAuditedBySiteId,
+    auditedThisWeek,
+    trendPoints,
   });
 }

@@ -16,6 +16,8 @@ export const PILLAR_OF: Record<string, Pillar> = {
   'definitions': 'readable',
   'readability': 'readable',
   'internal-links': 'readable',
+  'paragraph-length': 'readable',
+  'section-chunking': 'readable',
   // Recommendable (GEO)
   'lists-tables': 'recommendable',
   // Recognized (AIO)

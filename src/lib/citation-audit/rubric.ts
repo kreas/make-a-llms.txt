@@ -18,6 +18,8 @@ export const RUBRIC: readonly RubricEntry[] = [
   { id: 'readability', weight: 5 },
   { id: 'named-entities', weight: 9 },
   { id: 'internal-links', weight: 5 },
+  { id: 'paragraph-length', weight: 5 },
+  { id: 'section-chunking', weight: 5 },
 ] as const;
 
 export const RUBRIC_WEIGHTS_TOTAL = RUBRIC.reduce((a, r) => a + r.weight, 0);

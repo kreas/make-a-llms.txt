@@ -15,10 +15,10 @@ describe('pillars', () => {
     expect(Object.keys(PILLAR_OF).length).toBe(RUBRIC.length);
   });
 
-  it('pillar weight subtotals match the spec (55 / 5 / 40)', () => {
+  it('pillar weight subtotals match the spec (65 / 5 / 40)', () => {
     const sum = (p: string) =>
       RUBRIC.filter((r) => PILLAR_OF[r.id] === p).reduce((a, r) => a + r.weight, 0);
-    expect(sum('readable')).toBe(55);
+    expect(sum('readable')).toBe(65);
     expect(sum('recommendable')).toBe(5);
     expect(sum('recognized')).toBe(40);
   });

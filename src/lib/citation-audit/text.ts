@@ -1,4 +1,8 @@
 export type Section = {
+  // Heading level (1-6), or null for lead content before the first heading.
+  // NOTE: when sections come from the Readability-cleaned DOM, Readability
+  // normalizes heading levels (e.g. rewrites <h1> to <h2>), so `level` reflects
+  // that normalized DOM, not the source markup. Only `wordCount` is currently consumed.
   level: number | null;
   heading: string | null;
   wordCount: number;

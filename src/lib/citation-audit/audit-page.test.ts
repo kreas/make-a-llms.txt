@@ -50,4 +50,22 @@ describe('auditPage', () => {
     const sum = r.checks.reduce((a, c) => a + c.weight, 0);
     expect(sum).toBe(RUBRIC_WEIGHTS_TOTAL);
   });
+
+  it('surfaces paragraph-length and section-chunking failures on a wall-of-text page', async () => {
+    // One ~480-word paragraph under a single heading: a wall (>130 words) AND an
+    // under-chunked section (>400 words). Drives both new checks to fail through
+    // the real parse → CHECKS → aggregate pipeline.
+    const wall = 'This sentence has exactly eight words in it. '.repeat(60);
+    const html = `<!doctype html><html lang="en"><head><title>Long Guide</title></head>` +
+      `<body><article><h1>Guide</h1><h2>Overview</h2><p>${wall}</p></article></body></html>`;
+
+    const r = await auditPage({ url: 'https://example.com/guide', entityName: 'Example Co', html, fetchedAt: '2026-05-19T00:00:00Z' });
+
+    const para = r.checks.find((c) => c.id === 'paragraph-length');
+    const section = r.checks.find((c) => c.id === 'section-chunking');
+    expect(para).toBeDefined();
+    expect(para!.passed).toBe(false);
+    expect(section).toBeDefined();
+    expect(section!.passed).toBe(false);
+  });
 });

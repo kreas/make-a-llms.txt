@@ -33,7 +33,9 @@ function PillarCell({ score }: { score: PillarScore | null }) {
 }
 
 export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
-  const { site, scores, composite, issues, nextAction, lastAuditedAt, audited } = row;
+  const { site, scores, composite, issues, nextAction, lastAuditedAt } = row;
+  // Nothing scored yet (no citation OR GEO audit) → prompt to run one. Otherwise show issues.
+  const unscored = composite === null;
   const host = site.rootUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
   return (
     <tr className="border-b border-hairline">
@@ -66,7 +68,7 @@ export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
       <PillarCell score={scores.recommendable} />
       <PillarCell score={scores.recognized} />
       <td className="px-3 py-3.5 text-right">
-        {!audited ? (
+        {unscored ? (
           <Link
             href={`/sites/${site.uid}`}
             className="inline-flex items-center rounded-full border border-hairline-strong bg-surface-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-canvas-soft"

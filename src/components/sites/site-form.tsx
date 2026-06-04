@@ -28,11 +28,13 @@ type Phase = 'idle' | 'checking' | 'ready';
 export function SiteForm({
   onSubmit,
   onPreflightSuccess,
+  initialUrl = '',
 }: {
   onSubmit: (v: SiteFormValues) => void;
   onPreflightSuccess?: (result: PreflightResult) => void;
+  initialUrl?: string;
 }) {
-  const [rootUrl, setRootUrl] = useState('');
+  const [rootUrl, setRootUrl] = useState(initialUrl);
   const [phase, setPhase] = useState<Phase>('idle');
   const [preflight, setPreflight] = useState<PreflightResult | null>(null);
   const [error, setError] = useState<string | null>(null);

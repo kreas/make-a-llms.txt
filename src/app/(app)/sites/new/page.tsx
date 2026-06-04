@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { SiteForm, type SiteFormValues } from '@/components/sites/site-form';
 import { Confetti } from '@/components/ui/confetti';
 
-export default function NewSitePage() {
+function NewSiteInner() {
   const router = useRouter();
   const [showConfetti, setShowConfetti] = useState(false);
+  const initialUrl = useSearchParams().get('url') ?? '';
   const mutation = useMutation({
     mutationFn: async (v: SiteFormValues) => {
       // Derive a default name from the host. The server will accept either
@@ -56,6 +57,7 @@ export default function NewSitePage() {
           <SiteForm
             onSubmit={(v) => mutation.mutate(v)}
             onPreflightSuccess={() => setShowConfetti(true)}
+            initialUrl={initialUrl}
           />
           {mutation.error && (
             <p className="mt-4 text-sm text-destructive">{(mutation.error as Error).message}</p>
@@ -68,5 +70,13 @@ export default function NewSitePage() {
         className="absolute bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/new-site-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10"
       />
     </div>
+  );
+}
+
+export default function NewSitePage() {
+  return (
+    <Suspense fallback={null}>
+      <NewSiteInner />
+    </Suspense>
   );
 }

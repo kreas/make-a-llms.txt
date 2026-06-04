@@ -54,6 +54,22 @@ describe('buildDashboardData', () => {
     expect(data.stats.avgReadiness).toBe(60); // only site 1 has a composite
     expect(data.stats.openIssues).toBe(1);
   });
+
+  it('reports avgReadinessDelta as last minus first of the trend window', () => {
+    const data = buildDashboardData({
+      sites: [site(1, 'a.com')],
+      auditsBySiteId: { 1: [] },
+      geoBySiteId: { 1: null },
+      lastAuditedBySiteId: { 1: null },
+      auditedThisWeek: 0,
+      trendPoints: [
+        { day: '2026-06-01', score: 60 },
+        { day: '2026-06-03', score: 75 },
+      ],
+    });
+    expect(data.trend).toEqual([60, 75]);
+    expect(data.stats.avgReadinessDelta).toBe(15);
+  });
 });
 
 describe('buildReadinessTrend', () => {

@@ -17,6 +17,7 @@ export type DashboardSiteRow = {
   issues: number;
   nextAction: NextAction | null;
   lastAuditedAt: string | null;
+  /** True iff the site has >=1 succeeded audit with results (drives the "Run audit" CTA). */
   audited: boolean;
 };
 
@@ -66,6 +67,7 @@ export function buildDashboardData(input: DashboardInput): DashboardData {
       ? Math.round(composites.reduce((a, c) => a + c, 0) / composites.length)
       : null;
   const trend = buildReadinessTrend(input.trendPoints);
+  // Delta tracks the visible sparkline window: newest minus oldest point in `trend` (≤7 days).
   const avgReadinessDelta =
     trend && trend.length >= 2 ? Math.round(trend[trend.length - 1] - trend[0]) : null;
 

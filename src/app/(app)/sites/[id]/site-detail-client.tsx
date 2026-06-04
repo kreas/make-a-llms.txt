@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Settings, Link as LinkIcon, Clock } from 'lucide-react';
+import { Settings, Link as LinkIcon, Clock, RefreshCw } from 'lucide-react';
 import { LazyMotion, m } from 'framer-motion';
 import type { Site, Generation } from '@/db/schema';
 
 const loadFeatures = () => import('framer-motion').then((mod) => mod.domMax);
-import { ProcessTimeline } from '@/components/generations/process-timeline';
 import { OverviewPanel } from '@/components/generations/overview-panel';
 import { ReadablePanel } from '@/components/generations/readable-panel';
 import { RecognizedPanel } from '@/components/generations/recognized-panel';
@@ -226,15 +225,27 @@ export function SiteDetailClient({
               </>
             )}
           </div>
-          {latest && (
-            <ProcessTimeline
-              status={latest.status}
-              onRegenerate={() => regenerate.mutate()}
-              isRegenerating={regenerate.isPending}
-            />
-          )}
         </div>
         <div className="flex items-center gap-3">
+          {latest && (
+            <button
+              type="button"
+              onClick={() => regenerate.mutate()}
+              disabled={
+                regenerate.isPending ||
+                latest.status === 'pending' ||
+                latest.status === 'running'
+              }
+              title="Re-run Generation"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-hairline-strong bg-surface-card px-3.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw
+                className={cn('h-4 w-4', regenerate.isPending && 'animate-spin')}
+                aria-hidden="true"
+              />
+              {regenerate.isPending ? 'Re-running…' : 'Re-run'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}

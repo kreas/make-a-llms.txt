@@ -34,6 +34,7 @@ export function check(parsed: ParsedPage, _ctx: CheckContext): CheckResult {
   const longSections = sections.filter((s) => s.wordCount > LONG_SECTION_WORDS);
   const longFraction = longSections.length / total;
   const score = Math.max(0, Math.min(100, Math.round(100 - longFraction * 200)));
+  // Zero-tolerance: any single over-long section fails this check (stricter than paragraph-length by design).
   const passed = longSections.length === 0;
 
   if (passed) {
@@ -48,8 +49,8 @@ export function check(parsed: ParsedPage, _ctx: CheckContext): CheckResult {
   return {
     id: ID, weight: WEIGHT, passed: false, score,
     evidence: [
-      `${longSections.length} section${longSections.length === 1 ? '' : 's'} exceed ${LONG_SECTION_WORDS} words without a subheading (largest: "${label(largest)}" — ${largest.wordCount} words).`,
+      `${longSections.length} section${longSections.length === 1 ? '' : 's'} exceed${longSections.length === 1 ? 's' : ''} ${LONG_SECTION_WORDS} words without a subheading (largest: "${label(largest)}" — ${largest.wordCount} words).`,
     ],
-    recommendation: 'Add subheadings to break long sections (over 400 words) into retrieval-sized chunks AI models can pull from.',
+    recommendation: `Add subheadings to break long sections (over ${LONG_SECTION_WORDS} words) into retrieval-sized chunks AI models can pull from.`,
   };
 }

@@ -38,7 +38,7 @@ describe('section-chunking', () => {
     );
     expect(r.passed).toBe(false);
     expect(r.score).toBe(33);
-    expect(r.evidence[0]).toMatch(/1 section.* exceed 400 words/);
+    expect(r.evidence[0]).toMatch(/1 section.* exceeds 400 words/);
     expect(r.evidence[0]).toMatch(/Our Process/);
     expect(r.recommendation).toMatch(/Add subheadings/);
   });

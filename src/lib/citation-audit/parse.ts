@@ -2,6 +2,7 @@ import { parseHTML } from 'linkedom';
 import { Readability } from '@mozilla/readability';
 import { parse as tldParse } from 'tldts';
 import type { ParsedPage, JsonLdBlock, MetaTag } from './types';
+import { extractParagraphs, extractSections } from './text';
 
 function safeJsonParse(s: string): unknown | null {
   try { return JSON.parse(s); } catch { return null; }
@@ -58,6 +59,7 @@ export function parsePage(url: string, html: string): ParsedPage {
   );
 
   let article: ParsedPage['article'] = null;
+  let contentRoot: Element | null = document.body as unknown as Element;
   try {
     const { document: cloneDoc } = parseHTML(html);
     const reader = new Readability(cloneDoc as unknown as Document);
@@ -69,10 +71,20 @@ export function parsePage(url: string, html: string): ParsedPage {
         textContent: textContent.trim(),
         lengthChars: textContent.length,
       };
+      if (r.content) {
+        const { document: artDoc } = parseHTML(r.content);
+        // Readability emits a bare fragment, so the parsed doc's <body> is empty
+        // and the content lives under documentElement (the outer container).
+        contentRoot = artDoc.documentElement as unknown as Element;
+      }
     }
   } catch {
     article = null;
   }
+
+  const root = contentRoot ?? (document as unknown as Element);
+  const paragraphs = extractParagraphs(root);
+  const sections = extractSections(root);
 
   return {
     url,
@@ -88,5 +100,7 @@ export function parsePage(url: string, html: string): ParsedPage {
     metaDescription,
     headings,
     links,
+    paragraphs,
+    sections,
   };
 }

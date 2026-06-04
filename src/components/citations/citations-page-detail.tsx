@@ -30,6 +30,8 @@ const CHECK_LABEL: Record<string, string> = {
   'readability': 'Reading level grade 8-10',
   'named-entities': 'Named entities disambiguated',
   'internal-links': 'Internal links to related pages',
+  'paragraph-length': 'Paragraphs are passage-sized',
+  'section-chunking': 'Sections are well-chunked',
 };
 
 type AuditResults = {

@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { RUBRIC, RUBRIC_WEIGHTS_TOTAL, tierFor } from './rubric';
 
 describe('rubric', () => {
-  it('contains exactly 15 entries', () => {
-    expect(RUBRIC.length).toBe(15);
+  it('contains exactly 17 entries', () => {
+    expect(RUBRIC.length).toBe(17);
   });
 
   it('all entries have unique ids', () => {
@@ -11,10 +11,10 @@ describe('rubric', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('weights total 100', () => {
+  it('weights total 110', () => {
     const sum = RUBRIC.reduce((acc, r) => acc + r.weight, 0);
-    expect(sum).toBe(100);
-    expect(RUBRIC_WEIGHTS_TOTAL).toBe(100);
+    expect(sum).toBe(110);
+    expect(RUBRIC_WEIGHTS_TOTAL).toBe(110);
   });
 
   it('maps tiers correctly', () => {

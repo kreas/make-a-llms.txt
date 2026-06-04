@@ -41,4 +41,29 @@ describe('parsePage', () => {
     expect(parsed.canonical).toBeNull();
     expect(parsed.headings.length).toBe(0);
   });
+
+  it('extracts paragraphs and heading-delimited sections', () => {
+    const html =
+      '<html><body>' +
+      '<h1>Title</h1>' +
+      '<p>First paragraph has five words.</p>' +
+      '<h2>Details</h2>' +
+      '<p>Second paragraph here.</p>' +
+      '</body></html>';
+    const parsed = parsePage('https://example.com/x', html);
+    expect(parsed.paragraphs).toEqual([
+      'First paragraph has five words.',
+      'Second paragraph here.',
+    ]);
+    // One section per heading; heading text excluded from word counts.
+    expect(parsed.sections.map((s) => s.heading)).toEqual(['Title', 'Details']);
+    expect(parsed.sections[0].wordCount).toBe(5);
+    expect(parsed.sections[1].wordCount).toBe(3);
+  });
+
+  it('returns empty paragraphs/sections for an empty body', () => {
+    const parsed = parsePage('https://example.com/x', '<html><body></body></html>');
+    expect(parsed.paragraphs).toEqual([]);
+    expect(parsed.sections).toEqual([]);
+  });
 });

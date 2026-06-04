@@ -1,3 +1,7 @@
+import type { Section } from './text';
+
+export type { Section } from './text';
+
 export type Tier = 'poor' | 'fair' | 'good' | 'excellent';
 
 export type AuditInput = {
@@ -41,6 +45,8 @@ export type ParsedPage = {
   metaDescription: string | null;
   headings: { level: 1 | 2 | 3 | 4 | 5 | 6; text: string }[];
   links: { href: string; text: string; isInternal: boolean }[];
+  paragraphs: string[];
+  sections: Section[];
 };
 
 export type CheckContext = {

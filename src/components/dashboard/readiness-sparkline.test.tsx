@@ -30,4 +30,11 @@ describe('ReadinessSparkline', () => {
     const { container } = render(<ReadinessSparkline data={[100, 100]} />);
     expect(container.querySelector('polyline')!.getAttribute('points')).toBe('0.0,16.0 96.0,16.0');
   });
+
+  it('colors the line by net trend direction', () => {
+    const up = render(<ReadinessSparkline data={[60, 80]} />);
+    expect(up.container.querySelector('polyline')!.getAttribute('stroke')).toBe('var(--color-semantic-success)');
+    const down = render(<ReadinessSparkline data={[80, 60]} />);
+    expect(down.container.querySelector('polyline')!.getAttribute('stroke')).toBe('var(--color-destructive)');
+  });
 });

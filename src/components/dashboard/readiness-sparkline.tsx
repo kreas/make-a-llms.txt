@@ -17,12 +17,16 @@ export function ReadinessSparkline({ data }: { data: number[] | null }) {
       return `${(i * step).toFixed(1)},${y.toFixed(1)}`;
     })
     .join(' ');
+  // Color the line by net direction so it agrees with the delta badge: up = success, down = error.
+  const net = data[data.length - 1] - data[0];
+  const stroke =
+    net < 0 ? 'var(--color-destructive)' : net > 0 ? 'var(--color-semantic-success)' : 'var(--color-muted-strong)';
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden className="overflow-visible">
       <polyline
         points={points}
         fill="none"
-        stroke="var(--color-semantic-success)"
+        stroke={stroke}
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"

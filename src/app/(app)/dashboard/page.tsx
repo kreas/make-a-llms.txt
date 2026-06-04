@@ -6,6 +6,27 @@ import { AuditUrlStrip } from '@/components/dashboard/audit-url-strip';
 import { SitesTable } from '@/components/dashboard/sites-table';
 import { AddSiteCard } from '@/components/sites/add-site-card';
 
+function DashboardHeader() {
+  return (
+    <header>
+      <h1 className="display-lg text-ink">Dashboard</h1>
+      <p className="mt-1 text-sm text-muted-strong">AEO · AIO · GEO readiness across your sites</p>
+    </header>
+  );
+}
+
+function ReadinessDelta({ delta }: { delta: number | null }) {
+  if (delta === null) return <>No trend yet</>;
+  // Negative values already carry their own '-'; only positives need a '+'. Zero is neutral.
+  const tone =
+    delta > 0 ? 'text-semantic-success' : delta < 0 ? 'text-destructive' : 'text-muted-strong';
+  return (
+    <span>
+      <span className={`font-semibold ${tone}`}>{delta > 0 ? `+${delta}` : delta}</span> recent trend
+    </span>
+  );
+}
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const data = await loadDashboardData(user.id);
@@ -13,10 +34,7 @@ export default async function DashboardPage() {
   if (data.stats.sitesMonitored === 0) {
     return (
       <div className="flex flex-col gap-8">
-        <header>
-          <h1 className="display-lg text-ink">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-strong">AEO · AIO · GEO readiness across your sites</p>
-        </header>
+        <DashboardHeader />
         <div className="grid grid-cols-1 gap-6 sm:max-w-sm">
           <AddSiteCard />
         </div>
@@ -24,13 +42,9 @@ export default async function DashboardPage() {
     );
   }
 
-  const delta = data.stats.avgReadinessDelta;
   return (
     <div className="flex flex-col gap-7">
-      <header>
-        <h1 className="display-lg text-ink">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-strong">AEO · AIO · GEO readiness across your sites</p>
-      </header>
+      <DashboardHeader />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
@@ -41,18 +55,7 @@ export default async function DashboardPage() {
         <StatCard
           label="Avg. Readiness"
           value={data.stats.avgReadiness !== null ? String(data.stats.avgReadiness) : '—'}
-          meta={
-            delta !== null ? (
-              <span>
-                <span className={delta >= 0 ? 'font-semibold text-semantic-success' : 'font-semibold text-destructive'}>
-                  {delta >= 0 ? `+${delta}` : delta}
-                </span>{' '}
-                recent trend
-              </span>
-            ) : (
-              'No trend yet'
-            )
-          }
+          meta={<ReadinessDelta delta={data.stats.avgReadinessDelta} />}
         >
           <ReadinessSparkline data={data.trend} />
         </StatCard>

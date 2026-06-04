@@ -619,7 +619,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
           >
             <Icon className="h-4 w-4 opacity-50" />
             {label}
-            <span className="ml-auto rounded-full border border-hairline bg-surface-card px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted">
+            <span className="ml-auto rounded-full border border-hairline bg-surface-card px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-strong">
               soon
             </span>
           </div>
@@ -838,9 +838,9 @@ export function StatCard({
 }) {
   return (
     <div className="relative rounded-xl border border-hairline bg-surface-card p-5">
-      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-strong">{label}</p>
       <p className="mt-2 text-[34px] font-normal leading-none tracking-tight text-ink">{value}</p>
-      {meta && <p className="mt-2 text-[12.5px] text-muted">{meta}</p>}
+      {meta && <p className="mt-2 text-[12.5px] text-muted-strong">{meta}</p>}
       {children && <div className="absolute bottom-4 right-4">{children}</div>}
     </div>
   );
@@ -1134,7 +1134,7 @@ export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
           </span>
           <span className="flex flex-col">
             <span className="text-sm font-medium text-ink">{site.displayName ?? site.name}</span>
-            <span className="font-mono text-[11.5px] text-muted">
+            <span className="font-mono text-[11.5px] text-muted-strong">
               {host}{lastAuditedAt ? ` · ${formatRelativeTime(lastAuditedAt)}` : ''}
             </span>
           </span>
@@ -1169,7 +1169,7 @@ export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
               {issues} issue{issues === 1 ? '' : 's'}
             </span>
             {nextAction?.recommendation && (
-              <span className="max-w-[180px] truncate text-[11px] text-muted">{nextAction.recommendation}</span>
+              <span className="max-w-[180px] truncate text-[11px] text-muted-strong">{nextAction.recommendation}</span>
             )}
           </span>
         ) : (
@@ -1239,7 +1239,7 @@ describe('SitesTable', () => {
 import type { DashboardSiteRow } from '@/lib/services/dashboard';
 import { SitesTableRow } from './sites-table-row';
 
-const TH = 'px-3 pb-3 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted';
+const TH = 'px-3 pb-3 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-strong';
 
 export function SitesTable({ rows }: { rows: DashboardSiteRow[] }) {
   return (
@@ -1305,7 +1305,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-8">
         <header>
           <h1 className="display-lg text-ink">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted">AEO · AIO · GEO readiness across your sites</p>
+          <p className="mt-1 text-sm text-muted-strong">AEO · AIO · GEO readiness across your sites</p>
         </header>
         <div className="grid grid-cols-1 gap-6 sm:max-w-sm">
           <AddSiteCard />
@@ -1319,7 +1319,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-7">
       <header>
         <h1 className="display-lg text-ink">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted">AEO · AIO · GEO readiness across your sites</p>
+        <p className="mt-1 text-sm text-muted-strong">AEO · AIO · GEO readiness across your sites</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

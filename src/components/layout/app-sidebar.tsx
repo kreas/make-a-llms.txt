@@ -6,19 +6,24 @@ import { LayoutGrid, Globe, History, Bell, Settings, BookOpen } from 'lucide-rea
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/auth/user-menu';
 
-type NavItem = { label: string; href: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  activeWhen: (p: string) => boolean;
+};
 
 const PRIMARY: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-  { label: 'Websites', href: '/dashboard', icon: Globe },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutGrid, activeWhen: (p) => p === '/dashboard' },
+  { label: 'Websites', href: '/dashboard', icon: Globe, activeWhen: (p) => p.startsWith('/sites') },
 ];
 const SOON: { label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { label: 'Audit History', icon: History },
   { label: 'Alerts', icon: Bell },
 ];
 const ACCOUNT: NavItem[] = [
-  { label: 'Settings', href: '/settings/api-tokens', icon: Settings },
-  { label: 'Docs', href: '/docs', icon: BookOpen },
+  { label: 'Settings', href: '/settings/api-tokens', icon: Settings, activeWhen: (p) => p.startsWith('/settings/api-tokens') },
+  { label: 'Docs', href: '/docs', icon: BookOpen, activeWhen: (p) => p.startsWith('/docs') },
 ];
 
 export function AppSidebar({ userEmail }: { userEmail: string }) {
@@ -33,7 +38,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 
       <nav className="flex flex-col gap-1">
         {PRIMARY.map((item) => {
-          const active = pathname === item.href;
+          const active = item.activeWhen(pathname);
           const Icon = item.icon;
           return (
             <Link
@@ -53,12 +58,11 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
         {SOON.map(({ label, icon: Icon }) => (
           <div
             key={label}
-            aria-disabled
             className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-soft"
           >
             <Icon className="h-4 w-4 opacity-50" />
             {label}
-            <span className="ml-auto rounded-full border border-hairline bg-surface-card px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted">
+            <span className="ml-auto rounded-full border border-hairline bg-surface-card px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-strong">
               soon
             </span>
           </div>
@@ -68,7 +72,7 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
       <nav className="flex flex-col gap-1">
         <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-soft">Account</p>
         {ACCOUNT.map((item) => {
-          const active = pathname.startsWith(item.href);
+          const active = item.activeWhen(pathname);
           const Icon = item.icon;
           return (
             <Link

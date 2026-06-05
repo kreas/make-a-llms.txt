@@ -31,9 +31,12 @@ function isIndexName(name: string): boolean {
 function buildNested(pages: ManifestPage[]): FolderNode {
   const root: FolderNode = { kind: 'folder', id: ROOT_ID, name: '', children: [], okCount: 0, total: 0 };
   const folderIndex = new Map<string, FolderNode>([['', root]]);
+  const seenLeaf = new Set<string>();
 
   for (const p of pages) {
     if (!p.path) continue;
+    if (seenLeaf.has(p.path)) continue; // ignore duplicate page paths
+    seenLeaf.add(p.path);
     const segs = p.path.split('/');
     const leafName = p.filename ?? segs[segs.length - 1];
     let parent = root;

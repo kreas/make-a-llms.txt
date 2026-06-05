@@ -187,7 +187,7 @@ export function SiteDetailClient({
       <div className="fixed inset-0 bg-[#f3efd9] -z-20 pointer-events-none" />
 
       <LazyMotion features={loadFeatures} strict>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-8 relative z-10">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-5 relative z-10">
       {/* Compact secondary nav bar (single row): identity + meta on the left, actions on the right. */}
       <header className="flex items-center gap-3 border-b border-hairline pb-4">
         {site.faviconUrl && (

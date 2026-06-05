@@ -280,8 +280,8 @@ export function SiteDetailClient({
                 className="w-full h-full"
                 style={{ filter: 'url(#folder-gooey-filter)' }}
               >
-                {/* Folder Tabs Headers track background (96px height with 56px padding top yields 40px tab height, positioned at y=24px from folder top) */}
-                <div className="flex w-full h-[96px] pt-[56px]">
+                {/* Folder Tabs Headers track background (72px height with 32px padding top yields 40px tab height, flush with the folder top) */}
+                <div className="flex w-full h-[72px] pt-[32px]">
                   {tabItems.map((item, idx) => (
                     <div key={item.value} className="relative flex-1 h-full">
                       {activeTab === item.value && (
@@ -306,7 +306,7 @@ export function SiteDetailClient({
                 {/* Card Body visual background (drawn below the header track, occupying parent height minus track height) */}
                 <div
                   className={cn(
-                    "w-full bg-surface-card dark:bg-zinc-900 rounded-b-2xl h-[calc(100%-96px)]",
+                    "w-full bg-surface-card dark:bg-zinc-900 rounded-b-2xl h-[calc(100%-72px)]",
                     activeTab === tabItems[0].value ? "rounded-tl-none" : "rounded-tl-2xl",
                     activeTab === tabItems[tabItems.length - 1].value ? "rounded-tr-none" : "rounded-tr-2xl"
                   )}
@@ -317,7 +317,7 @@ export function SiteDetailClient({
             {/* Layer 2: Interactive controls & content panels (unfiltered, z-10) */}
             <div className="relative z-10 flex flex-col">
               {/* Interactive Triggers (Folder Tab Headers) */}
-              <TabsList className="bg-transparent border-transparent p-0 flex w-full h-16! pt-6! group-data-[orientation=horizontal]/tabs:h-16 group-data-[orientation=horizontal]/tabs:pt-6">
+              <TabsList className="bg-transparent border-transparent p-0 flex w-full h-10! pt-0! group-data-[orientation=horizontal]/tabs:h-10 group-data-[orientation=horizontal]/tabs:pt-0">
                 {tabItems.map((item) => (
                   <Fragment key={item.value}>
                     {item.isSetup && (

@@ -90,7 +90,7 @@ function TreeItem<T = unknown>({
         data-folder={typeof item.isFolder === "function" ? item.isFolder() || false : undefined}
         data-selected={typeof item.isSelected === "function" ? item.isSelected() || false : undefined}
         data-search-match={typeof item.isMatchingSearch === "function" ? item.isMatchingSearch() || false : undefined}
-        aria-expanded={item.isExpanded()}
+        aria-expanded={typeof item.isExpanded === "function" ? item.isExpanded() : undefined}
         {...otherProps}
       >
         {children}

@@ -51,4 +51,18 @@ describe('PagesRail', () => {
     expect(screen.queryByText('about')).toBeNull();
     expect(screen.queryByText('contact')).toBeNull();
   });
+
+  it('finds pages inside collapsed/nested folders', () => {
+    setCtx({ pages: [page('index'), page('blog/2026/ai-search')], selectedPath: 'index' });
+    render(<PagesRail />);
+    fireEvent.change(screen.getByLabelText(/filter pages/i), { target: { value: 'ai-search' } });
+    expect(screen.getByText('ai-search')).toBeInTheDocument();
+  });
+
+  it('shows a no-match message when nothing matches', () => {
+    setCtx({ pages: [page('about')], selectedPath: 'about' });
+    render(<PagesRail />);
+    fireEvent.change(screen.getByLabelText(/filter pages/i), { target: { value: 'zzz' } });
+    expect(screen.getByText(/no pages match/i)).toBeInTheDocument();
+  });
 });

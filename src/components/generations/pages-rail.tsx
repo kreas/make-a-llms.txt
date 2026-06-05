@@ -100,13 +100,14 @@ function RailTree({
     features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, searchFeature],
   });
 
-  // Local filter: headless-tree's setSearch only highlights matches, it does not
-  // narrow getItems(). When the box is non-empty, show only matching leaf items.
-  const allItems = tree.getItems();
+  // Local filter: headless-tree's getItems() only includes items in expanded
+  // folders, so a tree-based filter would miss pages in collapsed/nested folders.
+  // When the box is non-empty, build a flat list of matching leaves from the full
+  // data map instead; when empty, render the tree as usual.
   const q = search.trim().toLowerCase();
-  const visibleItems = q
-    ? allItems.filter((it) => !it.isFolder() && it.getItemData().name.toLowerCase().includes(q))
-    : allItems;
+  const matches = q
+    ? Object.values(data).filter((d) => !d.isFolder && d.name.toLowerCase().includes(q))
+    : null;
 
   return (
     <div>
@@ -120,31 +121,52 @@ function RailTree({
           className="h-8 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted-strong"
         />
       </div>
-      <Tree tree={tree} indent={INDENT} className="max-h-[60vh] overflow-auto">
-        {visibleItems.map((item) => {
-          const d = item.getItemData();
-          return (
-            <TreeItem key={item.getId()} item={item}>
-              <TreeItemLabel>
-                {item.isFolder() ? (
-                  <>
-                    <span className="truncate">{d.name}</span>
-                    <span className="ml-auto shrink-0 text-xs text-muted-strong">
-                      ({d.okCount}/{d.total})
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <FileText className="size-4 text-muted-strong" aria-hidden />
-                    {d.page && <StatusDot status={d.page.status} />}
-                    <span className="truncate">{d.name}</span>
-                  </>
-                )}
-              </TreeItemLabel>
-            </TreeItem>
-          );
-        })}
-      </Tree>
+      {matches ? (
+        matches.length === 0 ? (
+          <p className="px-2 py-6 text-sm text-muted-strong">No pages match.</p>
+        ) : (
+          <div className="flex flex-col">
+            {matches.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => onSelect(d.id)}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-body hover:bg-canvas-soft"
+              >
+                <FileText className="size-4 text-muted-strong" aria-hidden />
+                {d.page && <StatusDot status={d.page.status} />}
+                <span className="truncate">{d.name}</span>
+              </button>
+            ))}
+          </div>
+        )
+      ) : (
+        <Tree tree={tree} indent={INDENT} className="max-h-[60vh] overflow-auto">
+          {tree.getItems().map((item) => {
+            const d = item.getItemData();
+            return (
+              <TreeItem key={item.getId()} item={item}>
+                <TreeItemLabel>
+                  {item.isFolder() ? (
+                    <>
+                      <span className="truncate">{d.name}</span>
+                      <span className="ml-auto shrink-0 text-xs text-muted-strong">
+                        ({d.okCount}/{d.total})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="size-4 text-muted-strong" aria-hidden />
+                      {d.page && <StatusDot status={d.page.status} />}
+                      <span className="truncate">{d.name}</span>
+                    </>
+                  )}
+                </TreeItemLabel>
+              </TreeItem>
+            );
+          })}
+        </Tree>
+      )}
     </div>
   );
 }

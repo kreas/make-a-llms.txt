@@ -14,6 +14,7 @@ import { RecognizedPanel } from '@/components/generations/recognized-panel';
 import { SetupPanel } from '@/components/generations/setup-panel';
 import { RecommendablePanel } from '@/components/generations/recommendable-panel';
 import { PageWorkspaceProvider } from '@/components/generations/page-workspace-context';
+import { PagesRail } from '@/components/generations/pages-rail';
 import { GenerationsPopover } from '@/components/generations/generations-popover';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -258,98 +259,103 @@ export function SiteDetailClient({
         </div>
       </header>
 
-      {/* The Gooey Folder Container */}
-      <div className="relative w-full">
-        <GooeyFilter id="folder-gooey-filter" strength={screenSize.lessThan('md') ? 8 : 15} />
+      <PageWorkspaceProvider generation={selected}>
+        <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-[minmax(0,1fr)_320px]">
+          {/* The Gooey Folder Container */}
+          <div className="relative w-full min-w-0">
+            <GooeyFilter id="folder-gooey-filter" strength={screenSize.lessThan('md') ? 8 : 15} />
 
-        {/* Layer 1: Visual backgrounds (filtered, with -top-8 offset to prevent gooey tab curve clipping) */}
-        <div className="absolute -top-8 bottom-0 left-0 right-0 pointer-events-none filter drop-shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:drop-shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
-          <div
-            className="w-full h-full"
-            style={{ filter: 'url(#folder-gooey-filter)' }}
-          >
-            {/* Folder Tabs Headers track background (96px height with 56px padding top yields 40px tab height, positioned at y=24px from folder top) */}
-            <div className="flex w-full h-[96px] pt-[56px]">
-              {tabItems.map((item, idx) => (
-                <div key={item.value} className="relative flex-1 h-full">
-                  {activeTab === item.value && (
-                    <m.div
-                      layoutId="active-folder-tab-bg"
-                      className={cn(
-                        "absolute inset-y-0 bg-surface-card dark:bg-zinc-900",
-                        idx === 0 ? "left-0 right-2 rounded-tr-2xl rounded-tl-none" :
-                        idx === tabItems.length - 1 ? "left-2 right-0 rounded-tl-2xl rounded-tr-none" :
-                        "left-2 right-2 rounded-t-2xl"
+            {/* Layer 1: Visual backgrounds (filtered, with -top-8 offset to prevent gooey tab curve clipping) */}
+            <div className="absolute -top-8 bottom-0 left-0 right-0 pointer-events-none filter drop-shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:drop-shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
+              <div
+                className="w-full h-full"
+                style={{ filter: 'url(#folder-gooey-filter)' }}
+              >
+                {/* Folder Tabs Headers track background (96px height with 56px padding top yields 40px tab height, positioned at y=24px from folder top) */}
+                <div className="flex w-full h-[96px] pt-[56px]">
+                  {tabItems.map((item, idx) => (
+                    <div key={item.value} className="relative flex-1 h-full">
+                      {activeTab === item.value && (
+                        <m.div
+                          layoutId="active-folder-tab-bg"
+                          className={cn(
+                            "absolute inset-y-0 bg-surface-card dark:bg-zinc-900",
+                            idx === 0 ? "left-0 right-2 rounded-tr-2xl rounded-tl-none" :
+                            idx === tabItems.length - 1 ? "left-2 right-0 rounded-tl-2xl rounded-tr-none" :
+                            "left-2 right-2 rounded-t-2xl"
+                          )}
+                          transition={{
+                            type: 'spring',
+                            bounce: 0.0,
+                            duration: 0.4,
+                          }}
+                        />
                       )}
-                      transition={{
-                        type: 'spring',
-                        bounce: 0.0,
-                        duration: 0.4,
-                      }}
-                    />
-                  )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {/* Card Body visual background (drawn below the header track, occupying parent height minus track height) */}
-            <div
-              className={cn(
-                "w-full bg-surface-card dark:bg-zinc-900 rounded-b-2xl h-[calc(100%-96px)]",
-                activeTab === tabItems[0].value ? "rounded-tl-none" : "rounded-tl-2xl",
-                activeTab === tabItems[tabItems.length - 1].value ? "rounded-tr-none" : "rounded-tr-2xl"
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Layer 2: Interactive controls & content panels (unfiltered, z-10) */}
-        <div className="relative z-10 flex flex-col">
-          {/* Interactive Triggers (Folder Tab Headers) */}
-          <TabsList className="bg-transparent border-transparent p-0 flex w-full h-16! pt-6! group-data-[orientation=horizontal]/tabs:h-16 group-data-[orientation=horizontal]/tabs:pt-6">
-            {tabItems.map((item) => (
-              <Fragment key={item.value}>
-                {item.isSetup && (
-                  <span aria-hidden className="self-center mx-1 h-5 w-px bg-hairline-strong" />
-                )}
-                <TabsTrigger
-                  value={item.value}
+                {/* Card Body visual background (drawn below the header track, occupying parent height minus track height) */}
+                <div
                   className={cn(
-                    'flex-1 h-10 flex items-center justify-center transition-colors duration-200 outline-none',
-                    'data-[state=active]:bg-transparent! data-[state=active]:shadow-none! data-[state=active]:border-transparent! dark:data-[state=active]:bg-transparent! dark:data-[state=active]:border-transparent!',
-                    activeTab === item.value
-                      ? 'text-ink font-semibold'
-                      : 'text-muted-foreground hover:text-ink',
-                    item.isSetup && 'opacity-70',
+                    "w-full bg-surface-card dark:bg-zinc-900 rounded-b-2xl h-[calc(100%-96px)]",
+                    activeTab === tabItems[0].value ? "rounded-tl-none" : "rounded-tl-2xl",
+                    activeTab === tabItems[tabItems.length - 1].value ? "rounded-tr-none" : "rounded-tr-2xl"
                   )}
-                >
-                  {item.label}
-                </TabsTrigger>
-              </Fragment>
-            ))}
-          </TabsList>
-
-          {/* Content panel area */}
-          <PageWorkspaceProvider generation={selected}>
-            <div className="p-4 md:p-6 min-w-0 min-h-[600px]">
-              <TabsContent value="overview" className="mt-0 outline-none">
-                <OverviewPanel siteId={site.uid} onNavigate={setActiveTab} />
-              </TabsContent>
-              <TabsContent value="readable" className="mt-0 outline-none">
-                <ReadablePanel siteId={site.uid} />
-              </TabsContent>
-              <TabsContent value="recommendable" className="mt-0 outline-none">
-                <RecommendablePanel siteId={site.uid} />
-              </TabsContent>
-              <TabsContent value="recognized" className="mt-0 outline-none">
-                <RecognizedPanel siteId={site.uid} />
-              </TabsContent>
-              <TabsContent value="setup" className="mt-0 outline-none">
-                <SetupPanel generation={selected} siteId={site.uid} />
-              </TabsContent>
+                />
+              </div>
             </div>
-          </PageWorkspaceProvider>
+
+            {/* Layer 2: Interactive controls & content panels (unfiltered, z-10) */}
+            <div className="relative z-10 flex flex-col">
+              {/* Interactive Triggers (Folder Tab Headers) */}
+              <TabsList className="bg-transparent border-transparent p-0 flex w-full h-16! pt-6! group-data-[orientation=horizontal]/tabs:h-16 group-data-[orientation=horizontal]/tabs:pt-6">
+                {tabItems.map((item) => (
+                  <Fragment key={item.value}>
+                    {item.isSetup && (
+                      <span aria-hidden className="self-center mx-1 h-5 w-px bg-hairline-strong" />
+                    )}
+                    <TabsTrigger
+                      value={item.value}
+                      className={cn(
+                        'flex-1 h-10 flex items-center justify-center transition-colors duration-200 outline-none',
+                        'data-[state=active]:bg-transparent! data-[state=active]:shadow-none! data-[state=active]:border-transparent! dark:data-[state=active]:bg-transparent! dark:data-[state=active]:border-transparent!',
+                        activeTab === item.value
+                          ? 'text-ink font-semibold'
+                          : 'text-muted-foreground hover:text-ink',
+                        item.isSetup && 'opacity-70',
+                      )}
+                    >
+                      {item.label}
+                    </TabsTrigger>
+                  </Fragment>
+                ))}
+              </TabsList>
+
+              {/* Content panel area */}
+              <div className="p-4 md:p-6 min-w-0 min-h-[600px]">
+                <TabsContent value="overview" className="mt-0 outline-none">
+                  <OverviewPanel siteId={site.uid} onNavigate={setActiveTab} />
+                </TabsContent>
+                <TabsContent value="readable" className="mt-0 outline-none">
+                  <ReadablePanel siteId={site.uid} />
+                </TabsContent>
+                <TabsContent value="recommendable" className="mt-0 outline-none">
+                  <RecommendablePanel siteId={site.uid} />
+                </TabsContent>
+                <TabsContent value="recognized" className="mt-0 outline-none">
+                  <RecognizedPanel siteId={site.uid} />
+                </TabsContent>
+                <TabsContent value="setup" className="mt-0 outline-none">
+                  <SetupPanel generation={selected} siteId={site.uid} />
+                </TabsContent>
+              </div>
+            </div>
+          </div>
+
+          {/* Right rail */}
+          <PagesRail />
         </div>
-      </div>
+      </PageWorkspaceProvider>
 
       <SettingsDialog
         open={settingsOpen}

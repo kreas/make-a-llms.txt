@@ -39,7 +39,8 @@ export function PagesRail() {
   return (
     // Top padding aligns the card under the page header (with the main content card);
     // the card then fills to the bottom of the window. pr/pb give it breathing room.
-    <div className="flex h-full flex-col pb-4 pl-1 pr-4 pt-[188px]">
+    // (main py-10 = 40 + the one-row header ≈ 53 + the gap-8 = 32 ≈ 125)
+    <div className="flex h-full flex-col pb-4 pl-1 pr-4 pt-[125px]">
       <aside className="flex min-h-0 flex-1 flex-col rounded-2xl border border-hairline bg-surface-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
           <span className="caption-uppercase text-muted-strong">Pages</span>

@@ -188,55 +188,56 @@ export function SiteDetailClient({
 
       <LazyMotion features={loadFeatures} strict>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-8 relative z-10">
-      <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            {site.faviconUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={site.faviconUrl}
-                alt=""
-                className="h-7 w-7 rounded border border-hairline bg-surface-card object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            )}
-            <h1 className="display-lg text-ink">{site.displayName ?? site.name}</h1>
-            {generations.length > 0 && (
-              <GenerationsPopover
-                generations={generations}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                allRunsCount={allRunsCount}
-              />
-            )}
-          </div>
-          {site.description && (
-            <p className="max-w-2xl text-sm text-muted-strong">{site.description}</p>
+      {/* Compact secondary nav bar (single row): identity + meta on the left, actions on the right. */}
+      <header className="flex items-center gap-3 border-b border-hairline pb-4">
+        {site.faviconUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={site.faviconUrl}
+            alt=""
+            className="h-6 w-6 shrink-0 rounded border border-hairline bg-surface-card object-contain"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
+        <h1
+          className="display-sm shrink-0 truncate text-ink"
+          title={site.description ?? undefined}
+        >
+          {site.displayName ?? site.name}
+        </h1>
+        {generations.length > 0 && (
+          <GenerationsPopover
+            generations={generations}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            allRunsCount={allRunsCount}
+          />
+        )}
+
+        {/* Compact metadata — hidden on smaller screens to keep the bar to one line */}
+        <div className="ml-1 hidden min-w-0 items-center gap-3 text-[13px] text-muted-strong lg:flex">
+          <span className="h-4 w-px shrink-0 bg-hairline" />
+          <a
+            href={site.rootUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex min-w-0 items-center gap-1 font-mono transition-colors hover:text-ink"
+          >
+            <LinkIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{site.rootUrl.replace(/^https?:\/\//, '')}</span>
+          </a>
+          {latest && (
+            <span className="flex shrink-0 items-center gap-1.5 font-mono">
+              <span className="h-4 w-px bg-hairline" />
+              <Clock className="h-3.5 w-3.5 text-muted-soft" />
+              Generated {formatRelativeTime(latest.createdAt)}
+            </span>
           )}
-          <div className="flex items-center gap-4 text-sm text-muted-strong">
-            <a
-              href={site.rootUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 font-mono text-[13px] transition-colors hover:text-ink"
-            >
-              <LinkIcon className="h-4 w-4" />
-              {site.rootUrl}
-            </a>
-            {latest && (
-              <>
-                <span className="h-4 w-px bg-hairline" />
-                <span className="flex items-center gap-1.5 font-mono text-[13px]">
-                  <Clock className="h-3.5 w-3.5 text-muted-soft" />
-                  Generated {formatRelativeTime(latest.createdAt)}
-                </span>
-              </>
-            )}
-          </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {latest && (
             <button
               type="button"
@@ -247,20 +248,20 @@ export function SiteDetailClient({
                 latest.status === 'running'
               }
               title="Re-run Generation"
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-hairline-strong bg-surface-card px-3.5 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-hairline-strong bg-surface-card px-3 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw
                 className={cn('h-4 w-4', regenerate.isPending && 'animate-spin')}
                 aria-hidden="true"
               />
-              {regenerate.isPending ? 'Re-running…' : 'Re-run'}
+              <span className="hidden sm:inline">{regenerate.isPending ? 'Re-running…' : 'Re-run'}</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
             title="Settings"
-            className="inline-flex h-10 w-10 items-center justify-center text-muted-strong hover:text-ink transition-colors cursor-pointer"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-strong transition-colors hover:bg-canvas-soft hover:text-ink cursor-pointer"
           >
             <Settings className="h-4.5 w-4.5" aria-hidden="true" />
             <span className="sr-only">Settings</span>

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UnfurlPreview } from './unfurl-preview';
 import { describe, it, expect } from 'vitest';
-import type { ManifestPage } from './pages-tree';
+import type { ManifestPage } from './pages-tree-data';
 
 describe('UnfurlPreview Component', () => {
   const mockPage: ManifestPage = {

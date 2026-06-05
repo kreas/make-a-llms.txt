@@ -73,4 +73,14 @@ describe('PageWorkspaceProvider URL backing', () => {
     expect(replace.mock.calls[0][0]).toContain('page=services%2Fbranding');
     expect(replace.mock.calls[0][1]).toEqual({ scroll: false });
   });
+
+  it('preserves other query params when writing the page', async () => {
+    searchParams = new URLSearchParams('action=regenerate');
+    renderWith(['index', 'services/branding']);
+    await screen.findByText('index');
+    fireEvent.click(screen.getByText('pick'));
+    const written = replace.mock.calls[0][0] as string;
+    expect(written).toContain('action=regenerate');
+    expect(written).toContain('page=services%2Fbranding');
+  });
 });

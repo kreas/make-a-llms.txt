@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { Settings, Link as LinkIcon, Clock, RefreshCw } from 'lucide-react';
@@ -15,6 +16,7 @@ import { SetupPanel } from '@/components/generations/setup-panel';
 import { RecommendablePanel } from '@/components/generations/recommendable-panel';
 import { PageWorkspaceProvider } from '@/components/generations/page-workspace-context';
 import { PagesRail } from '@/components/generations/pages-rail';
+import { useAppShellRail } from '@/components/layout/app-shell-rail';
 import { GenerationsPopover } from '@/components/generations/generations-popover';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,6 +46,7 @@ export function SiteDetailClient({
   const screenSize = useScreenSize();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { mount: railMount, setActive: setRailActive } = useAppShellRail();
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -59,6 +62,12 @@ export function SiteDetailClient({
   const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
   const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId as number | null);
   const selected = mergedGenerations.find((g) => g.id === selectedId) ?? null;
+
+  // Register the AppShell right-rail column for this page (renders the pages tree).
+  useEffect(() => {
+    setRailActive(true);
+    return () => setRailActive(false);
+  }, [setRailActive]);
 
   useEffect(() => {
     const key = `fresh-token-${site.uid}`;
@@ -260,9 +269,8 @@ export function SiteDetailClient({
       </header>
 
       <PageWorkspaceProvider generation={selected}>
-        <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-[minmax(0,1fr)_320px]">
-          {/* The Gooey Folder Container */}
-          <div className="relative w-full min-w-0">
+        {/* The Gooey Folder Container (center content; pages tree is portaled to the shell rail) */}
+        <div className="relative w-full min-w-0">
             <GooeyFilter id="folder-gooey-filter" strength={screenSize.lessThan('md') ? 8 : 15} />
 
             {/* Layer 1: Visual backgrounds (filtered, with -top-8 offset to prevent gooey tab curve clipping) */}
@@ -352,9 +360,8 @@ export function SiteDetailClient({
             </div>
           </div>
 
-          {/* Right rail */}
-          <PagesRail />
-        </div>
+          {/* Pages tree → portaled into the AppShell's full-height right rail column */}
+          {railMount && createPortal(<PagesRail />, railMount)}
       </PageWorkspaceProvider>
 
       <SettingsDialog

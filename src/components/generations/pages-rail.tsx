@@ -37,8 +37,8 @@ export function PagesRail() {
   const treeKey = useMemo(() => Object.keys(data).join('|'), [data]);
 
   return (
-    <aside className="sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col rounded-2xl border border-hairline bg-surface-card p-3 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
-      <div className="flex shrink-0 items-center justify-between px-2 pb-2">
+    <aside className="flex h-full flex-col bg-surface-card p-4">
+      <div className="flex shrink-0 items-center justify-between px-1 pb-3">
         <span className="caption-uppercase text-muted-strong">Pages</span>
         <span className="text-xs text-muted-strong">{pages.length}</span>
       </div>

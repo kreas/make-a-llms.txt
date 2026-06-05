@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
+import { AppShellRailProvider } from './app-shell-rail';
 
 export function AppShell({ userEmail, children }: { userEmail: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [railActive, setRailActive] = useState(false);
+  const [railMount, setRailMount] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -16,7 +19,10 @@ export function AppShell({ userEmail, children }: { userEmail: string; children:
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
+  const rail = useMemo(() => ({ mount: railMount, setActive: setRailActive }), [railMount]);
+
   return (
+    <AppShellRailProvider value={rail}>
     <div className="flex min-h-screen bg-canvas text-ink">
       {/* Desktop sidebar */}
       <aside className="hidden w-[228px] shrink-0 border-r border-hairline md:block">
@@ -58,6 +64,15 @@ export function AppShell({ userEmail, children }: { userEmail: string; children:
         </div>
         <main className="relative w-full flex-1 px-6 py-10 md:px-8">{children}</main>
       </div>
+
+      {/* Right rail column (e.g. the project pages tree) — only when a page registers it.
+          Full window height + resize-safe via sticky h-screen, symmetric to the menu sidebar. */}
+      {railActive && (
+        <aside className="hidden w-[340px] shrink-0 border-l border-hairline lg:block">
+          <div ref={setRailMount} className="sticky top-0 h-screen overflow-hidden" />
+        </aside>
+      )}
     </div>
+    </AppShellRailProvider>
   );
 }

@@ -5,6 +5,12 @@ import { RecognizedPanel } from './recognized-panel';
 import { PageWorkspaceProvider } from './page-workspace-context';
 import type { Generation } from '@/db/schema';
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('../citations/page-questions', () => ({
   PageQuestions: ({ pageUrl }: { pageUrl: string }) => <div>questions:{pageUrl}</div>,
 }));

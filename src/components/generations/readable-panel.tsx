@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { FileText, RefreshCw, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { TabPanel } from '@/components/layout/tab-panel';
-import { PagesTree } from './pages-tree';
 import { PagesPreview } from './pages-preview';
 import { CitationsPageDetail } from '../citations/citations-page-detail';
 import { usePageWorkspace } from './page-workspace-context';
@@ -28,7 +27,7 @@ function Placeholder({ children }: { children: React.ReactNode }) {
 
 export function ReadablePanel({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { generation, pages, manifestPending, selectedPath, setSelectedPath } = usePageWorkspace();
+  const { generation, pages, selectedPath } = usePageWorkspace();
   const [subTab, setSubTab] = useState<'citation-audit' | 'markdown'>('citation-audit');
   const [copyingState, setCopyingState] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -141,7 +140,7 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
     <TabPanel
       flat
       meta={
-        <div className="flex flex-col gap-1 md:grid md:grid-cols-[280px_1fr] md:items-center md:gap-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <p className="whitespace-nowrap text-sm text-body">{summary}</p>
           {selectedPath && selectedPage && (
             <span className="flex min-w-0 items-center gap-1.5 text-sm text-body">
@@ -155,15 +154,7 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
       }
       contentClassName="p-0"
     >
-      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[280px_1fr]">
-        <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-auto pb-4 md:pb-0 md:pr-6 border-b md:border-b-0 md:border-r border-hairline">
-          {manifestPending ? (
-            <div className="p-2 text-body">Loading manifest…</div>
-          ) : (
-            <PagesTree pages={pages} selectedPath={selectedPath} onSelect={setSelectedPath} />
-          )}
-        </div>
-        <div className="min-w-0">
+      <div className="min-w-0">
           {selectedPath && selectedPage ? (
             <div className="flex flex-col gap-6">
               {/* Menubar Box */}
@@ -265,7 +256,6 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
             </div>
           )}
         </div>
-      </div>
     </TabPanel>
   );
 }

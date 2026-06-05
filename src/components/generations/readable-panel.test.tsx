@@ -5,6 +5,12 @@ import { ReadablePanel } from './readable-panel';
 import { PageWorkspaceProvider } from './page-workspace-context';
 import type { Generation } from '@/db/schema';
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('../citations/citations-page-detail', () => ({
   CitationsPageDetail: ({ pageUrl }: { pageUrl: string }) => <div>audit:{pageUrl}</div>,
 }));

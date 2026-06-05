@@ -37,11 +37,14 @@ export function PagesRail() {
   const treeKey = useMemo(() => Object.keys(data).join('|'), [data]);
 
   return (
-    <aside className="flex h-full flex-col bg-surface-card p-4">
-      <div className="flex shrink-0 items-center justify-between px-1 pb-3">
-        <span className="caption-uppercase text-muted-strong">Pages</span>
-        <span className="text-xs text-muted-strong">{pages.length}</span>
-      </div>
+    // Top padding aligns the card under the page header (with the main content card);
+    // the card then fills to the bottom of the window. pr/pb give it breathing room.
+    <div className="flex h-full flex-col pb-4 pl-1 pr-4 pt-[188px]">
+      <aside className="flex min-h-0 flex-1 flex-col rounded-2xl border border-hairline bg-surface-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
+        <div className="flex shrink-0 items-center justify-between px-1 pb-3">
+          <span className="caption-uppercase text-muted-strong">Pages</span>
+          <span className="text-xs text-muted-strong">{pages.length}</span>
+        </div>
       {manifestPending ? (
         <p className="px-2 py-6 text-sm text-muted-strong">Loading pages…</p>
       ) : pages.length === 0 ? (
@@ -56,8 +59,9 @@ export function PagesRail() {
           selectedPath={selectedPath}
           onSelect={setSelectedPath}
         />
-      )}
-    </aside>
+        )}
+      </aside>
+    </div>
   );
 }
 

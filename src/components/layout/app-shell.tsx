@@ -68,7 +68,7 @@ export function AppShell({ userEmail, children }: { userEmail: string; children:
       {/* Right rail column (e.g. the project pages tree) — only when a page registers it.
           Full window height + resize-safe via sticky h-screen, symmetric to the menu sidebar. */}
       {railActive && (
-        <aside className="hidden w-[340px] shrink-0 border-l border-hairline lg:block">
+        <aside className="hidden w-[360px] shrink-0 lg:block">
           <div ref={setRailMount} className="sticky top-0 h-screen overflow-hidden" />
         </aside>
       )}

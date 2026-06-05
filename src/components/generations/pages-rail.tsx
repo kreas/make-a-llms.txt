@@ -37,8 +37,8 @@ export function PagesRail() {
   const treeKey = useMemo(() => Object.keys(data).join('|'), [data]);
 
   return (
-    <aside className="sticky top-4 rounded-2xl border border-hairline bg-surface-card p-3 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
-      <div className="flex items-center justify-between px-2 pb-2">
+    <aside className="sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col rounded-2xl border border-hairline bg-surface-card p-3 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
+      <div className="flex shrink-0 items-center justify-between px-2 pb-2">
         <span className="caption-uppercase text-muted-strong">Pages</span>
         <span className="text-xs text-muted-strong">{pages.length}</span>
       </div>
@@ -90,12 +90,10 @@ function RailTree({
       selectedItems: selectedPath ? [selectedPath] : [],
     },
     onPrimaryAction: (item) => {
-      if (item.isFolder()) {
-        if (item.isExpanded()) item.collapse();
-        else item.expand();
-      } else {
-        onSelect(item.getId());
-      }
+      // Folders: headless-tree's own onClick already toggles expand/collapse. Toggling
+      // here too would double-toggle and the folder would never change state. Only
+      // handle leaf selection.
+      if (!item.isFolder()) onSelect(item.getId());
     },
     features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, searchFeature],
   });
@@ -110,8 +108,8 @@ function RailTree({
     : null;
 
   return (
-    <div>
-      <div className="mb-2 flex items-center gap-2 rounded-lg border border-hairline bg-canvas-soft px-2.5">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-2 flex shrink-0 items-center gap-2 rounded-lg border border-hairline bg-canvas-soft px-2.5">
         <Search className="h-3.5 w-3.5 text-muted-strong" aria-hidden />
         <input
           value={search}
@@ -125,7 +123,7 @@ function RailTree({
         matches.length === 0 ? (
           <p className="px-2 py-6 text-sm text-muted-strong">No pages match.</p>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
             {matches.map((d) => (
               <button
                 key={d.id}
@@ -141,7 +139,7 @@ function RailTree({
           </div>
         )
       ) : (
-        <Tree tree={tree} indent={INDENT} className="max-h-[60vh] overflow-auto">
+        <Tree tree={tree} indent={INDENT} className="min-h-0 flex-1 overflow-auto">
           {tree.getItems().map((item) => {
             const d = item.getItemData();
             return (

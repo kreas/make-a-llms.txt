@@ -37,6 +37,15 @@ describe('buildPageTreeData', () => {
     expect(data['services'].total).toBe(2);
     expect(data['services'].okCount).toBe(1);
   });
+
+  it('skips pages with a null path and ignores duplicate paths', () => {
+    const data = buildPageTreeData([
+      { url: 'https://x.com/', path: null, filename: null, status: 'skipped', blobPath: null },
+      page('about'),
+      page('about'), // duplicate
+    ]);
+    expect(data[ROOT_ID].childrenIds).toEqual(['about']);
+  });
 });
 
 describe('ancestorFolderIds', () => {

@@ -33,6 +33,9 @@ the shared page selection across the page-specific tabs. Rebuild the tree itself
 
 - **Visibility:** rail is **always visible** on every tab (stable two-column layout).
 - **Selection:** selecting a page updates shared `selectedPath` only; does **not** switch tabs.
+- **URL-backed selection:** the selected page is reflected in a `?page=<path>` query param
+  so a refresh (or a shared/bookmarked URL) restores the same page instead of resetting to
+  the index. Selection writes the param; load reads it.
 - **Tree implementation:** use the supplied headless-tree `Tree`/`TreeItem`/`TreeItemLabel`
   primitive (`src/components/ui/tree.tsx`) driven by `@headless-tree/react`'s `useTree`.
 - **Status signals:** keep the per-page status dot (ok/failed/skipped) **and** folder
@@ -49,7 +52,24 @@ the shared page selection across the page-specific tabs. Rebuild the tree itself
 
 Move `PageWorkspaceProvider generation={selected}` up so it wraps both the folder column
 and the rail (today it wraps only the content panels). Single source for selection +
-manifest. No change to the provider internals or the manifest API.
+manifest. The manifest API is unchanged; the provider's selection internals change for the
+URL backing (below).
+
+**URL-backed selection (inside `page-workspace-context.tsx`).** The provider becomes the
+single owner of read/write to a `?page=<path>` query param using `next/navigation`
+(`useSearchParams`, `useRouter`, `usePathname` — the page is already a client tree using
+`useSearchParams`):
+
+- **Read:** the effective `selectedPath` derives from `searchParams.get('page')` when that
+  value is a known page in the manifest; otherwise fall back to the existing default
+  (`index` if present, else first page). Replaces today's local `manualSelected` state as
+  the source of truth.
+- **Write:** `setSelectedPath(path)` calls `router.replace` with the merged search params
+  (preserve any existing params such as `action`), `{ scroll: false }`, and an
+  `encodeURIComponent`'d path value (page paths contain `/`). Use `replace` (not `push`) so
+  page clicks don't stack history entries.
+- Decode the param on read. Unknown/stale `?page` values fall through to the default with
+  no error.
 
 ### 4.2 Dependencies + tree primitive
 
@@ -135,6 +155,8 @@ calls `setSelectedPath`, re-rendering the active page panel's detail.
 - Manifest skipped/failed → empty `pages` → empty hint.
 - Filter with no matches → "No pages match" (or headless-tree's empty match state).
 - Long lists → tree scrolls inside the card; card stays sticky.
+- `?page=` absent or pointing at a non-existent page → fall back to the default (index/first),
+  no error. Selecting a page then writes/repairs the param.
 
 ## 7. Components & tests
 
@@ -151,7 +173,10 @@ Modified:
 - `site-detail-client.tsx`: lift provider, two-column layout, render `PagesRail`.
 - `readable-panel.tsx` / `recognized-panel.tsx`: drop inline tree; single-column detail;
   update tests to no longer assert an inline tree.
-- `page-workspace-context.tsx`: unchanged internals; only mount location moves.
+- `page-workspace-context.tsx`: mount location moves up; selection becomes URL-backed
+  (`?page=`) via `next/navigation`. Test the read (initial `?page` selects that page) and
+  write (selecting calls `router.replace` with the encoded path) with mocked
+  `next/navigation` hooks, plus the unknown-param fallback.
 
 Removed:
 - `pages-tree.tsx` and `pages-tree.test.tsx` (logic preserved in `pages-tree-data.ts`).
@@ -164,6 +189,8 @@ Removed:
   status dots, and folder `(ok/total)` counts.
 - Readable & Recognized no longer render their own tree; detail spans the full content column.
 - Selecting a page in the rail updates the Readable/Recognized detail; it does not switch tabs.
+- Selecting a page sets `?page=<path>`; refreshing (or opening that URL) restores the same
+  selected page instead of resetting to the index.
 - Loading / empty / no-match states render correctly.
 - No off-palette colors (search highlight uses a DESIGN token); `text-muted-strong` for muted text.
 - `pnpm test` + `pnpm build` pass; new components/helpers have tests.

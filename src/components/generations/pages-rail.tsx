@@ -23,10 +23,10 @@ const INDENT = 16;
 function StatusDot({ status }: { status: 'ok' | 'failed' | 'skipped' }) {
   const cls =
     status === 'ok'
-      ? 'bg-green-500'
+      ? 'bg-semantic-success'
       : status === 'failed'
         ? 'bg-destructive'
-        : 'bg-border';
+        : 'bg-hairline-strong';
   return <span aria-label={status} className={`inline-block h-2 w-2 shrink-0 rounded-full ${cls}`} />;
 }
 

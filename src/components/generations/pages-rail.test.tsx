@@ -42,4 +42,13 @@ describe('PagesRail', () => {
     fireEvent.click(about);
     expect(setSelectedPath).toHaveBeenCalledWith('about');
   });
+
+  it('filters the visible pages by the search box', () => {
+    setCtx({ pages: [page('about'), page('pricing'), page('contact')], selectedPath: 'about' });
+    render(<PagesRail />);
+    fireEvent.change(screen.getByLabelText(/filter pages/i), { target: { value: 'pric' } });
+    expect(screen.getByText('pricing')).toBeInTheDocument();
+    expect(screen.queryByText('about')).toBeNull();
+    expect(screen.queryByText('contact')).toBeNull();
+  });
 });

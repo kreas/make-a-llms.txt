@@ -83,6 +83,8 @@ function RailTree({
       getChildren: (id) => data[id]?.childrenIds ?? [],
     },
     indent: INDENT,
+    // expanded + selectedPath seed initialState only (consumed at mount). URL back/forward
+    // won't move the highlight without a remount, which we intentionally avoid (keeps scroll).
     initialState: {
       expandedItems: expanded,
       selectedItems: selectedPath ? [selectedPath] : [],
@@ -98,13 +100,13 @@ function RailTree({
     features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, searchFeature],
   });
 
-  // Wire search: tree.setSearch drives headless-tree's searchFeature so
-  // tree.getItems() automatically returns only matching items when active.
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearch(value);
-    tree.setSearch(value.length > 0 ? value : null);
-  };
+  // Local filter: headless-tree's setSearch only highlights matches, it does not
+  // narrow getItems(). When the box is non-empty, show only matching leaf items.
+  const allItems = tree.getItems();
+  const q = search.trim().toLowerCase();
+  const visibleItems = q
+    ? allItems.filter((it) => !it.isFolder() && it.getItemData().name.toLowerCase().includes(q))
+    : allItems;
 
   return (
     <div>
@@ -112,14 +114,14 @@ function RailTree({
         <Search className="h-3.5 w-3.5 text-muted-strong" aria-hidden />
         <input
           value={search}
-          onChange={handleSearchChange}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Filter pages…"
           aria-label="Filter pages"
           className="h-8 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted-strong"
         />
       </div>
       <Tree tree={tree} indent={INDENT} className="max-h-[60vh] overflow-auto">
-        {tree.getItems().map((item) => {
+        {visibleItems.map((item) => {
           const d = item.getItemData();
           return (
             <TreeItem key={item.getId()} item={item}>

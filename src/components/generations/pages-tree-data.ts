@@ -18,6 +18,10 @@ export type TreeItemData = {
 };
 
 export const ROOT_ID = '__root__';
+// Folder node ids are namespaced so they can't collide with a leaf id (a page path).
+// e.g. a site with both a `/careers` page and `/careers/job` subpages would otherwise
+// produce a leaf id `careers` AND a folder id `careers` — a duplicate-key collision.
+const FOLDER_PREFIX = 'dir:';
 
 type FolderNode = { kind: 'folder'; id: string; name: string; children: TreeNode[]; okCount: number; total: number };
 type LeafNode = { kind: 'leaf'; id: string; name: string; page: ManifestPage };
@@ -46,7 +50,7 @@ function buildNested(pages: ManifestPage[]): FolderNode {
       const key = accum.join('/');
       let folder = folderIndex.get(key);
       if (!folder) {
-        folder = { kind: 'folder', id: key, name: segs[i], children: [], okCount: 0, total: 0 };
+        folder = { kind: 'folder', id: FOLDER_PREFIX + key, name: segs[i], children: [], okCount: 0, total: 0 };
         folderIndex.set(key, folder);
         parent.children.push(folder);
       }
@@ -107,14 +111,14 @@ export function buildPageTreeData(pages: ManifestPage[]): Record<string, TreeIte
   return map;
 }
 
-/** Folder ids that contain `path` (excluding the leaf itself). */
+/** Folder node ids that contain `path` (excluding the leaf itself), namespaced to match folder ids. */
 export function ancestorFolderIds(path: string): string[] {
   const segs = path.split('/');
   const out: string[] = [];
   const accum: string[] = [];
   for (let i = 0; i < segs.length - 1; i++) {
     accum.push(segs[i]);
-    out.push(accum.join('/'));
+    out.push(FOLDER_PREFIX + accum.join('/'));
   }
   return out;
 }

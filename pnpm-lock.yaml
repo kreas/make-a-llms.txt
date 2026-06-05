@@ -17,6 +17,12 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.1057.0
         version: 3.1057.0
+      '@headless-tree/core':
+        specifier: ^1.7.0
+        version: 1.7.0
+      '@headless-tree/react':
+        specifier: ^1.7.0
+        version: 1.7.0(@headless-tree/core@1.7.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@libsql/client':
         specifier: ^0.17.3
         version: 0.17.3
@@ -1386,6 +1392,16 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@headless-tree/core@1.7.0':
+    resolution: {integrity: sha512-LxcX7LNepwfOPrZcs4PNfDwCzbi326uCAX5jYBfw94jI+pZQA7ANaE/No3LW0XFgcBcQtK/G2bInbVEhLF1C/Q==}
+
+  '@headless-tree/react@1.7.0':
+    resolution: {integrity: sha512-hcnG4mpTP98KVWZYqKsXNOoiv7ZQqZVM2jWwzEWtF+VDSz+1O/juMI+/Q0G4lZM+ez07/tmBBWjvZub/mLAUXQ==}
+    peerDependencies:
+      '@headless-tree/core': '*'
+      react: '*'
+      react-dom: '*'
 
   '@hono/node-server@1.19.9':
     resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
@@ -9577,6 +9593,14 @@ snapshots:
       react-dom: 19.2.6(react@19.2.6)
     optionalDependencies:
       '@types/react': 19.2.14
+
+  '@headless-tree/core@1.7.0': {}
+
+  '@headless-tree/react@1.7.0(@headless-tree/core@1.7.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      '@headless-tree/core': 1.7.0
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
 
   '@hono/node-server@1.19.9(hono@4.11.9)':
     dependencies:

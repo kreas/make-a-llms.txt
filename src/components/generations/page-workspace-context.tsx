@@ -1,8 +1,9 @@
 'use client';
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import type { Generation } from '@/db/schema';
-import type { ManifestPage } from './pages-tree';
+import type { ManifestPage } from './pages-tree-data';
 
 type ManifestResponse =
   | { status: 'pending' | 'running'; pages: [] }
@@ -18,6 +19,7 @@ type Ctx = {
 };
 
 const PageWorkspaceContext = createContext<Ctx | null>(null);
+const PAGE_PARAM = 'page';
 
 export function PageWorkspaceProvider({
   generation,
@@ -26,7 +28,9 @@ export function PageWorkspaceProvider({
   generation: Generation | null;
   children: React.ReactNode;
 }) {
-  const [manualSelected, setManualSelected] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const q = useQuery({
     queryKey: ['pagesManifest', generation?.id, generation?.pagesStatus],
@@ -44,16 +48,27 @@ export function PageWorkspaceProvider({
   const manifest = q.data && 'pages' in q.data ? q.data : null;
   const pages = useMemo(() => (manifest?.pages ?? []) as ManifestPage[], [manifest?.pages]);
 
-  // Derive the effective selection during render — no useEffect needed.
+  const urlPage = searchParams.get(PAGE_PARAM);
+
+  // Effective selection: a valid ?page= wins; else index; else first page.
   const selectedPath = useMemo(() => {
-    if (manualSelected && pages.some((p) => p.path === manualSelected)) return manualSelected;
+    if (urlPage && pages.some((p) => p.path === urlPage)) return urlPage;
     if (pages.some((p) => p.path === 'index')) return 'index';
     return pages[0]?.path ?? null;
-  }, [manualSelected, pages]);
+  }, [urlPage, pages]);
+
+  const setSelectedPath = useCallback(
+    (path: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set(PAGE_PARAM, path); // URLSearchParams encodes on toString()
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
 
   const value = useMemo<Ctx>(
-    () => ({ generation, pages, manifestPending: q.isPending, selectedPath, setSelectedPath: setManualSelected }),
-    [generation, pages, q.isPending, selectedPath],
+    () => ({ generation, pages, manifestPending: q.isPending, selectedPath, setSelectedPath }),
+    [generation, pages, q.isPending, selectedPath, setSelectedPath],
   );
 
   return <PageWorkspaceContext.Provider value={value}>{children}</PageWorkspaceContext.Provider>;

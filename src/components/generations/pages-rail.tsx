@@ -133,7 +133,7 @@ function RailTree({
                 key={d.id}
                 type="button"
                 onClick={() => onSelect(d.id)}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-body hover:bg-canvas-soft"
+                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-body transition-colors hover:bg-surface-strong/50"
               >
                 <FileText className="size-4 text-muted-strong" aria-hidden />
                 {d.page && <StatusDot status={d.page.status} />}

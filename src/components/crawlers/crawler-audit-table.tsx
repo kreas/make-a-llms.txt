@@ -4,6 +4,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { AddTaskButton } from '@/components/tasks/add-task-button';
 
 export type EffectiveStatus = 'allowed' | 'blocked' | 'partial';
 
@@ -28,7 +29,7 @@ const STATUS_PILL: Record<EffectiveStatus, { label: string; className: string }>
   },
 };
 
-export function CrawlerAuditTable({ rows }: { rows: CrawlerAuditRow[] }) {
+export function CrawlerAuditTable({ rows, siteUid }: { rows: CrawlerAuditRow[]; siteUid: string }) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="overflow-hidden">
@@ -41,6 +42,7 @@ export function CrawlerAuditTable({ rows }: { rows: CrawlerAuditRow[] }) {
               <th className="caption-uppercase px-4 py-3 text-right text-muted-strong">
                 Status
               </th>
+              <th aria-hidden="true" className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -65,6 +67,20 @@ export function CrawlerAuditTable({ rows }: { rows: CrawlerAuditRow[] }) {
                       </Tooltip>
                     ) : (
                       <span className={pillClass}>{pill.label}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {row.status === 'blocked' && (
+                      <AddTaskButton
+                        siteUid={siteUid}
+                        finding={{
+                          sourceType: 'crawler-audit',
+                          sourceId: row.bot,
+                          title: `Allow ${row.bot} in robots.txt`,
+                          foundText: row.reason ?? 'Blocked by robots.txt',
+                          fixText: `Update robots.txt to allow ${row.bot}.`,
+                        }}
+                      />
                     )}
                   </td>
                 </tr>

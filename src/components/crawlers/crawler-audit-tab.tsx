@@ -177,7 +177,7 @@ export function CrawlerAuditTab({ siteId }: { siteId: string }) {
           }
           contentClassName="p-0 overflow-hidden"
         >
-          <CrawlerAuditTable rows={rows} />
+          <CrawlerAuditTable rows={rows} siteUid={siteId} />
         </TabPanel>
       )}
 

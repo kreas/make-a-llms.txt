@@ -23,9 +23,12 @@ const PAGE_PARAM = 'page';
 
 export function PageWorkspaceProvider({
   generation,
+  selectParams,
   children,
 }: {
   generation: Generation | null;
+  /** Extra query params written alongside ?page= on selection (e.g. force a tab). */
+  selectParams?: Record<string, string>;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -61,9 +64,12 @@ export function PageWorkspaceProvider({
     (path: string) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set(PAGE_PARAM, path); // URLSearchParams encodes on toString()
+      for (const [key, value] of Object.entries(selectParams ?? {})) {
+        params.set(key, value);
+      }
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [router, pathname, searchParams],
+    [router, pathname, searchParams, selectParams],
   );
 
   const value = useMemo<Ctx>(

@@ -63,13 +63,6 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
     );
   }
 
-  const ok = pages.filter((p) => p.status === 'ok').length;
-  const failed = pages.filter((p) => p.status === 'failed').length;
-  const summary =
-    generation.pagesStatus === 'cancelled'
-      ? `Cancelled — ${ok} pages rendered before stop.`
-      : `${ok} of ${pages.length} pages rendered${failed > 0 ? ` — ${failed} failed` : ''}`;
-
   const handleSavePage = () => {
     if (!selectedPage?.path || !generation) return;
     const a = document.createElement('a');
@@ -139,19 +132,6 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
   return (
     <TabPanel
       flat
-      meta={
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-          <p className="whitespace-nowrap text-sm text-body">{summary}</p>
-          {selectedPath && selectedPage && (
-            <span className="flex min-w-0 items-center gap-1.5 text-sm text-body">
-              <FileText className="h-4 w-4 flex-shrink-0 text-muted-soft" />
-              <span className="truncate">
-                {selectedPage.path ? `${selectedPage.path.split('/').pop()}.md` : 'Page'}
-              </span>
-            </span>
-          )}
-        </div>
-      }
       contentClassName="p-0"
     >
       <div className="min-w-0">

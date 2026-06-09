@@ -41,10 +41,5 @@ export default async function SiteDetailPage({
     projectRunNumber,
   }));
 
-  const [allRunsCountResult] = await getDb()
-    .select({ count: sql<number>`count(*)` })
-    .from(generations);
-  const allRunsCount = allRunsCountResult?.count ?? 0;
-
-  return <SiteDetailClient site={site} generations={recentMapped} allRunsCount={allRunsCount} />;
+  return <SiteDetailClient site={site} generations={recentMapped} />;
 }

@@ -24,7 +24,7 @@ function Probe() {
   );
 }
 
-function renderWith(pagesPaths: string[]) {
+function renderWith(pagesPaths: string[], selectParams?: Record<string, string>) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   vi.stubGlobal(
     'fetch',
@@ -40,7 +40,7 @@ function renderWith(pagesPaths: string[]) {
   );
   return render(
     <QueryClientProvider client={client}>
-      <PageWorkspaceProvider generation={gen}>
+      <PageWorkspaceProvider generation={gen} selectParams={selectParams}>
         <Probe />
       </PageWorkspaceProvider>
     </QueryClientProvider>,
@@ -72,6 +72,25 @@ describe('PageWorkspaceProvider URL backing', () => {
     expect(replace).toHaveBeenCalledTimes(1);
     expect(replace.mock.calls[0][0]).toContain('page=services%2Fbranding');
     expect(replace.mock.calls[0][1]).toEqual({ scroll: false });
+  });
+
+  it('writes selectParams alongside the page on selection', async () => {
+    renderWith(['index', 'services/branding'], { tab: 'readable' });
+    await screen.findByText('index');
+    fireEvent.click(screen.getByText('pick'));
+    const written = replace.mock.calls[0][0] as string;
+    expect(written).toContain('page=services%2Fbranding');
+    expect(written).toContain('tab=readable');
+  });
+
+  it('overwrites an existing tab param via selectParams', async () => {
+    searchParams = new URLSearchParams('tab=overview');
+    renderWith(['index', 'services/branding'], { tab: 'readable' });
+    await screen.findByText('index');
+    fireEvent.click(screen.getByText('pick'));
+    const written = replace.mock.calls[0][0] as string;
+    expect(written).toContain('tab=readable');
+    expect(written).not.toContain('tab=overview');
   });
 
   it('preserves other query params when writing the page', async () => {

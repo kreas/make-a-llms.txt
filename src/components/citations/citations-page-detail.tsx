@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/accordion';
 import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
+import { AddTaskButton } from '@/components/tasks/add-task-button';
 
 const CHECK_LABEL: Record<string, string> = {
   'h1-present': 'H1 present',
@@ -216,6 +217,21 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
                         )}
                         {c.recommendation && (
                           <p className="text-sm text-ink mt-1">Fix: {c.recommendation}</p>
+                        )}
+                        {!c.passed && (
+                          <div className="mt-2">
+                            <AddTaskButton
+                              siteUid={siteUid}
+                              finding={{
+                                sourceType: 'citation-check',
+                                sourceId: c.id,
+                                pageUrl,
+                                title: CHECK_LABEL[c.id] ?? c.id,
+                                foundText: c.evidence.join(' '),
+                                fixText: c.recommendation ?? '',
+                              }}
+                            />
+                          </div>
                         )}
                       </AccordionContent>
                     </AccordionItem>

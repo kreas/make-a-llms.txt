@@ -3,6 +3,12 @@ import { describe, test, expect, vi } from 'vitest';
 import { withQueryClient } from '@/test/utils';
 import { CitationsPageDetail } from './citations-page-detail';
 
+vi.mock('@/components/tasks/add-task-button', () => ({
+  AddTaskButton: ({ finding }: { finding: { sourceId: string } }) => (
+    <div data-testid={`add-task-${finding.sourceId}`} />
+  ),
+}));
+
 const successAudit = {
   id: 'cit_1', pageUrl: 'https://x.com/a', status: 'succeeded' as const, score: 78, tier: 'good' as const,
   fetchedAt: new Date().toISOString(), errorReason: null, errorMessage: null,
@@ -69,5 +75,16 @@ describe('CitationsPageDetail', () => {
         expect.objectContaining({ method: 'POST' }),
       ),
     );
+  });
+
+  test('renders an add-task button for failing checks only', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify({ audits: [successAudit] }), {
+        status: 200, headers: { 'content-type': 'application/json' },
+      }),
+    ));
+    render(withQueryClient(<CitationsPageDetail siteUid="site_1" pageUrl="https://x.com/a" onBack={() => {}} />));
+    await waitFor(() => expect(screen.getByTestId('add-task-answer-position')).toBeInTheDocument());
+    expect(screen.queryByTestId('add-task-h1-present')).toBeNull();
   });
 });

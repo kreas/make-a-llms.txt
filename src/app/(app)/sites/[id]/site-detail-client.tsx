@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Settings, Link as LinkIcon, Clock, RefreshCw } from 'lucide-react';
-import { LazyMotion, m } from 'framer-motion';
+import { Settings, ExternalLink } from 'lucide-react';
 import type { Site, Generation } from '@/db/schema';
-
-const loadFeatures = () => import('framer-motion').then((mod) => mod.domMax);
 import { OverviewPanel } from '@/components/generations/overview-panel';
 import { ReadablePanel } from '@/components/generations/readable-panel';
 import { RecognizedPanel } from '@/components/generations/recognized-panel';
@@ -17,38 +14,55 @@ import { RecommendablePanel } from '@/components/generations/recommendable-panel
 import { PageWorkspaceProvider } from '@/components/generations/page-workspace-context';
 import { PagesRail } from '@/components/generations/pages-rail';
 import { useAppShellRail } from '@/components/layout/app-shell-rail';
-import { GenerationsPopover } from '@/components/generations/generations-popover';
+import { useAppShellHeader } from '@/components/layout/app-shell-header';
+import { useAppShellSidebarSlot } from '@/components/layout/app-shell-sidebar-slot';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GooeyFilter } from '@/components/ui/gooey-filter';
-import { useScreenSize } from '@/hooks/use-screen-size';
-import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
 
-const tabItems: { value: string; label: string; isSetup?: boolean }[] = [
+const TAB_PARAM = 'tab';
+const VALID_TABS = ['overview', 'readable', 'recommendable', 'recognized', 'setup'] as const;
+type TabValue = (typeof VALID_TABS)[number];
+
+// Clicking a page in the tree should always land on the Readable panel (citation audit).
+// Hoisted so the provider's setSelectedPath callback stays referentially stable.
+const SELECT_PAGE_PARAMS = { [TAB_PARAM]: 'readable' };
+
+const tabItems: { value: TabValue; label: string }[] = [
   { value: 'overview', label: 'Overview' },
   { value: 'readable', label: 'Readable' },
   { value: 'recommendable', label: 'Recommendable' },
   { value: 'recognized', label: 'Recognized' },
-  { value: 'setup', label: 'Setup', isSetup: true },
+  { value: 'setup', label: 'Setup' },
 ];
 
 export function SiteDetailClient({
   site,
   generations,
-  allRunsCount = 0,
 }: {
   site: Site;
   generations: (Generation & { projectRunNumber?: number })[];
-  allRunsCount?: number;
 }) {
-  const [activeTab, setActiveTab] = useState('overview');
-  const screenSize = useScreenSize();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { mount: railMount, setActive: setRailActive } = useAppShellRail();
+  const { mount: headerMount, setActive: setHeaderActive } = useAppShellHeader();
+  const { mount: sidebarMount, setActive: setSidebarActive } = useAppShellSidebarSlot();
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Derive active tab from URL — defaults to 'overview'.
+  const tabParam = searchParams.get(TAB_PARAM);
+  const activeTab: TabValue =
+    tabParam && (VALID_TABS as readonly string[]).includes(tabParam)
+      ? (tabParam as TabValue)
+      : 'overview';
+
+  const setActiveTab = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(TAB_PARAM, value);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // SSE live state merges real-time updates over the server-rendered props.
   const [liveGeneration, setLiveGeneration] = useState<Generation | null>(null);
@@ -60,14 +74,24 @@ export function SiteDetailClient({
   const latest = mergedGenerations[0] ?? null;
   const latestSucceeded = mergedGenerations.find((g) => g.status === 'succeeded') ?? null;
   const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
-  const [selectedId, setSelectedId] = useState<number | null>(defaultSelectedId as number | null);
+  const [selectedId] = useState<number | null>(defaultSelectedId as number | null);
   const selected = mergedGenerations.find((g) => g.id === selectedId) ?? null;
 
-  // Register the AppShell right-rail column for this page (renders the pages tree).
+  // Register the AppShell right-rail column, full-width page header, and sidebar slot.
   useEffect(() => {
     setRailActive(true);
     return () => setRailActive(false);
   }, [setRailActive]);
+
+  useEffect(() => {
+    setHeaderActive(true);
+    return () => setHeaderActive(false);
+  }, [setHeaderActive]);
+
+  useEffect(() => {
+    setSidebarActive(true);
+    return () => setSidebarActive(false);
+  }, [setSidebarActive]);
 
   useEffect(() => {
     const key = `fresh-token-${site.uid}`;
@@ -87,11 +111,7 @@ export function SiteDetailClient({
     onSuccess: ({ webhookToken }) => setFreshToken(webhookToken),
   });
 
-  type UpdateDetails = {
-    name?: string;
-    displayName?: string | null;
-    description?: string | null;
-  };
+  type UpdateDetails = { name?: string; displayName?: string | null; description?: string | null };
 
   const updateDetails = useMutation({
     mutationFn: async (update: UpdateDetails) => {
@@ -101,9 +121,7 @@ export function SiteDetailClient({
         body: JSON.stringify(update),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { error?: { message?: string } }
-          | null;
+        const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
         throw new Error(body?.error?.message ?? 'Failed to save changes');
       }
       return res.json();
@@ -115,9 +133,7 @@ export function SiteDetailClient({
     mutationFn: async () => {
       const res = await fetch(`/api/sites/${site.uid}/refresh-metadata`, { method: 'POST' });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { error?: { message?: string } }
-          | null;
+        const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
         throw new Error(body?.error?.message ?? 'Recapture failed');
       }
       return res.json();
@@ -132,7 +148,6 @@ export function SiteDetailClient({
 
   const regenerate = useMutation({
     mutationFn: async () => {
-      // siteId in POST body must be the site's uid (UUID string)
       const res = await fetch('/api/generations', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -141,17 +156,12 @@ export function SiteDetailClient({
       if (!res.ok) throw new Error('Regenerate failed');
       return res.json() as Promise<{ generation: Generation }>;
     },
-    onSuccess: ({ generation }) => {
-      setSelectedId(generation.id);
-      router.refresh();
-    },
+    onSuccess: () => router.refresh(),
   });
 
   // Subscribe to SSE for the in-flight generation instead of polling.
   useEffect(() => {
-    const inFlight = generations.find(
-      (g) => g.status === 'pending' || g.status === 'running',
-    );
+    const inFlight = generations.find((g) => g.status === 'pending' || g.status === 'running');
     if (!inFlight) {
       setLiveGeneration(null);
       return;
@@ -169,7 +179,7 @@ export function SiteDetailClient({
     return () => es.close();
   }, [generations, router]);
 
-  // Auto-trigger regenerate when arriving with ?action=regenerate from the dashboard's Run Now
+  // Auto-trigger regenerate when arriving with ?action=regenerate from the dashboard.
   useEffect(() => {
     if (
       searchParams.get('action') === 'regenerate' &&
@@ -186,183 +196,107 @@ export function SiteDetailClient({
       {/* Background color of this page */}
       <div className="fixed inset-0 bg-[#f3efd9] -z-20 pointer-events-none" />
 
-      <LazyMotion features={loadFeatures} strict>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-5 relative z-10">
-      {/* Compact secondary nav bar (single row): identity + meta on the left, actions on the right. */}
-      <header className="flex items-center gap-3 border-b border-hairline pb-4">
-        {site.faviconUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={site.faviconUrl}
-            alt=""
-            className="h-6 w-6 shrink-0 rounded border border-hairline bg-surface-card object-contain"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        )}
-        <h1
-          className="display-sm shrink-0 truncate text-ink"
-          title={site.description ?? undefined}
-        >
-          {site.displayName ?? site.name}
-        </h1>
-        {generations.length > 0 && (
-          <GenerationsPopover
-            generations={generations}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            allRunsCount={allRunsCount}
-          />
-        )}
-
-        {/* Compact metadata — hidden on smaller screens to keep the bar to one line */}
-        <div className="ml-1 hidden min-w-0 items-center gap-3 text-[13px] text-muted-strong lg:flex">
-          <span className="h-4 w-px shrink-0 bg-hairline" />
+      {/*
+        Page header — portaled into the AppShell's full-width header slot so it spans
+        both the content area and the right-rail column.
+      */}
+      {headerMount && createPortal(
+        <header className="flex items-center gap-3 border-b border-hairline px-6 py-3 md:px-8">
+          {site.faviconUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={site.faviconUrl}
+              alt=""
+              className="h-6 w-6 shrink-0 rounded border border-hairline bg-surface-card object-contain"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          )}
+          <h1 className="display-sm shrink-0 truncate text-ink" title={site.description ?? undefined}>
+            {site.displayName ?? site.name}
+          </h1>
           <a
             href={site.rootUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex min-w-0 items-center gap-1 font-mono transition-colors hover:text-ink"
+            title={site.rootUrl}
+            className="text-muted-strong transition-colors hover:text-ink"
           >
-            <LinkIcon className="h-4 w-4 shrink-0" />
-            <span className="truncate">{site.rootUrl.replace(/^https?:\/\//, '')}</span>
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            <span className="sr-only">Open {site.rootUrl}</span>
           </a>
-          {latest && (
-            <span className="flex shrink-0 items-center gap-1.5 font-mono">
-              <span className="h-4 w-px bg-hairline" />
-              <Clock className="h-3.5 w-3.5 text-muted-soft" />
-              Generated {formatRelativeTime(latest.createdAt)}
-            </span>
-          )}
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          {latest && (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => regenerate.mutate()}
-              disabled={
-                regenerate.isPending ||
-                latest.status === 'pending' ||
-                latest.status === 'running'
-              }
-              title="Re-run Generation"
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-hairline-strong bg-surface-card px-3 text-sm font-medium text-ink transition-colors hover:bg-canvas-soft disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-strong transition-colors hover:bg-canvas-soft hover:text-ink cursor-pointer"
             >
-              <RefreshCw
-                className={cn('h-4 w-4', regenerate.isPending && 'animate-spin')}
-                aria-hidden="true"
-              />
-              <span className="hidden sm:inline">{regenerate.isPending ? 'Re-running…' : 'Re-run'}</span>
+              <Settings className="h-4.5 w-4.5" aria-hidden="true" />
+              <span className="sr-only">Settings</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            title="Settings"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-strong transition-colors hover:bg-canvas-soft hover:text-ink cursor-pointer"
-          >
-            <Settings className="h-4.5 w-4.5" aria-hidden="true" />
-            <span className="sr-only">Settings</span>
-          </button>
-        </div>
-      </header>
+          </div>
+        </header>,
+        headerMount
+      )}
 
-      <PageWorkspaceProvider generation={selected}>
-        {/* The Gooey Folder Container (center content; pages tree is portaled to the shell rail) */}
-        <div className="relative w-full min-w-0">
-            <GooeyFilter id="folder-gooey-filter" strength={screenSize.lessThan('md') ? 8 : 15} />
-
-            {/* Layer 1: Visual backgrounds (filtered, with -top-8 offset to prevent gooey tab curve clipping) */}
-            <div className="absolute -top-8 bottom-0 left-0 right-0 pointer-events-none filter drop-shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:drop-shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
-              <div
-                className="w-full h-full"
-                style={{ filter: 'url(#folder-gooey-filter)' }}
-              >
-                {/* Folder Tabs Headers track background (72px height with 32px padding top yields 40px tab height, flush with the folder top) */}
-                <div className="flex w-full h-[72px] pt-[32px]">
-                  {tabItems.map((item, idx) => (
-                    <div key={item.value} className="relative flex-1 h-full">
-                      {activeTab === item.value && (
-                        <m.div
-                          layoutId="active-folder-tab-bg"
-                          className={cn(
-                            "absolute inset-y-0 bg-surface-card dark:bg-zinc-900",
-                            idx === 0 ? "left-0 right-2 rounded-tr-2xl rounded-tl-none" :
-                            idx === tabItems.length - 1 ? "left-2 right-0 rounded-tl-2xl rounded-tr-none" :
-                            "left-2 right-2 rounded-t-2xl"
-                          )}
-                          transition={{
-                            type: 'spring',
-                            bounce: 0.0,
-                            duration: 0.4,
-                          }}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {/* Card Body visual background (drawn below the header track, occupying parent height minus track height) */}
-                <div
-                  className={cn(
-                    "w-full bg-surface-card dark:bg-zinc-900 rounded-b-2xl h-[calc(100%-72px)]",
-                    activeTab === tabItems[0].value ? "rounded-tl-none" : "rounded-tl-2xl",
-                    activeTab === tabItems[tabItems.length - 1].value ? "rounded-tr-none" : "rounded-tr-2xl"
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Layer 2: Interactive controls & content panels (unfiltered, z-10) */}
-            <div className="relative z-10 flex flex-col">
-              {/* Interactive Triggers (Folder Tab Headers) */}
-              <TabsList className="bg-transparent border-transparent p-0 flex w-full h-10! pt-0! group-data-[orientation=horizontal]/tabs:h-10 group-data-[orientation=horizontal]/tabs:pt-0">
-                {tabItems.map((item) => (
-                  <Fragment key={item.value}>
-                    {item.isSetup && (
-                      <span aria-hidden className="self-center mx-1 h-5 w-px bg-hairline-strong" />
-                    )}
-                    <TabsTrigger
-                      value={item.value}
-                      className={cn(
-                        'flex-1 h-10 flex items-center justify-center transition-colors duration-200 outline-none',
-                        'data-[state=active]:bg-transparent! data-[state=active]:shadow-none! data-[state=active]:border-transparent! dark:data-[state=active]:bg-transparent! dark:data-[state=active]:border-transparent!',
-                        activeTab === item.value
-                          ? 'text-ink font-semibold'
-                          : 'text-muted-foreground hover:text-ink',
-                        item.isSetup && 'opacity-70',
-                      )}
-                    >
-                      {item.label}
-                    </TabsTrigger>
-                  </Fragment>
-                ))}
-              </TabsList>
-
-              {/* Content panel area */}
-              <div className="p-4 md:p-6 min-w-0 min-h-[600px]">
-                <TabsContent value="overview" className="mt-0 outline-none">
-                  <OverviewPanel siteId={site.uid} onNavigate={setActiveTab} />
-                </TabsContent>
-                <TabsContent value="readable" className="mt-0 outline-none">
-                  <ReadablePanel siteId={site.uid} />
-                </TabsContent>
-                <TabsContent value="recommendable" className="mt-0 outline-none">
-                  <RecommendablePanel siteId={site.uid} />
-                </TabsContent>
-                <TabsContent value="recognized" className="mt-0 outline-none">
-                  <RecognizedPanel siteId={site.uid} />
-                </TabsContent>
-                <TabsContent value="setup" className="mt-0 outline-none">
-                  <SetupPanel generation={selected} siteId={site.uid} />
-                </TabsContent>
-              </div>
-            </div>
+      {/*
+        Sidebar nav — portaled into the AppShell sidebar slot, replacing the generic
+        "Websites" link with this site's name and the panel tabs as sub-links.
+      */}
+      {sidebarMount && createPortal(
+        <div className="flex flex-col gap-0.5">
+          {/* Site identity row */}
+          <div className="flex items-center gap-2.5 px-2.5 py-2">
+            {site.faviconUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={site.faviconUrl}
+                alt=""
+                className="h-4 w-4 shrink-0 rounded object-contain"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
+            ) : (
+              <span className="h-4 w-4 shrink-0" />
+            )}
+            <span className="truncate text-sm font-medium text-ink">
+              {site.displayName ?? site.name}
+            </span>
           </div>
 
-          {/* Pages tree → portaled into the AppShell's full-height right rail column */}
-          {railMount && createPortal(<PagesRail />, railMount)}
+          {/* Tab links — sub-items indented under the site name */}
+          {tabItems.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveTab(tab.value as string)}
+              className={cn(
+                'flex w-full items-center rounded-lg pl-9 pr-2.5 py-2 text-sm text-left transition-colors',
+                activeTab === tab.value
+                  ? 'bg-surface-strong font-medium text-ink'
+                  : 'text-body hover:bg-surface-card',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>,
+        sidebarMount
+      )}
+
+      <PageWorkspaceProvider generation={selected} selectParams={SELECT_PAGE_PARAMS}>
+        {/* Content card — mirrors the pages rail card style */}
+        <div className="rounded-2xl border border-hairline bg-surface-card shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
+          <div className="p-4 md:p-6 min-h-[400px]">
+            {activeTab === 'overview' && <OverviewPanel siteId={site.uid} onNavigate={setActiveTab} />}
+            {activeTab === 'readable' && <ReadablePanel siteId={site.uid} />}
+            {activeTab === 'recommendable' && <RecommendablePanel siteId={site.uid} />}
+            {activeTab === 'recognized' && <RecognizedPanel siteId={site.uid} />}
+            {activeTab === 'setup' && <SetupPanel generation={selected} siteId={site.uid} />}
+          </div>
+        </div>
+
+        {/* Pages tree → portaled into the AppShell's full-height right rail column */}
+        {railMount && createPortal(<PagesRail />, railMount)}
       </PageWorkspaceProvider>
 
       <SettingsDialog
@@ -386,13 +320,9 @@ export function SiteDetailClient({
         isRecapturing={recaptureMetadata.isPending}
         detailsError={detailsError}
       />
-    </Tabs>
-      </LazyMotion>
 
-    {/* Full-width illustration background image at the bottom, fixed to viewport to prevent jumping */}
-    <div
-      className="fixed bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/site-detail-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10"
-    />
-  </div>
+      {/* Full-width illustration background at the bottom, fixed to viewport */}
+      <div className="fixed bottom-0 left-1/2 w-screen -translate-x-1/2 aspect-[1024/438] bg-[url('/site-detail-cats.png')] bg-bottom bg-no-repeat bg-cover pointer-events-none -z-10" />
+    </div>
   );
 }

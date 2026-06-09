@@ -37,9 +37,8 @@ export function PagesRail() {
   const treeKey = useMemo(() => Object.keys(data).join('|'), [data]);
 
   return (
-    // Top padding aligns the card top with the content tabs card (symmetry).
-    // (main pt-4 = 16 + the one-row header ≈ 53 + the gap-5 = 20 ≈ 89)
-    <div className="flex h-full flex-col pb-4 pl-1 pr-4 pt-[89px]">
+    // pt-4 matches the top padding on <main> so the card aligns with the tab card.
+    <div className="flex h-full flex-col pb-4 pl-1 pr-4 pt-4">
       <aside className="flex min-h-0 flex-1 flex-col rounded-2xl border border-hairline bg-surface-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
           <span className="caption-uppercase text-muted-strong">Pages</span>

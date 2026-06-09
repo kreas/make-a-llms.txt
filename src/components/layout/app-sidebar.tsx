@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutGrid, Globe, History, Bell, Settings, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/auth/user-menu';
+import { useAppShellSidebarSlot } from './app-shell-sidebar-slot';
 
 type NavItem = {
   label: string;
@@ -26,8 +27,16 @@ const ACCOUNT: NavItem[] = [
   { label: 'Docs', href: '/docs', icon: BookOpen, activeWhen: (p) => p.startsWith('/docs') },
 ];
 
-export function AppSidebar({ userEmail }: { userEmail: string }) {
+export function AppSidebar({
+  userEmail,
+  slotRef,
+}: {
+  userEmail: string;
+  slotRef?: (el: HTMLElement | null) => void;
+}) {
   const pathname = usePathname();
+  const { active: slotActive } = useAppShellSidebarSlot();
+
   return (
     <div className="flex h-full w-full flex-col gap-6 bg-canvas-soft p-4">
       <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-1">
@@ -38,6 +47,8 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
 
       <nav className="flex flex-col gap-1">
         {PRIMARY.map((item) => {
+          // Hide "Websites" when a site page has injected its own nav
+          if (item.label === 'Websites' && slotActive) return null;
           const active = item.activeWhen(pathname);
           const Icon = item.icon;
           return (
@@ -55,6 +66,14 @@ export function AppSidebar({ userEmail }: { userEmail: string }) {
             </Link>
           );
         })}
+
+        {/*
+          Sidebar slot — always mounted so the ref fires immediately (no timing gap).
+          Hidden via display:none when inactive so the gap-1 spacing doesn't bleed in.
+          A page calls useAppShellSidebarSlot().setActive(true) then portals its nav here.
+        */}
+        <div ref={slotRef} className={slotActive ? undefined : 'hidden'} />
+
         {SOON.map(({ label, icon: Icon }) => (
           <div
             key={label}

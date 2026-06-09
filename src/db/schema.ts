@@ -335,3 +335,43 @@ export const pageQuestionAnswersCache = sqliteTable(
 
 export type PageQuestionAnswersCache = typeof pageQuestionAnswersCache.$inferSelect;
 export type NewPageQuestionAnswersCache = typeof pageQuestionAnswersCache.$inferInsert;
+
+export const siteTasks = sqliteTable(
+  'site_tasks',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    uid: text('uid').notNull().unique().$defaultFn(generateUid),
+    siteId: integer('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    sourceType: text('source_type', {
+      enum: ['citation-check', 'geo-signal', 'crawler-audit', 'setup'],
+    }).notNull(),
+    sourceId: text('source_id').notNull(),
+    // '' (never NULL) for site-level tasks: SQLite treats NULLs as distinct in
+    // unique indexes, which would break the one-task-per-finding guarantee.
+    pageUrl: text('page_url').notNull().default(''),
+    title: text('title').notNull(),
+    foundText: text('found_text').notNull().default(''),
+    fixText: text('fix_text').notNull().default(''),
+    status: text('status', { enum: ['open', 'done', 'verified', 'wont_do'] })
+      .notNull()
+      .default('open'),
+    createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+    statusChangedAt: text('status_changed_at')
+      .notNull()
+      .default(sql`(current_timestamp)`),
+  },
+  (t) => ({
+    sourceKey: unique('site_tasks_source_key').on(
+      t.siteId,
+      t.sourceType,
+      t.sourceId,
+      t.pageUrl,
+    ),
+    bySiteStatus: index('site_tasks_by_site_status').on(t.siteId, t.status),
+  }),
+);
+
+export type SiteTask = typeof siteTasks.$inferSelect;
+export type NewSiteTask = typeof siteTasks.$inferInsert;

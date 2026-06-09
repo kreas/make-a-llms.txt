@@ -5,6 +5,12 @@ import { withQueryClient } from '@/test/utils';
 import { CrawlerAuditTab } from './crawler-audit-tab';
 import { KNOWN_AI_BOTS, type AuditResults } from '@/lib/known-ai-bots';
 
+vi.mock('@/components/tasks/add-task-button', () => ({
+  AddTaskButton: ({ finding }: { finding: { sourceId: string } }) => (
+    <div data-testid={`add-task-${finding.sourceId}`} />
+  ),
+}));
+
 function emptyResults(): AuditResults {
   return Object.fromEntries(
     KNOWN_AI_BOTS.map((b) => [b, { status: 'default' as const }]),

@@ -17,10 +17,12 @@ import { useAppShellRail } from '@/components/layout/app-shell-rail';
 import { useAppShellHeader } from '@/components/layout/app-shell-header';
 import { useAppShellSidebarSlot } from '@/components/layout/app-shell-sidebar-slot';
 import { SettingsDialog } from '@/components/sites/settings-dialog';
+import { TasksPanel } from '@/components/tasks/tasks-panel';
+import { useSiteTasks } from '@/hooks/use-site-tasks';
 import { cn } from '@/lib/utils';
 
 const TAB_PARAM = 'tab';
-const VALID_TABS = ['overview', 'readable', 'recommendable', 'recognized', 'setup'] as const;
+const VALID_TABS = ['overview', 'readable', 'recommendable', 'recognized', 'setup', 'tasks'] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 // Clicking a page in the tree should always land on the Readable panel (citation audit).
@@ -33,6 +35,7 @@ const tabItems: { value: TabValue; label: string }[] = [
   { value: 'recommendable', label: 'Recommendable' },
   { value: 'recognized', label: 'Recognized' },
   { value: 'setup', label: 'Setup' },
+  { value: 'tasks', label: 'Tasks' },
 ];
 
 export function SiteDetailClient({
@@ -50,6 +53,9 @@ export function SiteDetailClient({
   const { mount: sidebarMount, setActive: setSidebarActive } = useAppShellSidebarSlot();
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const siteTasksQuery = useSiteTasks(site.uid);
+  const openTaskCount = siteTasksQuery.data?.tasks.filter((t) => t.status === 'open').length ?? 0;
 
   // Derive active tab from URL — defaults to 'overview'.
   const tabParam = searchParams.get(TAB_PARAM);
@@ -277,6 +283,11 @@ export function SiteDetailClient({
               )}
             >
               {tab.label}
+              {tab.value === 'tasks' && openTaskCount > 0 && (
+                <span className="ml-auto rounded-full border border-hairline bg-surface-card px-1.5 py-px text-[10px] font-semibold text-muted-strong">
+                  {openTaskCount}
+                </span>
+              )}
             </button>
           ))}
         </div>,
@@ -292,6 +303,7 @@ export function SiteDetailClient({
             {activeTab === 'recommendable' && <RecommendablePanel siteId={site.uid} />}
             {activeTab === 'recognized' && <RecognizedPanel siteId={site.uid} />}
             {activeTab === 'setup' && <SetupPanel generation={selected} siteId={site.uid} />}
+            {activeTab === 'tasks' && <TasksPanel siteUid={site.uid} />}
           </div>
         </div>
 

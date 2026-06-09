@@ -97,7 +97,7 @@ export function RecommendablePanel({ siteId }: { siteId: string }) {
         {audit?.fetchedAt ? `Last analyzed ${formatRelativeTime(audit.fetchedAt)} · ` : ''}
         {result.siteType} · goal: {result.goal}
       </p>
-      <GeoSignalList signals={result.signals} />
+      <GeoSignalList signals={result.signals} siteUid={siteId} />
       <p className="mt-4 text-xs text-muted-soft">
         Scanned {result.metadata.pagesScanned} pages, checked {result.metadata.confirmCalls} candidates with a model.
       </p>

@@ -1,6 +1,7 @@
 'use client';
 import { Check, X } from 'lucide-react';
 import type { SerializedSiteGeoAudit } from '@/lib/geo-audit/serialize';
+import { AddTaskButton } from '@/components/tasks/add-task-button';
 
 type Signal = NonNullable<SerializedSiteGeoAudit['results']>['signals'][number];
 
@@ -8,7 +9,7 @@ function pathOf(url: string): string {
   try { return new URL(url).pathname; } catch { return url; }
 }
 
-export function GeoSignalList({ signals }: { signals: Signal[] }) {
+export function GeoSignalList({ signals, siteUid }: { signals: Signal[]; siteUid: string }) {
   return (
     <ul className="divide-y divide-hairline">
       {signals.map((s) => (
@@ -43,8 +44,24 @@ export function GeoSignalList({ signals }: { signals: Signal[] }) {
                 ))}
               </div>
             )}
-            {!s.present && s.recommendation && (
-              <p className="mt-1.5 border-l-2 border-hairline-strong pl-3 text-sm text-body">{s.recommendation}</p>
+            {!s.present && (
+              <div className="mt-1.5 flex flex-col gap-2">
+                {s.recommendation && (
+                  <p className="border-l-2 border-hairline-strong pl-3 text-sm text-body">{s.recommendation}</p>
+                )}
+                <div>
+                  <AddTaskButton
+                    siteUid={siteUid}
+                    finding={{
+                      sourceType: 'geo-signal',
+                      sourceId: s.signal,
+                      title: s.label,
+                      foundText: '',
+                      fixText: s.recommendation ?? '',
+                    }}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </li>

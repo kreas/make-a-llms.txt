@@ -41,6 +41,22 @@ describe('SitesTableRow', () => {
     expect(screen.getByText(/caught up/i)).toBeInTheDocument();
   });
 
+  it('shows the site favicon when one exists, letter fallback otherwise', () => {
+    const { container, unmount } = wrap(
+      row({ site: { id: 1, uid: 'uid-1', name: 'acme.com', rootUrl: 'https://acme.com', displayName: null, faviconUrl: 'https://acme.com/favicon.ico' } as Site }),
+    );
+    expect(container.querySelector('img[src="https://acme.com/favicon.ico"]')).toBeInTheDocument();
+    expect(screen.queryByText('A')).toBeNull();
+    unmount();
+    wrap(row({}));
+    expect(screen.getByText('A')).toBeInTheDocument(); // letter fallback
+  });
+
+  it('does not show the next-action recommendation under the issues pill', () => {
+    wrap(row({}));
+    expect(screen.queryByText('Add an H1')).toBeNull();
+  });
+
   it('uses the singular "1 issue" for a single issue', () => {
     wrap(row({ issues: 1 }));
     expect(screen.getByText('1 issue')).toBeInTheDocument();

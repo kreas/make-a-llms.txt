@@ -86,8 +86,8 @@ export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
             Run audit
           </Link>
         ) : issues > 0 ? (
-          <span className="rounded-full bg-[#fdeede] px-2.5 py-1 text-xs font-medium text-[#b86a14]">
-            {issues} issue{issues === 1 ? '' : 's'}
+          <span className="rounded-full bg-[#fdeede] px-2.5 py-1 text-xs font-medium tabular-nums text-[#b86a14]">
+            {issues}
           </span>
         ) : (
           <span className="rounded-full bg-[#e6f3ee] px-2.5 py-1 text-xs font-medium text-semantic-success">

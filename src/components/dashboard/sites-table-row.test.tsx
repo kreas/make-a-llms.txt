@@ -27,7 +27,7 @@ describe('SitesTableRow', () => {
     expect(screen.getByText('70')).toBeInTheDocument(); // composite ring
     expect(screen.getByText('80')).toBeInTheDocument(); // readable
     expect(screen.getByText('—')).toBeInTheDocument();  // recommendable not run
-    expect(screen.getByText(/3 issues/)).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument(); // issues count pill
   });
 
   it('shows a Run audit action for a never-audited site', () => {
@@ -57,11 +57,6 @@ describe('SitesTableRow', () => {
     expect(screen.queryByText('Add an H1')).toBeNull();
   });
 
-  it('uses the singular "1 issue" for a single issue', () => {
-    wrap(row({ issues: 1 }));
-    expect(screen.getByText('1 issue')).toBeInTheDocument();
-  });
-
   it('shows issues (not Run audit) for a GEO-only site scored without a citation audit', () => {
     // audited=false (no citation audit) but a composite exists from a GEO audit
     wrap(row({
@@ -71,6 +66,6 @@ describe('SitesTableRow', () => {
       scores: { readable: null, recommendable: { score: 65, tier: 'fair' }, recognized: null },
     }));
     expect(screen.queryByRole('link', { name: /run audit/i })).toBeNull();
-    expect(screen.getByText('2 issues')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument(); // issues count pill
   });
 });

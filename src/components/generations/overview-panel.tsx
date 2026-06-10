@@ -151,6 +151,39 @@ export function OverviewPanel({
         <p className="text-base text-body">{status}</p>
       </div>
 
+      {scores.readable && scores.recognized && scores.recommendable && (
+        <div className="mb-6 rounded-xl border border-hairline bg-surface-card p-5">
+          <p className="caption-uppercase text-muted-strong mb-3">Your AI-readiness shape</p>
+          <PillarRadar
+            readable={scores.readable.score}
+            recommendable={scores.recommendable.score}
+            recognized={scores.recognized.score}
+          />
+        </div>
+      )}
+
+      {/* Three pillar cards */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <PillarCard
+          title="Readable"
+          subtitle="Can AI read and quote your pages?"
+          score={scores.readable}
+          onClick={() => onNavigate('readable')}
+        />
+        <PillarCard
+          title="Recommendable"
+          subtitle="Will AI pick you when asked to choose?"
+          score={scores.recommendable}
+          onClick={() => onNavigate('recommendable')}
+        />
+        <PillarCard
+          title="Recognized"
+          subtitle="Does AI already know who you are?"
+          score={scores.recognized}
+          onClick={() => onNavigate('recognized')}
+        />
+      </div>
+
       {/* Do this next — three branches */}
       {nextTask !== null ? (
         /* (a) task-driven card */
@@ -245,39 +278,6 @@ export function OverviewPanel({
           </AccordionItem>
         </Accordion>
       )}
-
-      {scores.readable && scores.recognized && scores.recommendable && (
-        <div className="mb-6 rounded-xl border border-hairline bg-surface-card p-5">
-          <p className="caption-uppercase text-muted-strong mb-3">Your AI-readiness shape</p>
-          <PillarRadar
-            readable={scores.readable.score}
-            recommendable={scores.recommendable.score}
-            recognized={scores.recognized.score}
-          />
-        </div>
-      )}
-
-      {/* Three pillar cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <PillarCard
-          title="Readable"
-          subtitle="Can AI read and quote your pages?"
-          score={scores.readable}
-          onClick={() => onNavigate('readable')}
-        />
-        <PillarCard
-          title="Recommendable"
-          subtitle="Will AI pick you when asked to choose?"
-          score={scores.recommendable}
-          onClick={() => onNavigate('recommendable')}
-        />
-        <PillarCard
-          title="Recognized"
-          subtitle="Does AI already know who you are?"
-          score={scores.recognized}
-          onClick={() => onNavigate('recognized')}
-        />
-      </div>
     </TabPanel>
   );
 }

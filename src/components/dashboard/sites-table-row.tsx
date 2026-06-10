@@ -33,7 +33,7 @@ function PillarCell({ score }: { score: PillarScore | null }) {
 }
 
 export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
-  const { site, scores, composite, issues, nextAction, lastAuditedAt } = row;
+  const { site, scores, composite, issues, lastAuditedAt } = row;
   // Nothing scored yet (no citation OR GEO audit) → prompt to run one. Otherwise show issues.
   const unscored = composite === null;
   const host = site.rootUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -41,9 +41,19 @@ export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
     <tr className="border-b border-hairline">
       <td className="px-3 py-3.5">
         <Link href={`/sites/${site.uid}`} className="flex items-center gap-3 hover:opacity-80">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-strong text-[13px] font-bold text-ink">
-            {host.charAt(0).toUpperCase()}
-          </span>
+          {site.faviconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={site.faviconUrl}
+              alt=""
+              aria-hidden
+              className="h-8 w-8 shrink-0 rounded-lg border border-hairline bg-surface-card object-contain"
+            />
+          ) : (
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-strong text-[13px] font-bold text-ink">
+              {host.charAt(0).toUpperCase()}
+            </span>
+          )}
           <span className="flex flex-col">
             <span className="text-sm font-medium text-ink">{site.displayName ?? site.name}</span>
             <span className="font-mono text-[11.5px] text-muted-strong">
@@ -76,13 +86,8 @@ export function SitesTableRow({ row }: { row: DashboardSiteRow }) {
             Run audit
           </Link>
         ) : issues > 0 ? (
-          <span className="inline-flex flex-col items-end gap-0.5">
-            <span className="rounded-full bg-[#fdeede] px-2.5 py-1 text-xs font-medium text-[#b86a14]">
-              {issues} issue{issues === 1 ? '' : 's'}
-            </span>
-            {nextAction?.recommendation && (
-              <span className="max-w-[180px] truncate text-[11px] text-muted-strong">{nextAction.recommendation}</span>
-            )}
+          <span className="rounded-full bg-[#fdeede] px-2.5 py-1 text-xs font-medium text-[#b86a14]">
+            {issues} issue{issues === 1 ? '' : 's'}
           </span>
         ) : (
           <span className="rounded-full bg-[#e6f3ee] px-2.5 py-1 text-xs font-medium text-semantic-success">

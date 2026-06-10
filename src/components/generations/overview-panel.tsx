@@ -7,7 +7,6 @@ import { TabPanel } from '@/components/layout/tab-panel';
 import {
   sitePillarScores,
   pickNextAction,
-  stageStatus,
   type AuditLike,
 } from '@/lib/citation-audit/site-readiness';
 import type { Pillar } from '@/lib/citation-audit/pillars';
@@ -142,15 +141,9 @@ export function OverviewPanel({
     geo.data?.audit?.status === 'succeeded' ? (geo.data.audit.results ?? null) : null;
   const scores = sitePillarScores(audits, geoResult);
   const next = pickNextAction(audits, geoResult);
-  const status = stageStatus(scores);
 
   return (
     <TabPanel flat>
-      {/* Stage status */}
-      <div className="mb-6">
-        <p className="text-base text-body">{status}</p>
-      </div>
-
       {scores.readable && scores.recognized && scores.recommendable && (
         <div className="mb-6 rounded-xl border border-hairline bg-surface-card p-5">
           <p className="caption-uppercase text-muted-strong mb-3">Your AI-readiness shape</p>

@@ -8,6 +8,22 @@ import { usePageWorkspace } from '@/components/generations/page-workspace-contex
 import type { SerializedSiteTask } from '@/lib/tasks/serialize';
 import { cn } from '@/lib/utils';
 
+export function taskSourceHref(
+  task: Pick<SerializedSiteTask, 'sourceType' | 'pageUrl'>,
+  pathname: string,
+  pages: { url: string; path: string | null }[],
+): string | null {
+  if (task.sourceType === 'citation-check') {
+    const page = pages.find((p) => p.url === task.pageUrl);
+    return page?.path
+      ? `${pathname}?tab=readable&page=${encodeURIComponent(page.path)}`
+      : null;
+  }
+  if (task.sourceType === 'geo-signal') return `${pathname}?tab=recommendable`;
+  if (task.sourceType === 'crawler-audit') return `${pathname}?tab=setup`;
+  return null;
+}
+
 export function TasksPanel({ siteUid }: { siteUid: string }) {
   const tasksQuery = useSiteTasks(siteUid);
   const tasks = tasksQuery.data?.tasks ?? [];
@@ -74,17 +90,7 @@ function TaskRow({ task, siteUid }: { task: SerializedSiteTask; siteUid: string 
   const pathname = usePathname();
   const { pages } = usePageWorkspace();
 
-  const sourceHref = (() => {
-    if (task.sourceType === 'citation-check') {
-      const page = pages.find((p) => p.url === task.pageUrl);
-      return page?.path
-        ? `${pathname}?tab=readable&page=${encodeURIComponent(page.path)}`
-        : null;
-    }
-    if (task.sourceType === 'geo-signal') return `${pathname}?tab=recommendable`;
-    if (task.sourceType === 'crawler-audit') return `${pathname}?tab=setup`;
-    return null;
-  })();
+  const sourceHref = taskSourceHref(task, pathname, pages);
 
   const isOpen = task.status === 'open';
   const isChecked = task.status === 'done' || task.status === 'verified';

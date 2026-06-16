@@ -77,11 +77,14 @@ export function SiteDetailClient({
     return generations.map((g) => (g.id === liveGeneration.id ? { ...g, ...liveGeneration } : g));
   }, [generations, liveGeneration]);
 
+  // Always show the most recent succeeded generation (falling back to the newest of
+  // any status). Derived — not frozen in state — so once a refresh completes and
+  // router.refresh() brings in the new generation, the pages rail re-points to it and
+  // refetches the manifest. Pinning this in useState meant the rail kept showing the
+  // old manifest until a full browser reload remounted the component.
   const latest = mergedGenerations[0] ?? null;
   const latestSucceeded = mergedGenerations.find((g) => g.status === 'succeeded') ?? null;
-  const defaultSelectedId = latestSucceeded?.id ?? latest?.id ?? null;
-  const [selectedId] = useState<number | null>(defaultSelectedId as number | null);
-  const selected = mergedGenerations.find((g) => g.id === selectedId) ?? null;
+  const selected = latestSucceeded ?? latest;
 
   // Register the AppShell right-rail column, full-width page header, and sidebar slot.
   useEffect(() => {

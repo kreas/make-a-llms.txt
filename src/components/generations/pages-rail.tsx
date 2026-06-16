@@ -8,8 +8,9 @@ import {
   searchFeature,
 } from '@headless-tree/core';
 import { useTree } from '@headless-tree/react';
-import { FileText, Search } from 'lucide-react';
+import { FileText, Search, RefreshCw } from 'lucide-react';
 import { Tree, TreeItem, TreeItemLabel } from '@/components/ui/tree';
+import { cn } from '@/lib/utils';
 import { usePageWorkspace } from './page-workspace-context';
 import {
   buildPageTreeData,
@@ -31,7 +32,7 @@ function StatusDot({ status }: { status: 'ok' | 'failed' | 'skipped' }) {
 }
 
 export function PagesRail() {
-  const { pages, manifestPending, selectedPath, setSelectedPath } = usePageWorkspace();
+  const { pages, manifestPending, selectedPath, setSelectedPath, onRefresh, isRefreshing } = usePageWorkspace();
   const data = useMemo(() => buildPageTreeData(pages), [pages]);
   const expanded = useMemo(() => initialExpandedIds(data, selectedPath), [data, selectedPath]);
   const treeKey = useMemo(() => Object.keys(data).join('|'), [data]);
@@ -42,7 +43,21 @@ export function PagesRail() {
       <aside className="flex min-h-0 flex-1 flex-col rounded-2xl border border-hairline bg-surface-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
           <span className="caption-uppercase text-muted-strong">Pages</span>
-          <span className="text-xs text-muted-strong">{pages.length}</span>
+          <div className="flex items-center gap-1.5">
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title={isRefreshing ? 'Refresh running…' : 'Refresh sitemap'}
+                className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-strong transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} aria-hidden="true" />
+                <span className="sr-only">Refresh sitemap</span>
+              </button>
+            )}
+            <span className="text-xs text-muted-strong">{pages.length}</span>
+          </div>
         </div>
       {manifestPending ? (
         <p className="px-2 py-6 text-sm text-muted-strong">Loading pages…</p>

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { CitationsScoreCard } from './citations-score-card';
 import { CitationsHistoryList } from './citations-history-list';
@@ -14,58 +14,14 @@ import {
 import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
 import { AddTaskButton } from '@/components/tasks/add-task-button';
-
-const CHECK_LABEL: Record<string, string> = {
-  'h1-present': 'H1 present',
-  'heading-hierarchy': 'Heading hierarchy clean',
-  'meta-description': 'Meta description (120-160 chars)',
-  'canonical': 'Canonical tag',
-  'schema-type': 'Schema.org type',
-  'schema-fields': 'Required schema fields',
-  'answer-position': 'Answer in first 100 words',
-  'entity-first-paragraph': 'Entity in first paragraph',
-  'question-h2s': 'Question-style H2s',
-  'lists-tables': 'Lists or tables present',
-  'definitions': 'Definition pattern in opening',
-  'freshness': 'Recently updated',
-  'readability': 'Reading level grade 8-10',
-  'named-entities': 'Named entities disambiguated',
-  'internal-links': 'Internal links to related pages',
-  'paragraph-length': 'Paragraphs are passage-sized',
-  'section-chunking': 'Sections are well-chunked',
-};
-
-type AuditResults = {
-  score: number;
-  tier: 'poor' | 'fair' | 'good' | 'excellent';
-  pageTitle: string | null;
-  checks: { id: string; passed: boolean; score: number; weight: number; evidence: string[]; recommendation: string | null }[];
-};
-
-type Audit = {
-  id: string;
-  pageUrl: string;
-  status: 'succeeded' | 'failed';
-  score: number | null;
-  tier: 'poor' | 'fair' | 'good' | 'excellent' | null;
-  fetchedAt: string;
-  errorReason: string | null;
-  errorMessage: string | null;
-  results: AuditResults | null;
-};
+import { CHECK_LABEL } from '@/lib/citation-audit/labels';
+import { useCitationAuditHistory, type CitationAudit } from './use-citation-audit-history';
 
 export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: string; pageUrl: string; onBack?: () => void }) {
   const qc = useQueryClient();
   const [viewingId, setViewingId] = useState<string | null>(null);
 
-  const history = useQuery({
-    queryKey: ['citation-audits', 'history', siteUid, pageUrl],
-    queryFn: async (): Promise<{ audits: Audit[] }> => {
-      const res = await fetch(`/api/sites/${siteUid}/citation-audits?pageUrl=${encodeURIComponent(pageUrl)}&limit=10`);
-      if (!res.ok) throw new Error('Failed to load history');
-      return res.json();
-    },
-  });
+  const history = useCitationAuditHistory(siteUid, pageUrl);
 
   const audits = history.data?.audits ?? [];
   const current = audits.find((a) => a.id === viewingId) ?? audits[0];
@@ -78,7 +34,7 @@ export function CitationsPageDetail({ siteUid, pageUrl, onBack }: { siteUid: str
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error?.message ?? 'Audit failed');
-      return body.audit as Audit;
+      return body.audit as CitationAudit;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['citation-audits', 'history', siteUid, pageUrl] });

@@ -3,8 +3,8 @@
 import { RadialBar, RadialBarChart, PolarAngleAxis } from 'recharts';
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart';
 import { CitationsTierPill } from './citations-tier-pill';
-
-type Tier = 'excellent' | 'good' | 'fair' | 'poor';
+import { CATEGORIES, aggregateCategory } from '@/lib/citation-audit/labels';
+import type { Tier } from '@/lib/citation-audit/types';
 
 export type ScoreCardCheck = {
   id: string;
@@ -21,45 +21,12 @@ type Props = {
   checks: ScoreCardCheck[];
 };
 
-type Category = { key: string; label: string; checkIds: string[] };
-
-const CATEGORIES: readonly Category[] = [
-  {
-    key: 'structure',
-    label: 'Structure',
-    checkIds: ['h1-present', 'heading-hierarchy', 'lists-tables', 'question-h2s'],
-  },
-  {
-    key: 'answer-quality',
-    label: 'Answer quality',
-    checkIds: ['answer-position', 'entity-first-paragraph', 'definitions', 'readability'],
-  },
-  {
-    key: 'metadata-schema',
-    label: 'Metadata & schema',
-    checkIds: ['meta-description', 'canonical', 'schema-type', 'schema-fields'],
-  },
-  {
-    key: 'authority-freshness',
-    label: 'Authority & freshness',
-    checkIds: ['named-entities', 'internal-links', 'freshness'],
-  },
-] as const;
-
 const TIER_FILL: Record<Tier, string> = {
   poor: 'var(--color-destructive)',
   fair: 'var(--color-body)',
   good: 'var(--color-ink)',
   excellent: 'var(--color-semantic-success)',
 };
-
-function aggregateCategory(checks: ScoreCardCheck[], ids: string[]) {
-  const inCat = checks.filter((c) => ids.includes(c.id));
-  const totalWeight = inCat.reduce((a, c) => a + c.weight, 0);
-  if (totalWeight === 0) return { score: 0, totalWeight: 0 };
-  const weightedSum = inCat.reduce((a, c) => a + c.score * c.weight, 0);
-  return { score: Math.round(weightedSum / totalWeight), totalWeight };
-}
 
 export function CitationsScoreCard({ score, tier, failingCount, totalCount, checks }: Props) {
   const chartConfig = { score: { label: 'Score', color: TIER_FILL[tier] } } satisfies ChartConfig;

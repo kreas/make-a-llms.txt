@@ -1,19 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, RefreshCw, Sparkles } from 'lucide-react';
+import { FileText, RefreshCw, Sparkles, MoreVertical } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { TabPanel } from '@/components/layout/tab-panel';
 import { PagesPreview } from './pages-preview';
 import { CitationsPageDetail } from '../citations/citations-page-detail';
+import { useCitationAuditHistory } from '../citations/use-citation-audit-history';
 import { usePageWorkspace } from './page-workspace-context';
 import { usePageMarkdown } from './use-page-markdown';
+import { buildAuditReport } from '@/lib/citation-audit/report';
+import { auditReportToMarkdown } from '@/lib/citation-audit/report-markdown';
+import { downloadAuditReportPdf } from '@/lib/citation-audit/report-pdf';
 import {
   Menubar,
   MenubarMenu,
   MenubarTrigger,
   MenubarContent,
   MenubarItem,
+  MenubarSeparator,
 } from '@/components/ui/menubar';
 
 function Placeholder({ children }: { children: React.ReactNode }) {
@@ -30,6 +35,7 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
   const { generation, pages, selectedPath } = usePageWorkspace();
   const [subTab, setSubTab] = useState<'citation-audit' | 'markdown'>('citation-audit');
   const [copyingState, setCopyingState] = useState(false);
+  const [reportCopied, setReportCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [formatting, setFormatting] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -37,6 +43,11 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
   const markdownQuery = usePageMarkdown(generation?.uid, selectedPath);
 
   const selectedPage = pages.find((p) => p.path === selectedPath);
+
+  // Latest audit for the selected page — shares the cache with CitationsPageDetail.
+  const auditHistory = useCitationAuditHistory(siteId, selectedPage?.url ?? null);
+  const latestAudit = auditHistory.data?.audits?.[0] ?? null;
+  const report = latestAudit ? buildAuditReport(latestAudit) : null;
 
   if (!generation) {
     return (
@@ -84,6 +95,17 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
     await navigator.clipboard.writeText(markdownQuery.data);
     setCopyingState(true);
     setTimeout(() => setCopyingState(false), 2000);
+  };
+
+  const handleCopyReport = async () => {
+    if (!report) return;
+    await navigator.clipboard.writeText(auditReportToMarkdown(report));
+    setReportCopied(true);
+    setTimeout(() => setReportCopied(false), 2000);
+  };
+
+  const handleDownloadReportPdf = () => {
+    if (report) downloadAuditReportPdf(report);
   };
 
   const handleRefresh = async () => {
@@ -139,7 +161,7 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
             <div className="flex flex-col gap-6">
               {/* Menubar Box */}
               <div className="flex items-center bg-[#f3efdb] p-1 rounded-lg border border-hairline w-full">
-                <Menubar className="border-0 bg-transparent p-0 shadow-none">
+                <Menubar className="w-full border-0 bg-transparent p-0 shadow-none">
                   <MenubarMenu>
                     <MenubarTrigger
                       isActive={subTab === 'citation-audit'}
@@ -157,10 +179,28 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
                     </MenubarTrigger>
                   </MenubarMenu>
                   <MenubarMenu>
-                    <MenubarTrigger className="gap-1.5 cursor-pointer">
-                      Export <span className="text-[10px] text-muted-strong">▼</span>
+                    <MenubarTrigger
+                      aria-label="Export"
+                      className="ml-auto gap-1.5 cursor-pointer px-2"
+                    >
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
                     </MenubarTrigger>
-                    <MenubarContent className="bg-surface-card border border-hairline shadow-md p-1 rounded-lg min-w-[160px]">
+                    <MenubarContent align="end" className="bg-surface-card border border-hairline shadow-md p-1 rounded-lg min-w-[180px]">
+                      <MenubarItem
+                        disabled={!report}
+                        onClick={handleCopyReport}
+                        className="cursor-pointer flex items-center justify-between text-muted-strong focus:text-ink focus:bg-canvas-soft py-1.5 px-3 rounded-md transition-colors"
+                      >
+                        {reportCopied ? 'Copied!' : 'Copy report'}
+                      </MenubarItem>
+                      <MenubarItem
+                        disabled={!report}
+                        onClick={handleDownloadReportPdf}
+                        className="cursor-pointer flex items-center justify-between text-muted-strong focus:text-ink focus:bg-canvas-soft py-1.5 px-3 rounded-md transition-colors"
+                      >
+                        Download report PDF
+                      </MenubarItem>
+                      <MenubarSeparator />
                       <MenubarItem
                         disabled={!markdownQuery.data}
                         onClick={handleSavePage}
@@ -169,17 +209,17 @@ export function ReadablePanel({ siteId }: { siteId: string }) {
                         Save page.md
                       </MenubarItem>
                       <MenubarItem
-                        onClick={handleExportAll}
-                        className="cursor-pointer flex items-center justify-between text-muted-strong focus:text-ink focus:bg-canvas-soft py-1.5 px-3 rounded-md transition-colors"
-                      >
-                        Export all pages
-                      </MenubarItem>
-                      <MenubarItem
                         disabled={!markdownQuery.data}
                         onClick={handleCopyMarkdown}
                         className="cursor-pointer flex items-center justify-between text-muted-strong focus:text-ink focus:bg-canvas-soft py-1.5 px-3 rounded-md transition-colors"
                       >
                         {copyingState ? 'Copied!' : 'Copy markdown'}
+                      </MenubarItem>
+                      <MenubarItem
+                        onClick={handleExportAll}
+                        className="cursor-pointer flex items-center justify-between text-muted-strong focus:text-ink focus:bg-canvas-soft py-1.5 px-3 rounded-md transition-colors"
+                      >
+                        Export all pages
                       </MenubarItem>
                     </MenubarContent>
                   </MenubarMenu>

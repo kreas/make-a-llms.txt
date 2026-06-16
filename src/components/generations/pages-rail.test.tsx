@@ -9,6 +9,8 @@ let ctx: {
   manifestPending: boolean;
   selectedPath: string | null;
   setSelectedPath: (p: string) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 };
 vi.mock('./page-workspace-context', () => ({
   usePageWorkspace: () => ctx,
@@ -64,5 +66,24 @@ describe('PagesRail', () => {
     render(<PagesRail />);
     fireEvent.change(screen.getByLabelText(/filter pages/i), { target: { value: 'zzz' } });
     expect(screen.getByText(/no pages match/i)).toBeInTheDocument();
+  });
+
+  it('renders the refresh button when onRefresh is provided', () => {
+    const onRefresh = vi.fn();
+    setCtx({ pages: [], onRefresh });
+    render(<PagesRail />);
+    expect(screen.getByRole('button', { name: /refresh sitemap/i })).toBeInTheDocument();
+  });
+
+  it('hides the refresh button when onRefresh is not provided', () => {
+    setCtx({ pages: [] });
+    render(<PagesRail />);
+    expect(screen.queryByRole('button', { name: /refresh sitemap/i })).toBeNull();
+  });
+
+  it('disables the refresh button and spins when isRefreshing', () => {
+    setCtx({ pages: [], onRefresh: vi.fn(), isRefreshing: true });
+    render(<PagesRail />);
+    expect(screen.getByRole('button', { name: /refresh sitemap/i })).toBeDisabled();
   });
 });

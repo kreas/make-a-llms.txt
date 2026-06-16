@@ -294,7 +294,12 @@ export function SiteDetailClient({
         sidebarMount
       )}
 
-      <PageWorkspaceProvider generation={selected} selectParams={SELECT_PAGE_PARAMS}>
+      <PageWorkspaceProvider
+        generation={selected}
+        selectParams={SELECT_PAGE_PARAMS}
+        onRefresh={() => regenerate.mutate()}
+        isRefreshing={regenerate.isPending || !!latest?.status.match(/^(pending|running)$/)}
+      >
         {/* Content card — mirrors the pages rail card style */}
         <div className="rounded-2xl border border-hairline bg-surface-card shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
           <div className="p-4 md:p-6 min-h-[400px]">

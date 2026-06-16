@@ -16,6 +16,8 @@ type Ctx = {
   manifestPending: boolean;
   selectedPath: string | null;
   setSelectedPath: (path: string) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 };
 
 const PageWorkspaceContext = createContext<Ctx | null>(null);
@@ -24,11 +26,15 @@ const PAGE_PARAM = 'page';
 export function PageWorkspaceProvider({
   generation,
   selectParams,
+  onRefresh,
+  isRefreshing,
   children,
 }: {
   generation: Generation | null;
   /** Extra query params written alongside ?page= on selection (e.g. force a tab). */
   selectParams?: Record<string, string>;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -73,8 +79,8 @@ export function PageWorkspaceProvider({
   );
 
   const value = useMemo<Ctx>(
-    () => ({ generation, pages, manifestPending: q.isPending, selectedPath, setSelectedPath }),
-    [generation, pages, q.isPending, selectedPath, setSelectedPath],
+    () => ({ generation, pages, manifestPending: q.isPending, selectedPath, setSelectedPath, onRefresh, isRefreshing }),
+    [generation, pages, q.isPending, selectedPath, setSelectedPath, onRefresh, isRefreshing],
   );
 
   return <PageWorkspaceContext.Provider value={value}>{children}</PageWorkspaceContext.Provider>;
